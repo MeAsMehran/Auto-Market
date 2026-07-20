@@ -39,6 +39,11 @@ class CustomUserManager(BaseUserManager):
         phone = self.normalize_phone_number(phone)
         return self.create_user(phone=phone, email=email, password=password, **extra_fields)
     
+
+    def get_by_natural_key(self, phone):
+        return self.get(phone=self.normalize_phone_number(phone))
+
+
     def normalize_phone_number(self, phone):
         """
             Normalize Iranian phone numbers to local 0XXXXXXXXX format.
