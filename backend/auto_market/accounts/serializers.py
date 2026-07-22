@@ -6,12 +6,20 @@ from .models import User
 from .validations.validate_user_register import validate as register_validate
 class UserRegisterSerializer(serializers.ModelSerializer):
 
+    phone = serializers.CharField(
+        max_length=15,  # Allow longer input before normalization
+        error_messages={
+            'max_length': 'شماره تلفن نباید بیشتر از 13 کاراکتر باشد.'
+        }
+    )
+    
+
     password = serializers.CharField(min_length=8, write_only=True, required=True)
     confirm_password = serializers.CharField(min_length=8, write_only=True, required=True)
 
     class Meta:
         model = User 
-        fields = ('phone', 'name', 'email', 'password', )    # we don't need the is_active and is_staff and date_joined -> the model initialize it automatically.
+        fields = ('phone', 'name', 'email', 'password', 'confirm_password')    # we don't need the is_active and is_staff and date_joined -> the model initialize it automatically.
 
     def validate(self, attrs):
         return register_validate(attrs)
@@ -35,7 +43,7 @@ class UserLoginSerializer(serializers.Serializer):
         return login_validate(attrs) 
 
     
-class UserSerializer(serializers.Serializer):
+class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User

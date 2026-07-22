@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
 
     # my apps:
@@ -70,6 +71,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+# Ensure CORS allows credentials
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
 CORS_ALLOW_CREDENTIALS = True
 
@@ -166,19 +168,22 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.AllowAny',
     ),
 
-    'DEFAULT_SCHEMA_CLASS': (
-        'drf_spectacular.openapi.AutoSchema',
-    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',   # this is for swagger
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(days=int(os.getenv('ACCESS_TOKEN_LIFETIME', 1))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME', 30))),
-    # "ROTATE_REFRESH_TOKENS": False,
-    # "BLACKLIST_AFTER_ROTATION": False,
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME', 15))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME', 7))),
+
+    """
+        How this helps: Every time a refresh token is used to get a new access token, the old refresh token is blacklisted, and a brand-new refresh token is issued. 
+        If a stolen refresh token is reused, Django notices the reuse, invalidates the entire family of tokens, and forces a re-login.
+    """
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
     # "UPDATE_LAST_LOGIN": False,
 
     # "ALGORITHM": "HS256",
@@ -218,7 +223,36 @@ SIMPLE_JWT = {
     # "CHECK_REVOKE_TOKEN": False,
     # "REVOKE_TOKEN_CLAIM": "hash_password",
     # "CHECK_USER_IS_ACTIVE": True,
+
+    # NEW: Cookie settings
+    "AUTH_COOKIE": "refresh_token",           # Cookie name
+    "AUTH_COOKIE_DOMAIN": None,               # Set in production (e.g., ".yourdomain.com")
+    "AUTH_COOKIE_SECURE": not DEBUG,          # True in production (HTTPS only)
+    "AUTH_COOKIE_HTTP_ONLY": True,            # JavaScript cannot access
+    "AUTH_COOKIE_PATH": "/",                  # Cookie path
+    "AUTH_COOKIE_SAMESITE": "Lax",            # CSRF protection (Lax for cross-site nav)
+
+    # NEW: Read refresh token from cookie instead of body
+    "AUTH_COOKIE_REFRESH_TOKEN": "refresh_token",
 }
+
+# Add CSRF settings for cookie-based auth
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173').split(',')
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

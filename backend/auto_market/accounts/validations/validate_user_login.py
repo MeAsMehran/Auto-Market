@@ -15,16 +15,24 @@ def validate(data):
     if not password:
         raise ValidationError("Please Enter Your Password.", status.HTTP_400_BAD_REQUEST)
 
-    phone = User.objects.normalize_phone_number(phone)
+    try:
+        phone = User.objects.normalize_phone_number(phone)
+    except ValueError as e:
+        raise ValidationError(str(e), status.HTTP_400_BAD_REQUEST)
+
+    # Check length after normalization
+    if len(phone) != 11:
+        raise ValidationError("شماره تلفن باید ۱۱ رقم باشد. مثال: ۰۹۱۲۳۴۵۶۷۸۹", status.HTTP_400_BAD_REQUEST)
+
     data['phone'] = phone
 
     user = User.objects.filter(phone=phone).first()
 
     if not user:
-        raise AuthenticationFailed("User not found or invalid password", )
+        raise AuthenticationFailed("شماره تلفن یا رمز غلط است!", )
 
     if not user.check_password(password):
-        raise AuthenticationFailed("User not found or invalid password")
+        raise AuthenticationFailed("شماره تلفن یا رمز غلط است!")
 
     return {'user' : user, 'phone' : phone}
 

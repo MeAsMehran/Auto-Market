@@ -14,7 +14,7 @@ def validate(data):
 
     date_joined = data.get('date_joined')
     is_active = data.get('is_active')
-    is_staff = data.get('is_active')
+    is_staff = data.get('is_staff')
 
     password = data.get('password')
     confirm_password = data.get('confirm_password')
@@ -39,7 +39,16 @@ def validate(data):
     # if password is None or confirm_password is None:
     #     raise ValidationError("Please Enter Password and confirm_password", status.HTTP_400_BAD_REQUEST)
     
-    # Normalizing the phone format(by db saved the normalized phone so i should check the both phone numbers as normalized phone):
+    # Normalizing the phone format (catch ValueError)
+    try:
+        phone = User.objects.normalize_phone_number(phone)
+    except ValueError as e:
+        raise ValidationError(str(e), status.HTTP_400_BAD_REQUEST)
+
+    # Check length after normalization (Iranian mobile = 11 digits: 09xxxxxxxxx)
+    if len(phone) != 11:
+        raise ValidationError("شماره تلفن باید ۱۱ رقم باشد. مثال: ۰۹۱۲۳۴۵۶۷۸۹", status.HTTP_400_BAD_REQUEST)
+
     phone = User.objects.normalize_phone_number(phone)
     data['phone'] = phone
     user = User.objects.filter(phone=phone).first()

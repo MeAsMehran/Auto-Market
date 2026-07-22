@@ -23,32 +23,46 @@ export default function Login() {
     setErrors({});
     setGeneralError('');
     setLoading(true);
+
+    // Safety timeout: force reset loading after 10s no matter what
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+      setGeneralError('Request timed out. Please try again.');
+    }, 10000);
+
     try {
       await login(phone, password);
+      clearTimeout(safetyTimer);
       navigate('/');
     } catch (err) {
+      clearTimeout(safetyTimer);
       if (err.response?.data) {
         const data = err.response.data;
+        const status = err.response.status;
 
-        // Field-specific errors
-        if (data.phone || data.password || data.non_field_errors) {
+        if (status === 401 || status === 403) {
+          setGeneralError(data.detail || 'اطلاعات وارد شده صحیح نیست. لطفاً دوباره تلاش کنید.');
+        } else if (status === 400) {
           setErrors({
             phone: data.phone?.[0] || '',
             password: data.password?.[0] || '',
           });
-          // Non-field errors
-          if (data.non_field_errors) {
-            setGeneralError(data.non_field_errors[0]);
-          } else if (data.detail) {
-            setGeneralError(data.detail);
-          }
+          if (data.non_field_errors) setGeneralError(data.non_field_errors[0]);
+          else if (data.detail) setGeneralError(data.detail);
+        } else if (status === 500 && data.detail) {
+          const detail = data.detail;
+          if (detail.includes('phone') || detail.includes('format') || detail.includes('Invalid')) {
+            setErrors({ phone: 'فرمت شماره تلفن نامعتبر است. مثال: ۰۹۱۲۳۴۵۶۷۸۹' });
+          } else setGeneralError(detail);
         } else if (data.detail) {
           setGeneralError(data.detail);
         } else {
-          setGeneralError('اطلاعات وارد شده صحیح نیست. لطفاً دوباره تلاش کنید.');
+          setGeneralError('خطای سرور. لطفاً دوباره تلاش کنید.');
         }
+      } else if (err.request) {
+        setGeneralError('خطای شبکه. سرور در دسترس نیست.');
       } else {
-        setGeneralError('خطای شبکه. لطفاً دوباره تلاش کنید.');
+        setGeneralError('خطای ناشناخته. لطفاً دوباره تلاش کنید.');
       }
     } finally {
       setLoading(false);

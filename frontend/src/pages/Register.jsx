@@ -55,29 +55,45 @@ export default function Register() {
     } catch (err) {
       if (err.response?.data) {
         const data = err.response.data;
+        const status = err.response.status;
 
-        // Field-specific errors
-        const fieldErrors = {};
-        if (data.name) fieldErrors.name = data.name[0];
-        if (data.phone) fieldErrors.phone = data.phone[0];
-        if (data.password) fieldErrors.password = data.password[0];
-        if (data.confirm_password) fieldErrors.confirmPassword = data.confirm_password[0];
-        if (data.email) fieldErrors.email = data.email[0];
+        if (status === 400) {
+          const fieldErrors = {};
+          if (data.name) fieldErrors.name = data.name[0];
+          if (data.phone) fieldErrors.phone = data.phone[0];
+          if (data.password) fieldErrors.password = data.password[0];
+          if (data.confirm_password) fieldErrors.confirmPassword = data.confirm_password[0];
+          if (data.email) fieldErrors.email = data.email[0];
 
-        if (Object.keys(fieldErrors).length > 0) {
-          setErrors(fieldErrors);
+          if (Object.keys(fieldErrors).length > 0) {
+            setErrors(fieldErrors);
+          }
+
+          if (data.non_field_errors) {
+            setGeneralError(data.non_field_errors[0]);
+          } else if (data.detail) {
+            setGeneralError(data.detail);
+          } else if (Object.keys(fieldErrors).length === 0) {
+            setGeneralError('ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.');
+          }
         }
-
-        // Non-field errors
-        if (data.non_field_errors) {
-          setGeneralError(data.non_field_errors[0]);
-        } else if (data.detail) {
+        else if (status === 500 && data.detail) {
+          const detail = data.detail;
+          if (detail.includes('phone') || detail.includes('format') || detail.includes('Invalid')) {
+            setErrors({ phone: 'فرمت شماره تلفن نامعتبر است. مثال: ۰۹۱۲۳۴۵۶۷۸۹' });
+          } else {
+            setGeneralError(detail);
+          }
+        }
+        else if (data.detail) {
           setGeneralError(data.detail);
-        } else if (Object.keys(fieldErrors).length === 0) {
-          setGeneralError('ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.');
+        } else {
+          setGeneralError('خطای سرور. لطفاً دوباره تلاش کنید.');
         }
+      } else if (err.request) {
+        setGeneralError('خطای شبکه. سرور در دسترس نیست.');
       } else {
-        setGeneralError('خطای شبکه. لطفاً دوباره تلاش کنید.');
+        setGeneralError('خطای ناشناخته. لطفاً دوباره تلاش کنید.');
       }
     } finally {
       setLoading(false);
