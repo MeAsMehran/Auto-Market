@@ -13,7 +13,6 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         }
     )
     
-
     password = serializers.CharField(min_length=8, write_only=True, required=True)
     confirm_password = serializers.CharField(min_length=8, write_only=True, required=True)
 
@@ -47,7 +46,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'name', 'phone', 'date_joined', )
+        fields = ('id', 'name', 'phone', 'date_joined', 'email')
         read_only_fields = fields  # all fields read-only
 
 
