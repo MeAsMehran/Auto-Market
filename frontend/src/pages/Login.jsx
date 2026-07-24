@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Car, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Login() {
@@ -9,18 +9,61 @@ export default function Login() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [generalError, setGeneralError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const clearError = (field) => {
+    setErrors(prev => ({ ...prev, [field]: '' }));
+    if (generalError) setGeneralError('');
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setErrors({});
+    setGeneralError('');
     setLoading(true);
+
+    // Safety timeout: force reset loading after 10s no matter what
+    const safetyTimer = setTimeout(() => {
+      setLoading(false);
+      setGeneralError('Request timed out. Please try again.');
+    }, 10000);
+
     try {
       await login(phone, password);
+      clearTimeout(safetyTimer);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.detail || 'اطلاعات وارد شده صحیح نیست. لطفاً دوباره تلاش کنید.');
+      clearTimeout(safetyTimer);
+      if (err.response?.data) {
+        const data = err.response.data;
+        const status = err.response.status;
+
+        if (status === 401 || status === 403) {
+          setGeneralError(data.detail || 'اطلاعات وارد شده صحیح نیست. لطفاً دوباره تلاش کنید.');
+        } else if (status === 400) {
+          setErrors({
+            phone: data.phone?.[0] || '',
+            password: data.password?.[0] || '',
+          });
+          if (data.non_field_errors) setGeneralError(data.non_field_errors[0]);
+          else if (data.detail) setGeneralError(data.detail);
+        } else if (status === 500 && data.detail) {
+          const detail = data.detail;
+          if (detail.includes('phone') || detail.includes('format') || detail.includes('Invalid')) {
+            setErrors({ phone: 'فرمت شماره تلفن نامعتبر است. مثال: ۰۹۱۲۳۴۵۶۷۸۹' });
+          } else setGeneralError(detail);
+        } else if (data.detail) {
+          setGeneralError(data.detail);
+        } else {
+          setGeneralError('خطای سرور. لطفاً دوباره تلاش کنید.');
+        }
+      } else if (err.request) {
+        setGeneralError('خطای شبکه. سرور در دسترس نیست.');
+      } else {
+        setGeneralError('خطای ناشناخته. لطفاً دوباره تلاش کنید.');
+      }
     } finally {
       setLoading(false);
     }
@@ -62,9 +105,10 @@ export default function Login() {
           <h2 className="text-2xl font-bold text-text-primary mb-1">ورود</h2>
           <p className="text-text-secondary mb-8">خوش برگشتی! لطفاً اطلاعات خود را وارد کنید.</p>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6">
-              {error}
+          {generalError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6 flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {generalError}
             </div>
           )}
 
@@ -74,11 +118,20 @@ export default function Login() {
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => { setPhone(e.target.value); clearError('phone'); }}
                 placeholder="۰۹۱۲ ۳۴۵ ۶۷۸۹"
-                className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors
+${
+                  errors.phone ? 'border-red-400 focus:border-red-500' : 'border-border focus:border-brand-500'
+                }`}
                 required
               />
+              {errors.phone && (
+                <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.phone}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1.5">رمز عبور</label>
@@ -86,9 +139,12 @@ export default function Login() {
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => { setPassword(e.target.value); clearError('password'); }}
                   placeholder="••••••••"
-                  className="w-full px-4 py-3 pl-11 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                  className={`w-full px-4 py-3 pl-11 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20
+transition-colors ${
+                    errors.password ? 'border-red-400 focus:border-red-500' : 'border-border focus:border-brand-500'
+                  }`}
                   required
                 />
                 <button
@@ -99,6 +155,12 @@ export default function Login() {
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              {errors.password && (
+                <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3" />
+                  {errors.password}
+                </p>
+              )}
             </div>
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 text-text-secondary cursor-pointer">
@@ -110,7 +172,8 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-semibold rounded-xl transition-colors flex items-center
+justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? 'در حال ورود...' : 'ورود'}

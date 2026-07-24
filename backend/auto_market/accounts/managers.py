@@ -39,6 +39,11 @@ class CustomUserManager(BaseUserManager):
         phone = self.normalize_phone_number(phone)
         return self.create_user(phone=phone, email=email, password=password, **extra_fields)
     
+
+    def get_by_natural_key(self, phone):
+        return self.get(phone=self.normalize_phone_number(phone))
+
+
     def normalize_phone_number(self, phone):
         """
             Normalize Iranian phone numbers to local 0XXXXXXXXX format.
@@ -50,7 +55,10 @@ class CustomUserManager(BaseUserManager):
         """
         # Remove all non-digit characters
         digits = ''.join(filter(str.isdigit, str(phone)))
-        
+
+        if len(phone) != 11 and len(phone)!= 13 and len(phone) != 10:
+            raise ValueError(_("شماره تلفن باید ۱۱ رقم باشد. مثال: ۰۹۱۲۳۴۵۶۷۸۹"))
+
         # Add leading 0 if missing
         if digits.startswith("98"):       # +98XXXXXXXXX
             digits = "0" + digits[2:]
@@ -59,6 +67,6 @@ class CustomUserManager(BaseUserManager):
         elif digits.startswith("0") and len(digits) == 11:  # 091XXXXXXXX
             pass
         else:
-            raise ValueError(_("Invalid Iranian phone number format"))
+            raise ValueError(_("از فرمت درست استفاده کنید."))
 
         return digits
