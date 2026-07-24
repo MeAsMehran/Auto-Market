@@ -129,8 +129,8 @@ class LoginValidationTests(SimpleTestCase):
         with self.assertRaises(AuthenticationFailed):
             login_validate({'phone': '09929132029', 'password': 'wrongpass'})
 
-    @patch('accounts.validations.validate_user_login.User.objects.normalize_phone_number')
-    @patch('accounts.validations.validate_user_login.User.objects.filter')
+    @patch.object(User.objects, 'normalize_phone_number')
+    @patch.object(User.objects, 'filter')
     def test_valid_login(self, mock_filter, mock_normalize):
         mock_normalize.return_value = '09929132029'
         mock_user = MagicMock()
