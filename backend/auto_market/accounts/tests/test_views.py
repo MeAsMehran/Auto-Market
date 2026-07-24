@@ -193,11 +193,41 @@ class CookieTokenRefreshViewTests(APITestCase):
         self.assertIn('detail', response.data)
 
 
+class UpdateMeViewTests(APITestCase):
 
+    def setUp(self) -> None:
+        self.url = reverse('update_me')
+        self.user = User.objects.create_user(phone='09929132029', name='Test User', password='mehrannn')
+        self.user.is_active = True
+        self.user.save(update_fields=['is_active'])
 
+    def test_update_name(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(self.url, {'name' : "New Name"}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], "New Name")
 
+    def test_update_email(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(self.url, {'email' : 'new@gmail.com'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['email'], 'new@gmail.com')
 
+    def test_update_both(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(self.url, {'name' : "Ali", 'email' : 'ali@test.com'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['name'], 'Ali')
+        self.assertEqual(response.data['email'], 'ali@test.com')
 
+    def test_update_unauthorized(self):
+        response = self.client.patch(self.url, {'name': 'Hacker'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_invalid_email(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.patch(self.url, {'email': 'not-an-email'}, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 
