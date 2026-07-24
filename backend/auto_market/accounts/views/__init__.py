@@ -1,11 +1,11 @@
 
 from .auth import RegisterView, LoginView
-from .profile import MeView
+from .profile import MeView, UpdateMeView
 from .token import CookieTokenRefreshView, LogoutView
 
 __all__ = [
     'RegisterView', 'LoginView',
-    'MeView',
+    'MeView', 'UpdateMeView',
     'CookieTokenRefreshView', 'LogoutView',
 ]
 

@@ -50,6 +50,11 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = fields  # all fields read-only
 
 
+class UserUpdateSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=100, )
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
+
+
 
 
 
