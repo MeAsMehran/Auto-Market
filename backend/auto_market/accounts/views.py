@@ -1,13 +1,13 @@
 from django.conf import settings
+from datetime import timedelta
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import authentication, status
+from rest_framework import status
 
 
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenRefreshView
-from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.exceptions import TokenError
 
 from .serializers import UserRegisterSerializer, UserLoginSerializer, UserSerializer
 
@@ -29,7 +29,7 @@ def set_refresh_cookie(response, refresh_token):
         samesite=settings.SIMPLE_JWT.get('AUTH_COOKIE_SAMESITE', 'Lax'),
         path=settings.SIMPLE_JWT.get('AUTH_COOKIE_PATH', '/'),
         domain=settings.SIMPLE_JWT.get('AUTH_COOKIE_DOMAIN', None),
-        max_age=int(settings.SIMPLE_JWT.get('REFRESH_TOKEN_LIFETIME', 7 * 24 * 60 * 60).total_seconds()),
+        max_age=int(settings.SIMPLE_JWT.get('REFRESH_TOKEN_LIFETIME', timedelta(days=7)).total_seconds()),
     )
     return response
 
@@ -50,7 +50,7 @@ class RegisterView(APIView):
     
     @extend_schema(
         request=UserRegisterSerializer,
-        responses={201: {'access' : 'string'}},
+        responses={201: UserSerializer,}
     )
     def post(self, request):
         serializer = UserRegisterSerializer(data = request.data)
@@ -58,7 +58,7 @@ class RegisterView(APIView):
             user = serializer.save()
             user.is_active = True
             user.save(update_fields=['is_active'])
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
 
 
@@ -66,7 +66,7 @@ class LoginView(APIView):
 
     @extend_schema(
         request=UserLoginSerializer,
-        responses={201: UserLoginSerializer},
+        responses={200: None},  # returns { access, user }
     )
     def post(self, request):
         serializer = UserLoginSerializer(data = request.data)
