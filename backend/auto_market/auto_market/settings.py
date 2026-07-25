@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 import os
 from datetime import timedelta
 import sys
+from decouple import config
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -54,6 +55,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
+    'django_celery_results',
 
     # my apps:
     'accounts.apps.AccountsConfig',
@@ -111,7 +113,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
-
 
 
 # Database
@@ -267,8 +268,28 @@ CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173').split(',')
 
 
+# Redis Cache for OTP storage
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
 
+# Celery with RabbitMQ -> RabbitMQ as Celery broker
+CELERY_BROKER_URL = os.getenv("RABBITMQ_URL", "amqp://localhost")
+CELERY_RESULT_BACKEND = "django-db"
 
+# Celery configuration
+CELERY_BROKER_URL = config("RABBITMQ_URL")
+CELERY_RESULT_BACKEND = ("django-db")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = ("json")
+CELERY_RESULT_SERIALIZER = ("json")
+CELERY_TIMEZONE = "UTC"
 
 
 

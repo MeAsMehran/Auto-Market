@@ -70,3 +70,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError(_("از فرمت درست استفاده کنید."))
 
         return digits
+
+
+
+
