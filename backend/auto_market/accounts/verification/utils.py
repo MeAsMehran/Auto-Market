@@ -1,13 +1,17 @@
 
-import random
-from datetime import timedelta
-from django.utils import timezone
-from django.conf import settings
+# import random
+import secrets
+# from datetime import timedelta
+
+# from django.utils import timezone
+# from django.conf import settings
+from django.core.cache import cache
 
 ####################################
 
 def generate_otp(length=6):     # a parameter with default value of 6
-    return ''.join(str(random.randint(0, 9)) for _ in range(length))
+    return f"{secrets.randbelow(1_000_000):06d}"
+    # return ''.join(str(random.randint(0, 9)) for _ in range(length))
 
 def get_otp_key(email, purpose="phone_change"):
     return f"otp:{purpose}:{email}"

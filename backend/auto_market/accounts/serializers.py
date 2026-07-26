@@ -106,8 +106,10 @@ class ChangePhoneRequestSerializer(serializers.Serializer):
         # Queue Email
         send_otp_email_task.delay(email, otp)
 
-        send_otp(phone, code)
-        return new_otp
+        return {
+            'new_phone': new_phone,
+            'email_sent_to': email,
+        }
 
 
 # Serializer for verifying the phone number change

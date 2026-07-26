@@ -200,8 +200,8 @@ AUTH_USER_MODEL = 'accounts.User'
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME', 15))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME', 7))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES', 15))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME_DAYS', 7))),
 
     """
         How this helps: Every time a refresh token is used to get a new access token, the old refresh token is blacklisted, and a brand-new refresh token is issued. 
@@ -279,10 +279,6 @@ CACHES = {
     }
 }
 
-# Celery with RabbitMQ -> RabbitMQ as Celery broker
-CELERY_BROKER_URL = os.getenv("RABBITMQ_URL", "amqp://localhost")
-CELERY_RESULT_BACKEND = "django-db"
-
 # Celery configuration
 CELERY_BROKER_URL = config("RABBITMQ_URL")
 CELERY_RESULT_BACKEND = ("django-db")
@@ -291,8 +287,8 @@ CELERY_TASK_SERIALIZER = ("json")
 CELERY_RESULT_SERIALIZER = ("json")
 CELERY_TIMEZONE = "UTC"
 
-
-
+# Email configuration:
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'loopdeloop2003@gmail.com')
 
 
 
