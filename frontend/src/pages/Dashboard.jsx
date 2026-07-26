@@ -40,7 +40,7 @@ export default function Dashboard() {
                 { label: 'آگهی‌های من', icon: Car, href: '/my-listings', active: false },
                 { label: 'پیام‌ها', icon: MessageCircle, href: '/chat', active: false },
                 { label: 'علاقه‌مندی‌ها', icon: Heart, href: '#', active: false },
-                { label: 'تنظیمات', icon: Settings, href: '#', active: false },
+                { label: 'تنظیمات', icon: Settings, href: '/settings', active: false },
               ].map((item) => (
                 <Link
                   key={item.label}
