@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Bell, Plus, MessageCircle, ChevronDown, Menu, X, Car, LogOut, User, ClipboardList } from 'lucide-react';
+import { Search, Bell, Plus, MessageCircle, ChevronDown, Menu, X, Car, LogOut, User, ClipboardList, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const cities = ['تهران', 'مشهد', 'کرج', 'اصفهان', 'شیراز', 'تبریز', 'اهواز', 'قم', 'کرمانشاه', 'رشت'];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [city, setCity] = useState('تهران');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
@@ -20,7 +22,7 @@ export default function Navbar() {
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-border shadow-sm">
+    <header className="sticky top-0 z-50 bg-surface border-b border-border shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 gap-4">
           <div className="flex items-center gap-4">
@@ -41,7 +43,7 @@ export default function Navbar() {
               {showCityDropdown && (
                 <>
                   <div className="fixed inset-0 z-10" onClick={() => setShowCityDropdown(false)} />
-                  <div className="absolute top-full mt-1 left-0 w-48 bg-white rounded-xl shadow-lg border border-border py-2 z-20 max-h-72 overflow-y-auto">
+                  <div className="absolute top-full mt-1 left-0 w-48 bg-surface rounded-xl shadow-lg border border-border py-2 z-20 max-h-72 overflow-y-auto">
                     {cities.map((c) => (
                       <button
                         key={c}
@@ -71,6 +73,14 @@ export default function Navbar() {
           </form>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-text-secondary hover:bg-surface-tertiary rounded-xl transition-colors"
+              title={theme === 'dark' ? 'حالت روشن' : 'حالت تاریک'}
+            >
+              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+
             {user ? (
               <>
                 <Link to="/chat" className="p-2 text-text-secondary hover:bg-surface-tertiary rounded-xl transition-colors relative">
@@ -94,7 +104,7 @@ export default function Navbar() {
                   {showUserMenu && (
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
-                      <div className="absolute top-full mt-1 left-0 w-56 bg-white rounded-xl shadow-lg border border-border py-2 z-20">
+                      <div className="absolute top-full mt-1 left-0 w-56 bg-surface rounded-xl shadow-lg border border-border py-2 z-20">
                         <div className="px-4 py-2 border-b border-border">
                           <p className="text-sm font-medium text-text-primary">{user.name || 'کاربر'}</p>
                           <p className="text-xs text-text-tertiary">{user.phone}</p>
@@ -105,7 +115,7 @@ export default function Navbar() {
                         <Link to="/my-listings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-tertiary transition-colors">
                           <ClipboardList className="w-4 h-4" /> آگهی‌های من
                         </Link>
-                        <button onClick={() => { logout(); setShowUserMenu(false); navigate('/'); }} className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors w-full">
+                        <button onClick={() => { logout(); setShowUserMenu(false); navigate('/'); }} className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors w-full">
                           <LogOut className="w-4 h-4" /> خروج
                         </button>
                       </div>
@@ -140,7 +150,7 @@ export default function Navbar() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border bg-white px-4 py-4 space-y-3">
+        <div className="md:hidden border-t border-border bg-surface px-4 py-4 space-y-3">
           <form onSubmit={(e) => { handleSearch(e); setMobileMenuOpen(false); }}>
             <div className="relative">
               <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />

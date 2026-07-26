@@ -56,10 +56,10 @@ export default function CarDetail() {
               />
               {car.images.length > 1 && (
                 <>
-                  <button onClick={prevImage} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-colors">
+                  <button onClick={prevImage} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-surface/90 hover:bg-surface rounded-full flex items-center justify-center shadow-lg transition-colors">
                     <ChevronRight className="w-5 h-5 text-text-primary" />
                   </button>
-                  <button onClick={nextImage} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/90 hover:bg-white rounded-full flex items-center justify-center shadow-lg transition-colors">
+                  <button onClick={nextImage} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-surface/90 hover:bg-surface rounded-full flex items-center justify-center shadow-lg transition-colors">
                     <ChevronLeft className="w-5 h-5 text-text-primary" />
                   </button>
                 </>
@@ -83,7 +83,7 @@ export default function CarDetail() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-border p-6 mb-6">
+          <div className="bg-surface rounded-2xl border border-border p-6 mb-6">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-text-primary leading-tight">{car.title}</h1>
@@ -150,7 +150,7 @@ export default function CarDetail() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-border p-6 mb-6">
+          <div className="bg-surface rounded-2xl border border-border p-6 mb-6">
             <h2 className="text-lg font-bold text-text-primary mb-4">موقعیت مکانی</h2>
             <div className="bg-surface-secondary rounded-xl h-48 flex items-center justify-center text-text-tertiary">
               <div className="text-center">
@@ -168,9 +168,9 @@ export default function CarDetail() {
         </div>
 
         <div className="lg:w-80 shrink-0">
-          <div className="bg-white rounded-2xl border border-border p-6 sticky top-20">
+          <div className="bg-surface rounded-2xl border border-border p-6 sticky top-20">
             <div className="flex items-center gap-3 mb-5 pb-5 border-b border-border">
-              <div className="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+              <div className="w-14 h-14 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center shrink-0">
                 {car.seller.avatar ? (
                   <img src={car.seller.avatar} alt="" className="w-full h-full rounded-full object-cover" />
                 ) : (
@@ -206,7 +206,7 @@ export default function CarDetail() {
               ) : (
                 <button
                   onClick={() => setShowPhone(true)}
-                  className="flex items-center justify-center gap-2 w-full py-3 border-2 border-brand-500 text-brand-500 hover:bg-brand-50 font-semibold rounded-xl transition-colors"
+                  className="flex items-center justify-center gap-2 w-full py-3 border-2 border-brand-500 text-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950 font-semibold rounded-xl transition-colors"
                 >
                   <Phone className="w-4 h-4" />
                   نمایش شماره تلفن

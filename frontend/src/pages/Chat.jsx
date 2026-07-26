@@ -39,7 +39,7 @@ export default function Chat() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <div className="bg-white rounded-2xl border border-border overflow-hidden h-[calc(100vh-12rem)] min-h-[500px] flex">
+      <div className="bg-surface rounded-2xl border border-border overflow-hidden h-[calc(100vh-12rem)] min-h-[500px] flex">
         <div className={`w-full sm:w-96 border-l border-border flex flex-col ${!showMobileList && 'hidden sm:flex'}`}>
           <div className="p-4 border-b border-border">
             <h2 className="font-bold text-text-primary text-lg mb-3">پیام‌ها</h2>
@@ -66,13 +66,13 @@ export default function Chat() {
                 <button
                   key={conv.id}
                   onClick={() => { setSelectedChat(conv.id); setShowMobileList(false); }}
-                  className={`w-full flex items-center gap-3 p-4 hover:bg-surface-secondary transition-colors border-b border-border-light text-right ${selectedChat === conv.id ? 'bg-brand-50' : ''}`}
+                  className={`w-full flex items-center gap-3 p-4 hover:bg-surface-secondary transition-colors border-b border-border-light text-right ${selectedChat === conv.id ? 'bg-brand-50 dark:bg-brand-950' : ''}`}
                 >
                   <div className="relative shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-brand-100 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center">
                       <User className="w-5 h-5 text-brand-500" />
                     </div>
-                    {conv.online && <span className="absolute bottom-0 left-0 w-3 h-3 bg-accent-500 border-2 border-white rounded-full" />}
+                    {conv.online && <span className="absolute bottom-0 left-0 w-3 h-3 bg-accent-500 border-2 border-surface dark:border-surface-secondary rounded-full" />}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
@@ -100,10 +100,10 @@ export default function Chat() {
                 <ArrowLeft className="w-5 h-5 text-text-secondary" />
               </button>
               <div className="relative shrink-0">
-                <div className="w-10 h-10 rounded-full bg-brand-100 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center">
                   <User className="w-4 h-4 text-brand-500" />
                 </div>
-                {activeConversation.online && <span className="absolute bottom-0 left-0 w-2.5 h-2.5 bg-accent-500 border-2 border-white rounded-full" />}
+                {activeConversation.online && <span className="absolute bottom-0 left-0 w-2.5 h-2.5 bg-accent-500 border-2 border-surface dark:border-surface-secondary rounded-full" />}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-text-primary text-sm">{activeConversation.name}</h3>

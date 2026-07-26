@@ -24,7 +24,6 @@ export default function Login() {
     setGeneralError('');
     setLoading(true);
 
-    // Safety timeout: force reset loading after 10s no matter what
     const safetyTimer = setTimeout(() => {
       setLoading(false);
       setGeneralError('Request timed out. Please try again.');
@@ -106,7 +105,7 @@ export default function Login() {
           <p className="text-text-secondary mb-8">خوش برگشتی! لطفاً اطلاعات خود را وارد کنید.</p>
 
           {generalError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6 flex items-center gap-2">
+            <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm mb-6 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               {generalError}
             </div>
@@ -120,14 +119,13 @@ export default function Login() {
                 value={phone}
                 onChange={(e) => { setPhone(e.target.value); clearError('phone'); }}
                 placeholder="۰۹۱۲ ۳۴۵ ۶۷۸۹"
-                className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors
-${
-                  errors.phone ? 'border-red-400 focus:border-red-500' : 'border-border focus:border-brand-500'
+                className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${
+                  errors.phone ? 'border-red-400 dark:border-red-500 focus:border-red-500' : 'border-border focus:border-brand-500'
                 }`}
                 required
               />
               {errors.phone && (
-                <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
                   {errors.phone}
                 </p>
@@ -141,9 +139,8 @@ ${
                   value={password}
                   onChange={(e) => { setPassword(e.target.value); clearError('password'); }}
                   placeholder="••••••••"
-                  className={`w-full px-4 py-3 pl-11 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20
-transition-colors ${
-                    errors.password ? 'border-red-400 focus:border-red-500' : 'border-border focus:border-brand-500'
+                  className={`w-full px-4 py-3 pl-11 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${
+                    errors.password ? 'border-red-400 dark:border-red-500 focus:border-red-500' : 'border-border focus:border-brand-500'
                   }`}
                   required
                 />
@@ -156,7 +153,7 @@ transition-colors ${
                 </button>
               </div>
               {errors.password && (
-                <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
                   <AlertCircle className="w-3 h-3" />
                   {errors.password}
                 </p>
@@ -172,8 +169,7 @@ transition-colors ${
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-semibold rounded-xl transition-colors flex items-center
-justify-center gap-2"
+              className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
               {loading ? 'در حال ورود...' : 'ورود'}

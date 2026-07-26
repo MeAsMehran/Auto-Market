@@ -45,7 +45,7 @@ export default function Home() {
             <p className="text-lg text-brand-200 mb-8">
               هزاران آگهی از فروشندگان معتبر در سراسر کشور را مرور کنید.
             </p>
-            <div className="bg-white rounded-2xl p-2 shadow-lg flex flex-col sm:flex-row gap-2">
+            <div className="bg-surface rounded-2xl p-2 shadow-lg flex flex-col sm:flex-row gap-2">
               <div className="flex-1 relative">
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-tertiary" />
                 <input
@@ -69,7 +69,7 @@ export default function Home() {
       </section>
 
       {showFilters && (
-        <div className="bg-white border-b border-border shadow-sm">
+        <div className="bg-surface border-b border-border shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-text-primary">فیلترها</h3>
@@ -139,13 +139,13 @@ export default function Home() {
           <div className="flex items-center gap-2 bg-surface-tertiary rounded-xl p-1">
             <button
               onClick={() => setViewMode('grid')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-white shadow-sm text-brand-500' : 'text-text-tertiary hover:text-text-secondary'}`}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-surface shadow-sm text-brand-500' : 'text-text-tertiary hover:text-text-secondary'}`}
             >
               <Grid3X3 className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('list')}
-              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-white shadow-sm text-brand-500' : 'text-text-tertiary hover:text-text-secondary'}`}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-surface shadow-sm text-brand-500' : 'text-text-tertiary hover:text-text-secondary'}`}
             >
               <List className="w-4 h-4" />
             </button>
@@ -164,7 +164,7 @@ export default function Home() {
               <Link
                 key={car.id}
                 to={`/car/${car.id}`}
-                className="group bg-white rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300"
+                className="group bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300"
               >
                 <div className="relative aspect-[4/3] overflow-hidden bg-surface-tertiary">
                   <img
@@ -206,7 +206,7 @@ export default function Home() {
               <Link
                 key={car.id}
                 to={`/car/${car.id}`}
-                className="group flex bg-white rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300"
+                className="group flex bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300"
               >
                 <div className="w-48 shrink-0 relative overflow-hidden bg-surface-tertiary">
                   <img
