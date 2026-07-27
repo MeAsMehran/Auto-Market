@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, Eye, EyeOff, Loader2, ChevronRight, AlertCircle } from 'lucide-react';
+import { Car, Eye, EyeOff, Loader2, ChevronRight, AlertCircle, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
@@ -8,6 +8,7 @@ export default function Register() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -49,7 +50,7 @@ export default function Register() {
     setGeneralError('');
     setLoading(true);
     try {
-      await register({ name, phone, password, confirm_password: confirmPassword });
+      await register({ name, phone, password, confirm_password: confirmPassword, email });
       navigate('/login');
     } catch (err) {
       if (err.response?.data) {
@@ -103,6 +104,24 @@ export default function Register() {
           required
         />
         {errors.name && <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.name}</p>}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-text-primary mb-1.5">
+          آدرس ایمیل <span className="text-text-tertiary text-xs">(اختیاری)</span>
+        </label>
+        <div className="relative">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); clearError('email'); }}
+            placeholder="example@mail.com"
+            className={`w-full pr-10 pl-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${
+              errors.email ? 'border-red-400 dark:border-red-500 focus:border-red-500' : 'border-border focus:border-brand-500'
+            }`}
+          />
+          <Mail className="absolute right-3.5 top-3.5 w-4 h-4 text-text-tertiary" />
+        </div>
+        {errors.email && <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.email}</p>}
       </div>
       <div>
         <label className="block text-sm font-medium text-text-primary mb-1.5">رمز عبور</label>
