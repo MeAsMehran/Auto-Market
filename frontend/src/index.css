@@ -29,6 +29,17 @@
   --color-text-tertiary: #94a3b8;
 }
 
+.dark {
+  --color-surface: #0f172a;
+  --color-surface-secondary: #1e293b;
+  --color-surface-tertiary: #334155;
+  --color-border: #334155;
+  --color-border-light: #1e293b;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-tertiary: #64748b;
+}
+
 body {
   margin: 0;
   font-family: 'Vazirmatn', system-ui, -apple-system, sans-serif;

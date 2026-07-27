@@ -4,10 +4,10 @@ import { User, Car, MessageCircle, Heart, Settings, Clock, Eye, TrendingUp, Plus
 import { useAuth } from '../context/AuthContext';
 
 const MOCK_STATS = [
-  { label: 'آگهی‌های فعال', value: '۵', icon: Car, color: 'text-brand-500', bg: 'bg-brand-50' },
-  { label: 'تعداد بازدید', value: '۱,۲۴۷', icon: Eye, color: 'text-blue-500', bg: 'bg-blue-50' },
-  { label: 'پیام‌ها', value: '۱۲', icon: MessageCircle, color: 'text-accent-500', bg: 'bg-accent-50' },
-  { label: 'جستجوهای ذخیره شده', value: '۳', icon: Heart, color: 'text-red-500', bg: 'bg-red-50' },
+  { label: 'آگهی‌های فعال', value: '۵', icon: Car, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950' },
+  { label: 'تعداد بازدید', value: '۱,۲۴۷', icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950' },
+  { label: 'پیام‌ها', value: '۱۲', icon: MessageCircle, color: 'text-accent-500 dark:text-accent-400', bg: 'bg-accent-50 dark:bg-accent-950' },
+  { label: 'جستجوهای ذخیره شده', value: '۳', icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950' },
 ];
 
 const MOCK_LISTINGS = [
@@ -23,9 +23,9 @@ export default function Dashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
         <div className="lg:w-64 shrink-0">
-          <div className="bg-white rounded-2xl border border-border p-6 sticky top-20">
+          <div className="bg-surface rounded-2xl border border-border p-6 sticky top-20">
             <div className="text-center mb-6 pb-6 border-b border-border">
-              <div className="w-20 h-20 rounded-full bg-brand-100 flex items-center justify-center mx-auto mb-3">
+              <div className="w-20 h-20 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center mx-auto mb-3">
                 <User className="w-8 h-8 text-brand-500" />
               </div>
               <h2 className="font-bold text-text-primary">{user?.name || 'کاربر'}</h2>
@@ -40,17 +40,17 @@ export default function Dashboard() {
                 { label: 'آگهی‌های من', icon: Car, href: '/my-listings', active: false },
                 { label: 'پیام‌ها', icon: MessageCircle, href: '/chat', active: false },
                 { label: 'علاقه‌مندی‌ها', icon: Heart, href: '#', active: false },
-                { label: 'تنظیمات', icon: Settings, href: '#', active: false },
+                { label: 'تنظیمات', icon: Settings, href: '/settings', active: false },
               ].map((item) => (
                 <Link
                   key={item.label}
                   to={item.href}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${item.active ? 'bg-brand-50 text-brand-500' : 'text-text-secondary hover:bg-surface-tertiary'}`}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${item.active ? 'bg-brand-50 dark:bg-brand-950 text-brand-500' : 'text-text-secondary hover:bg-surface-tertiary'}`}
                 >
                   <item.icon className="w-4 h-4" /> {item.label}
                 </Link>
               ))}
-              <button onClick={logout} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 hover:bg-red-50 transition-colors w-full">
+              <button onClick={logout} className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors w-full">
                 <LogOut className="w-4 h-4" /> خروج
               </button>
             </nav>
@@ -71,7 +71,7 @@ export default function Dashboard() {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             {MOCK_STATS.map((stat) => (
-              <div key={stat.label} className="bg-white rounded-2xl border border-border p-5">
+              <div key={stat.label} className="bg-surface rounded-2xl border border-border p-5">
                 <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center mb-3`}>
                   <stat.icon className={`w-5 h-5 ${stat.color}`} />
                 </div>
@@ -81,7 +81,7 @@ export default function Dashboard() {
             ))}
           </div>
 
-          <div className="bg-white rounded-2xl border border-border p-6">
+          <div className="bg-surface rounded-2xl border border-border p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-text-primary">آگهی‌های اخیر</h2>
               <Link to="/my-listings" className="text-sm text-brand-500 hover:text-brand-600 font-medium">مشاهده همه</Link>
@@ -102,9 +102,9 @@ export default function Dashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={`px-2.5 py-1 text-xs font-medium rounded-lg ${
-                      listing.status === 'active' ? 'bg-accent-50 text-accent-600' :
-                      listing.status === 'pending' ? 'bg-yellow-50 text-yellow-600' :
-                      'bg-red-50 text-red-600'
+                      listing.status === 'active' ? 'bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400' :
+                      listing.status === 'pending' ? 'bg-yellow-50 dark:bg-yellow-950 text-yellow-600 dark:text-yellow-400' :
+                      'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400'
                     }`}>
                       {listing.status === 'active' ? 'فعال' : listing.status === 'pending' ? 'در انتظار' : 'فروخته شده'}
                     </span>
@@ -117,13 +117,13 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-border p-6 mt-6">
+          <div className="bg-surface rounded-2xl border border-border p-6 mt-6">
             <h2 className="text-lg font-bold text-text-primary mb-4">فعالیت‌های اخیر</h2>
             <div className="space-y-4">
               {[
                 { action: 'پیام جدید دریافت شد', detail: 'کسی درباره تسلا مدل ۳ شما پرسیده', time: '۳۰ دقیقه پیش', icon: MessageCircle, color: 'text-brand-500' },
-                { action: 'بازدید آگهی', detail: 'بامو X5 شما ۱۵ بازدید جدید داشته', time: '۲ ساعت پیش', icon: Eye, color: 'text-blue-500' },
-                { action: 'تایید آگهی', detail: 'مرسدس بنز C300 منتشر شد', time: '۱ روز پیش', icon: CheckCircle, color: 'text-accent-500' },
+                { action: 'بازدید آگهی', detail: 'بامو X5 شما ۱۵ بازدید جدید داشته', time: '۲ ساعت پیش', icon: Eye, color: 'text-blue-500 dark:text-blue-400' },
+                { action: 'تایید آگهی', detail: 'مرسدس بنز C300 منتشر شد', time: '۱ روز پیش', icon: CheckCircle, color: 'text-accent-500 dark:text-accent-400' },
               ].map((activity, i) => (
                 <div key={i} className="flex items-start gap-3">
                   <div className={`w-8 h-8 rounded-lg bg-surface-tertiary flex items-center justify-center shrink-0 ${activity.color}`}>
@@ -143,5 +143,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-

@@ -5,13 +5,13 @@ from django.utils.translation import gettext_lazy as _
 
 class CustomUserManager(BaseUserManager):
     """
-    Custom user model manager where email is the unique identifiers
+    Custom user model manager where phone is the unique identifiers
     for authentication instead of usernames.
     """
     
     def create_user(self, phone, password, email=None, **extra_fields):
         """
-        Create and save a user with the given email and password.
+        Create and save a user with the given phone and password.
         """
         
         if not phone:
@@ -56,7 +56,7 @@ class CustomUserManager(BaseUserManager):
         # Remove all non-digit characters
         digits = ''.join(filter(str.isdigit, str(phone)))
 
-        if len(phone) != 11 and len(phone)!= 13 and len(phone) != 10:
+        if len(phone) != 11 and len(phone)!= 13 and len(phone) != 10 and len(phone) != 12:
             raise ValueError(_("شماره تلفن باید ۱۱ رقم باشد. مثال: ۰۹۱۲۳۴۵۶۷۸۹"))
 
         # Add leading 0 if missing
@@ -70,3 +70,7 @@ class CustomUserManager(BaseUserManager):
             raise ValueError(_("از فرمت درست استفاده کنید."))
 
         return digits
+
+
+
+

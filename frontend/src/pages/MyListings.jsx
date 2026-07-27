@@ -45,7 +45,7 @@ export default function MyListings() {
             <button
               key={s}
               onClick={() => setFilter(s)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${filter === s ? 'bg-white text-text-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'}`}
+              className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${filter === s ? 'bg-surface text-text-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'}`}
             >
               {s === 'all' ? 'همه' : s === 'active' ? 'فعال' : s === 'pending' ? 'در انتظار' : 'فروخته شده'}
               <span className="mr-1.5 text-xs opacity-60">({statusCounts[s]})</span>
@@ -65,7 +65,7 @@ export default function MyListings() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-2xl border border-border">
+        <div className="text-center py-20 bg-surface rounded-2xl border border-border">
           <Search className="w-10 h-10 mx-auto text-text-tertiary mb-3" />
           <h3 className="font-semibold text-text-primary">آگهی‌ای یافت نشد</h3>
           <p className="text-text-secondary text-sm mt-1">فیلترها را تغییر دهید.</p>
@@ -73,7 +73,7 @@ export default function MyListings() {
       ) : (
         <div className="space-y-4">
           {filtered.map((listing) => (
-            <div key={listing.id} className="bg-white rounded-2xl border border-border p-4 sm:p-5">
+            <div key={listing.id} className="bg-surface rounded-2xl border border-border p-4 sm:p-5">
               <div className="flex flex-col sm:flex-row gap-4">
                 <div className="sm:w-32 h-24 rounded-xl overflow-hidden bg-surface-tertiary shrink-0">
                   <img src={listing.image} alt="" className="w-full h-full object-cover" />
@@ -85,9 +85,9 @@ export default function MyListings() {
                       <p className="text-brand-500 font-bold text-lg mt-0.5">{listing.price}</p>
                     </div>
                     <span className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-lg ${
-                      listing.status === 'active' ? 'bg-accent-50 text-accent-600' :
-                      listing.status === 'pending' ? 'bg-yellow-50 text-yellow-600' :
-                      'bg-red-50 text-red-600'
+                      listing.status === 'active' ? 'bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400' :
+                      listing.status === 'pending' ? 'bg-yellow-50 dark:bg-yellow-950 text-yellow-600 dark:text-yellow-400' :
+                      'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400'
                     }`}>
                       {listing.status === 'active' ? 'فعال' : listing.status === 'pending' ? 'در انتظار' : 'فروخته شده'}
                     </span>
@@ -107,7 +107,7 @@ export default function MyListings() {
                     <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-text-secondary hover:bg-surface-tertiary rounded-lg transition-colors">
                       <Edit3 className="w-3.5 h-3.5" /> ویرایش
                     </button>
-                    <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 hover:bg-red-50 rounded-lg transition-colors mr-auto">
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors mr-auto">
                       <Trash2 className="w-3.5 h-3.5" /> حذف
                     </button>
                   </div>

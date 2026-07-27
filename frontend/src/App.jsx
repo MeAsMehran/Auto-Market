@@ -9,6 +9,7 @@ import PostAd from './pages/PostAd';
 import Dashboard from './pages/Dashboard';
 import MyListings from './pages/MyListings';
 import Chat from './pages/Chat';
+import Settings from './pages/Settings';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/car/:id" element={<CarDetail />} />
             <Route path="/post-ad" element={<PostAd />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="/my-listings" element={<MyListings />} />
             <Route path="/chat" element={<Chat />} />
           </Route>

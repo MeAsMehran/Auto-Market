@@ -15,6 +15,7 @@ from dotenv import load_dotenv
 import os
 from datetime import timedelta
 import sys
+from decouple import config
 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -54,6 +55,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
+    'django_celery_results',
 
     # my apps:
     'accounts.apps.AccountsConfig',
@@ -111,7 +113,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
 }
-
 
 
 # Database
@@ -199,8 +200,8 @@ AUTH_USER_MODEL = 'accounts.User'
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME', 15))),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME', 7))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES', 15))),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME_DAYS', 7))),
 
     """
         How this helps: Every time a refresh token is used to get a new access token, the old refresh token is blacklisted, and a brand-new refresh token is issued. 
@@ -267,11 +268,27 @@ CSRF_COOKIE_SAMESITE = "Lax"
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173').split(',')
 
 
+# Redis Cache for OTP storage
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": os.getenv("REDIS_URL", "redis://localhost:6379/1"),
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+    }
+}
 
+# Celery configuration
+CELERY_BROKER_URL = config("RABBITMQ_URL")
+CELERY_RESULT_BACKEND = ("django-db")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = ("json")
+CELERY_RESULT_SERIALIZER = ("json")
+CELERY_TIMEZONE = "UTC"
 
-
-
-
+# Email configuration:
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'loopdeloop2003@gmail.com')
 
 
 

@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from drf_spectacular.utils import extend_schema
 
-from ..serializers import UserSerializer , UserUpdateSerializer
+from ..serializers import UserSerializer , UserUpdateSerializer, ChangePhoneRequestSerializer, ChangePhoneVerifySerializer
 
 ###########################
 
@@ -40,13 +40,54 @@ class UpdateMeView(APIView):
             user = request.user     # getting the current logged in user
             user.name = serializer.validated_data.get('name', user.name)        # the second one is default value
             user.email = serializer.validated_data.get('email', user.email)
-            user.save()
-
+            try:
+                user.save()
+            except Exception as e:
+                return Response(
+                    {"detail": "Could not update user.", "error": str(e)},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return Response(UserSerializer(user).data, status=status.HTTP_200_OK)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-            
+class ChangePhoneRequestView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+            request=ChangePhoneRequestSerializer,
+            responses={200, None}
+    )
+    def post(self, request):
+        serializer = ChangePhoneRequestSerializer(data=request.data, context={'request' : request})
+
+        if serializer.is_valid():
+            try:
+                serializer.save()
+            except serializers.ValidationError as e:
+                return Response({'detail': str(e.detail)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'کد تأیید به ایمیل شما ارسال شد.'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ChangePhoneVerifyView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+            request=ChangePhoneVerifySerializer,
+            responses={200, UserSerializer}
+    )
+    def post(self, request):
+        serializer = ChangePhoneVerifySerializer(data=request.data, context={'request' : request})
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({
+                    'detail': 'شماره تلفن با موفقیت تغییر کرد.',
+                    'user': UserSerializer(user).data,},
+                status=status.HTTP_200_OK,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 
 

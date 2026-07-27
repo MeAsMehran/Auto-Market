@@ -25,10 +25,7 @@ export default function PostAd() {
     setImages((prev) => [...prev, ...newImages].slice(0, 10));
   };
 
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
-  };
-
+  const removeImage = (index) => setImages((prev) => prev.filter((_, i) => i !== index));
   const updateForm = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async (e) => {
@@ -56,17 +53,12 @@ export default function PostAd() {
 
       <form onSubmit={handleSubmit}>
         {step === 1 && (
-          <div className="bg-white rounded-2xl border border-border p-6 space-y-5">
+          <div className="bg-surface rounded-2xl border border-border p-6 space-y-5">
             <h2 className="text-lg font-bold text-text-primary">اطلاعات اولیه</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">برند *</label>
-                <select
-                  value={form.brand}
-                  onChange={(e) => updateForm('brand', e.target.value)}
-                  className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                  required
-                >
+                <select value={form.brand} onChange={(e) => updateForm('brand', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
                   <option value="">انتخاب برند</option>
                   {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
                 </select>
@@ -131,7 +123,7 @@ export default function PostAd() {
         )}
 
         {step === 2 && (
-          <div className="bg-white rounded-2xl border border-border p-6 space-y-5">
+          <div className="bg-surface rounded-2xl border border-border p-6 space-y-5">
             <h2 className="text-lg font-bold text-text-primary">عکس‌ها و توضیحات</h2>
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1.5">آپلود عکس (حداکثر ۱۰ عدد)</label>
@@ -145,7 +137,7 @@ export default function PostAd() {
                   </div>
                 ))}
                 {images.length < 10 && (
-                  <label className="aspect-square bg-surface-tertiary border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-brand-500 hover:bg-brand-50 transition-colors">
+                  <label className="aspect-square bg-surface-tertiary border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950 transition-colors">
                     <Upload className="w-6 h-6 text-text-tertiary mb-1" />
                     <span className="text-xs text-text-tertiary">آپلود</span>
                     <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
@@ -178,7 +170,7 @@ export default function PostAd() {
         )}
 
         {step === 3 && (
-          <div className="bg-white rounded-2xl border border-border p-6 space-y-5">
+          <div className="bg-surface rounded-2xl border border-border p-6 space-y-5">
             <h2 className="text-lg font-bold text-text-primary">اطلاعات تماس و مکان</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -198,11 +190,11 @@ export default function PostAd() {
               </div>
             </div>
 
-            <div className="bg-accent-50 border border-accent-200 rounded-xl p-4 flex items-start gap-3">
+            <div className="bg-accent-50 dark:bg-accent-950 border border-accent-200 dark:border-accent-800 rounded-xl p-4 flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-accent-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-accent-700">نزدیک به اتمام!</p>
-                <p className="text-xs text-accent-600 mt-0.5">آگهی خود را بررسی کرده و ثبت کنید. بعداً می‌توانید از پیشخوان آن را ویرایش کنید.</p>
+                <p className="text-sm font-medium text-accent-700 dark:text-accent-300">نزدیک به اتمام!</p>
+                <p className="text-xs text-accent-600 dark:text-accent-400 mt-0.5">آگهی خود را بررسی کرده و ثبت کنید. بعداً می‌توانید از پیشخوان آن را ویرایش کنید.</p>
               </div>
             </div>
 
