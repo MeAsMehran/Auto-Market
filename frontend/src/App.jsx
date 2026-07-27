@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import ScrollToTop from './components/ScrollToTop';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
+import AnimatedPage from './components/AnimatedPage';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -14,18 +17,34 @@ import Settings from './pages/Settings';
 export default function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<AnimatedPage><Login /></AnimatedPage>} />
+          <Route path="/register" element={<AnimatedPage><Register /></AnimatedPage>} />
           <Route element={<Layout />}>
-            <Route path="/" element={<Home />} />
-            <Route path="/car/:id" element={<CarDetail />} />
-            <Route path="/post-ad" element={<PostAd />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/my-listings" element={<MyListings />} />
-            <Route path="/chat" element={<Chat />} />
+            <Route path="/" element={<AnimatedPage><Home /></AnimatedPage>} />
+            <Route path="/car/:id" element={<AnimatedPage><CarDetail /></AnimatedPage>} />
+            <Route
+              path="/post-ad"
+              element={<ProtectedRoute><AnimatedPage><PostAd /></AnimatedPage></ProtectedRoute>}
+            />
+            <Route
+              path="/dashboard"
+              element={<ProtectedRoute><AnimatedPage><Dashboard /></AnimatedPage></ProtectedRoute>}
+            />
+            <Route
+              path="/settings"
+              element={<ProtectedRoute><AnimatedPage><Settings /></AnimatedPage></ProtectedRoute>}
+            />
+            <Route
+              path="/my-listings"
+              element={<ProtectedRoute><AnimatedPage><MyListings /></AnimatedPage></ProtectedRoute>}
+            />
+            <Route
+              path="/chat"
+              element={<ProtectedRoute><AnimatedPage><Chat /></AnimatedPage></ProtectedRoute>}
+            />
           </Route>
         </Routes>
       </AuthProvider>

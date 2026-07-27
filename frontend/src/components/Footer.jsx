@@ -1,9 +1,33 @@
 import { Link } from 'react-router-dom';
 import { Car, Mail, Phone, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
+
+function CarDivider() {
+  return (
+    <div className="relative h-8 overflow-hidden opacity-30">
+      <svg className="absolute top-1/2 -translate-y-1/2" width="100%" height="8" preserveAspectRatio="none">
+        <line x1="0" y1="4" x2="100%" y2="4" stroke="currentColor" strokeWidth="1" strokeDasharray="8 6" className="text-brand-400" />
+      </svg>
+      <motion.div
+        className="absolute top-1/2 -translate-y-1/2"
+        animate={{ x: ['-5%', '105%'] }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
+      >
+        <svg width="48" height="18" viewBox="0 0 48 18" fill="currentColor" className="text-brand-300">
+          <rect x="6" y="6" width="30" height="9" rx="2" />
+          <path d="M13 6 L18 1 L34 1 L37 6" />
+          <circle cx="13" cy="17" r="2.5" />
+          <circle cx="31" cy="17" r="2.5" />
+        </svg>
+      </motion.div>
+    </div>
+  );
+}
 
 export default function Footer() {
   return (
     <footer className="bg-brand-900 text-white mt-auto">
+      <CarDivider />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="md:col-span-1">
