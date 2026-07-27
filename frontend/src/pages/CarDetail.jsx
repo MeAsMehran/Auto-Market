@@ -201,7 +201,7 @@ export default function CarDetail() {
                   className="flex items-center justify-center gap-2 w-full py-3 bg-accent-500 hover:bg-accent-600 text-white font-semibold rounded-xl transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  {car.seller.phone}
+                  <span dir="ltr">{car.seller.phone}</span>
                 </a>
               ) : (
                 <button
