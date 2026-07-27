@@ -56,7 +56,7 @@ class CustomUserManager(BaseUserManager):
         # Remove all non-digit characters
         digits = ''.join(filter(str.isdigit, str(phone)))
 
-        if len(phone) != 11 and len(phone)!= 13 and len(phone) != 10:
+        if len(phone) != 11 and len(phone)!= 13 and len(phone) != 10 and len(phone) != 12:
             raise ValueError(_("شماره تلفن باید ۱۱ رقم باشد. مثال: ۰۹۱۲۳۴۵۶۷۸۹"))
 
         # Add leading 0 if missing
