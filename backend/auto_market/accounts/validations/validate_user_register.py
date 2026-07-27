@@ -3,6 +3,9 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.views import status
 from ..models import User
 
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError as DjangoValidationError
+
 ##########################
 
 def validate(data):
@@ -53,6 +56,16 @@ def validate(data):
     user = User.objects.filter(phone=phone).first()
     if user:
         raise ValidationError("A user with this phone number exists")
+
+
+    if email is not None and email != '':
+        try:
+            validate_email(email)
+        except DjangoValidationError:
+            raise ValidationError("ایمیل وارد شده معتبر نیست.", status.HTTP_400_BAD_REQUEST)
+    
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("این ایمیل قبلاً ثبت شده است.", status.HTTP_400_BAD_REQUEST)
 
     return data
 

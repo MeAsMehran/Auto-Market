@@ -15,13 +15,13 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             'max_length': 'شماره تلفن نباید بیشتر از 13 کاراکتر باشد.'
         }
     )
-    
     password = serializers.CharField(min_length=8, write_only=True, required=True)
     confirm_password = serializers.CharField(min_length=8, write_only=True, required=True)
+    email = serializers.EmailField(required=False, allow_blank=True, allow_null=True)
 
     class Meta:
         model = User 
-        fields = ('phone', 'name', 'email', 'password', 'confirm_password')    # we don't need the is_active and is_staff and date_joined -> the model initialize it automatically.
+        fields = ('phone', 'name', 'email', 'password', 'confirm_password', 'email')    # we don't need the is_active and is_staff and date_joined -> the model initialize it automatically.
 
     def validate(self, attrs):
         return register_validate(attrs)
@@ -31,6 +31,7 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return User.objects.create_user(
             phone = validated_data.get('phone'),
             name = validated_data.get('name'),
+            email = validated_data.get('email'),
             password = validated_data.get('password'),
         )
 
