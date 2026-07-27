@@ -62,9 +62,11 @@ class ChangePhoneRequestView(APIView):
         serializer = ChangePhoneRequestSerializer(data=request.data, context={'request' : request})
 
         if serializer.is_valid():
-            serializer.save()
-            return Response({'detail': 'کد تأیید به شماره جدید ارسال شد.'}, status=status.HTTP_200_OK)
-
+            try:
+                serializer.save()
+            except serializers.ValidationError as e:
+                return Response({'detail': str(e.detail)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': 'کد تأیید به ایمیل شما ارسال شد.'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

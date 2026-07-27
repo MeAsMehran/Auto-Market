@@ -5,13 +5,13 @@ from django.utils.translation import gettext_lazy as _
 
 class CustomUserManager(BaseUserManager):
     """
-    Custom user model manager where email is the unique identifiers
+    Custom user model manager where phone is the unique identifiers
     for authentication instead of usernames.
     """
     
     def create_user(self, phone, password, email=None, **extra_fields):
         """
-        Create and save a user with the given email and password.
+        Create and save a user with the given phone and password.
         """
         
         if not phone:
