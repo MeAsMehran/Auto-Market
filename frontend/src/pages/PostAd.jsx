@@ -1,22 +1,28 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, ChevronRight, Loader2, Car, CheckCircle } from 'lucide-react';
+import { Upload, X, ChevronRight, Loader2, Car, CheckCircle, AlertCircle } from 'lucide-react';
+import { createCar, uploadCarImages } from '../lib/carApi';
+import {
+  BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP, CITY_MAP,
+} from '../lib/constants';
 
-const BRANDS = ['تسلا', 'بامو', 'تویوتا', 'مرسدس بنز', 'هیوندای', 'نیسان', 'فورد', 'آئودی', 'کیا', 'شورلت', 'هوندا', 'مزدا', 'فولکس‌واگن', 'پورشه', 'لکسوس'];
-const FUEL_TYPES = ['بنزینی', 'دیزلی', 'هیبرید', 'برقی', 'پلاگین هیبرید'];
-const TRANSMISSIONS = ['اتوماتیک', 'دستی', 'CVT', 'نیمه اتوماتیک'];
-const CONDITIONS = ['نو', 'عالی', 'خوب', 'مناسب', 'نیاز به تعمیر'];
-const COLORS = ['سفید', 'مشکی', 'نقره‌ای', 'خاکستری', 'آبی', 'قرمز', 'سبز', 'زرد', 'قهوه‌ای', 'نارنجی', 'سایر'];
+const FUEL_OPTIONS = Object.keys(FUEL_MAP);
+const TRANSMISSION_OPTIONS = Object.keys(TRANSMISSION_MAP);
+const CONDITION_OPTIONS = Object.keys(CONDITION_MAP);
+const BODY_OPTIONS = Object.keys(BODY_MAP);
+const COLOR_OPTIONS = Object.keys(COLOR_MAP);
+const CITY_OPTIONS = Object.keys(CITY_MAP);
 
 export default function PostAd() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [images, setImages] = useState([]);
   const [form, setForm] = useState({
-    brand: '', model: '', year: '', price: '', mileage: '', fuel: '',
-    transmission: '', condition: '', color: '', location: '', phone: '',
-    title: '', description: '', vin: '',
+    brand: '', model_name: '', year: '', price: '', mileage: '',
+    fuel_type: '', transmission: '', condition: '', body_type: '',
+    color: '', city: '', title: '', description: '', features: '',
   });
 
   const handleImageUpload = (e) => {
@@ -31,9 +37,53 @@ export default function PostAd() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setLoading(false);
-    navigate('/my-listings');
+    setError(null);
+
+    try {
+      const carData = {
+        title: form.title,
+        brand: form.brand,
+        model_name: form.model_name,
+        year: parseInt(form.year, 10),
+        price: parseInt(form.price, 10),
+        mileage: parseInt(form.mileage, 10),
+        fuel_type: FUEL_MAP[form.fuel_type],
+        transmission: TRANSMISSION_MAP[form.transmission],
+        body_type: BODY_MAP[form.body_type],
+        condition: CONDITION_MAP[form.condition],
+        color: COLOR_MAP[form.color],
+        city: CITY_MAP[form.city],
+        description: form.description,
+        features: form.features
+          ? form.features.split(',').map((f) => f.trim()).filter(Boolean)
+          : [],
+      };
+
+      const newCar = await createCar(carData);
+
+      if (images.length > 0) {
+        for (let i = 0; i < images.length; i++) {
+          const formData = new FormData();
+          formData.append('image', images[i].file);
+          formData.append('order', i);
+          await uploadCarImages(newCar.id, formData);
+        }
+      }
+
+      navigate('/my-listings');
+    } catch (err) {
+      const data = err.response?.data;
+      if (data) {
+        const messages = Object.entries(data)
+          .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+          .join('\n');
+        setError(messages);
+      } else {
+        setError('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -51,6 +101,13 @@ export default function PostAd() {
       <h1 className="text-2xl font-bold text-text-primary mb-1">فروش خودرو</h1>
       <p className="text-text-secondary mb-8">آگهی خود را به صورت رایگان ثبت کنید و به هزاران خریدار دسترسی پیدا کنید.</p>
 
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+          <p className="text-sm text-red-700 dark:text-red-300 whitespace-pre-line">{error}</p>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit}>
         {step === 1 && (
           <div className="bg-surface rounded-2xl border border-border p-6 space-y-5">
@@ -65,7 +122,7 @@ export default function PostAd() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">مدل *</label>
-                <input type="text" value={form.model} onChange={(e) => updateForm('model', e.target.value)} placeholder="مثال: مدل ۳، X۵، کمری" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
+                <input type="text" value={form.model_name} onChange={(e) => updateForm('model_name', e.target.value)} placeholder="مثال: مدل ۳، X۵، کمری" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">سال ساخت *</label>
@@ -77,39 +134,42 @@ export default function PostAd() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">قیمت ($) *</label>
-                <input type="number" value={form.price} onChange={(e) => updateForm('price', e.target.value)} placeholder="مثال: ۴۵۰۰۰" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
+                <label className="block text-sm font-medium text-text-primary mb-1.5">قیمت (تومان) *</label>
+                <input type="number" value={form.price} onChange={(e) => updateForm('price', e.target.value)} placeholder="مثال: ۱۵۰۰۰۰۰۰۰" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">کارکرد *</label>
-                <input type="text" value={form.mileage} onChange={(e) => updateForm('mileage', e.target.value)} placeholder="مثال: ۱۲۰۰۰ مایل یا ۲۰۰۰۰ کیلومتر" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
+                <label className="block text-sm font-medium text-text-primary mb-1.5">کارکرد (کیلومتر) *</label>
+                <input type="number" value={form.mileage} onChange={(e) => updateForm('mileage', e.target.value)} placeholder="مثال: ۱۲۰۰۰" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">VIN (اختیاری)</label>
-                <input type="text" value={form.vin} onChange={(e) => updateForm('vin', e.target.value)} placeholder="کد ۱۷ رقمی VIN" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+                <label className="block text-sm font-medium text-text-primary mb-1.5">نوع بدنه *</label>
+                <select value={form.body_type} onChange={(e) => updateForm('body_type', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
+                  <option value="">انتخاب نوع بدنه</option>
+                  {BODY_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                </select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">نوع سوخت *</label>
-                <select value={form.fuel} onChange={(e) => updateForm('fuel', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
+                <select value={form.fuel_type} onChange={(e) => updateForm('fuel_type', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
                   <option value="">انتخاب سوخت</option>
-                  {FUEL_TYPES.map((f) => <option key={f} value={f}>{f}</option>)}
+                  {FUEL_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">گیربکس *</label>
                 <select value={form.transmission} onChange={(e) => updateForm('transmission', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
                   <option value="">انتخاب گیربکس</option>
-                  {TRANSMISSIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {TRANSMISSION_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">وضعیت *</label>
                 <select value={form.condition} onChange={(e) => updateForm('condition', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
                   <option value="">انتخاب وضعیت</option>
-                  {CONDITIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {CONDITION_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>
@@ -160,6 +220,11 @@ export default function PostAd() {
                 required
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1.5">امکانات (اختیاری)</label>
+              <input type="text" value={form.features} onChange={(e) => updateForm('features', e.target.value)} placeholder="مثال: سقف شیشه‌ای, صندلی چرم, ناوبری" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
+              <p className="text-xs text-text-tertiary mt-1">با کاما جدا کنید</p>
+            </div>
             <div className="flex justify-between">
               <button type="button" onClick={() => setStep(1)} className="px-6 py-3 text-text-secondary border border-border hover:bg-surface-tertiary font-semibold rounded-xl transition-colors">قبلی</button>
               <button type="button" onClick={() => setStep(3)} className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
@@ -171,21 +236,20 @@ export default function PostAd() {
 
         {step === 3 && (
           <div className="bg-surface rounded-2xl border border-border p-6 space-y-5">
-            <h2 className="text-lg font-bold text-text-primary">اطلاعات تماس و مکان</h2>
+            <h2 className="text-lg font-bold text-text-primary">مکان و رنگ</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">مکان *</label>
-                <input type="text" value={form.location} onChange={(e) => updateForm('location', e.target.value)} placeholder="شهر، منطقه" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
+                <label className="block text-sm font-medium text-text-primary mb-1.5">شهر *</label>
+                <select value={form.city} onChange={(e) => updateForm('city', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
+                  <option value="">انتخاب شهر</option>
+                  {CITY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">شماره تلفن *</label>
-                <input type="tel" value={form.phone} onChange={(e) => updateForm('phone', e.target.value)} placeholder="+۹۸ ۹۱۲ ۳۴۵ ۶۷۸۹" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">رنگ</label>
-                <select value={form.color} onChange={(e) => updateForm('color', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20">
+                <label className="block text-sm font-medium text-text-primary mb-1.5">رنگ *</label>
+                <select value={form.color} onChange={(e) => updateForm('color', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
                   <option value="">انتخاب رنگ</option>
-                  {COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {COLOR_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
             </div>

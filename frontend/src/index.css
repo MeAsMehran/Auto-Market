@@ -91,3 +91,22 @@ body {
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
 }
+
+/* ── Theme Transition Curtain ── */
+@keyframes theme-curtain-open {
+  0% {
+    clip-path: polygon(0% 0%, 0% 0%, 0% 0%);
+  }
+  100% {
+    clip-path: polygon(0% 0%, 250% 0%, 0% 250%);
+  }
+}
+
+.theme-curtain {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  pointer-events: none;
+  will-change: clip-path;
+  animation: theme-curtain-open 0.85s cubic-bezier(0.4, 0.0, 0.2, 1) forwards;
+}
