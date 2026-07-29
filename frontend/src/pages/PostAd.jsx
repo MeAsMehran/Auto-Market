@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, ChevronRight, Loader2, Car, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, X, ChevronRight, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { createCar, uploadCarImages } from '../lib/carApi';
 import {
   BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP, CITY_MAP,
@@ -18,20 +18,103 @@ export default function PostAd() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [images, setImages] = useState([]);
+  const [imageSlots, setImageSlots] = useState({
+    front: null,
+    rear: null,
+    left: null,
+    right: null,
+    other: null,
+  });
+
+  const SLOT_CONFIG = [
+    { key: 'front',  label: 'جلو',      desc: 'نمای جلوی خودرو',  order: 0 },
+    { key: 'rear',   label: 'عقب',      desc: 'نمای عقب خودرو',    order: 1 },
+    { key: 'left',   label: 'سمت چپ',   desc: 'نمای سمت چپ خودرو', order: 2 },
+    { key: 'right',  label: 'سمت راست', desc: 'نمای سمت راست خودرو', order: 3 },
+    { key: 'other',  label: 'سایر',     desc: 'تصویر دیگر (اختیاری)', order: 4 },
+  ];
   const [form, setForm] = useState({
     brand: '', model_name: '', year: '', price: '', mileage: '',
     fuel_type: '', transmission: '', condition: '', body_type: '',
-    color: '', city: '', title: '', description: '', features: '',
+    color: '', city: '', title: '', description: '',
   });
+  const [features, setFeatures] = useState([]);
+  const [featureInput, setFeatureInput] = useState('');
 
-  const handleImageUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const newImages = files.map((f) => ({ file: f, url: URL.createObjectURL(f) }));
-    setImages((prev) => [...prev, ...newImages].slice(0, 10));
+  const addFeature = () => {
+    const trimmed = featureInput.trim();
+    if (trimmed && !features.includes(trimmed)) {
+      setFeatures([...features, trimmed]);
+      setFeatureInput('');
+    }
   };
 
-  const removeImage = (index) => setImages((prev) => prev.filter((_, i) => i !== index));
+  const removeFeature = (index) => setFeatures((prev) => prev.filter((_, i) => i !== index));
+
+  const handleFeatureKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addFeature();
+    }
+  };
+
+  const validateStep1 = () => {
+    const missing = [];
+    if (!form.brand) missing.push('برند');
+    if (!form.model_name) missing.push('مدل');
+    if (!form.year) missing.push('سال ساخت');
+    if (!form.price || parseInt(form.price, 10) <= 0) missing.push('قیمت');
+    if (!form.mileage || parseInt(form.mileage, 10) < 0) missing.push('کارکرد');
+    if (!form.body_type) missing.push('نوع بدنه');
+    if (!form.fuel_type) missing.push('نوع سوخت');
+    if (!form.transmission) missing.push('گیربکس');
+    if (!form.condition) missing.push('وضعیت');
+    return missing.length ? `لطفاً این فیلدها را پر کنید: ${missing.join('، ')}` : null;
+  };
+
+  const validateStep2 = () => {
+    const missing = [];
+    if (!form.title) missing.push('عنوان آگهی');
+    if (!form.description) {
+      missing.push('توضیحات');
+    } else if (form.description.trim().length < 10) {
+      missing.push('توضیحات (حداقل ۱۰ کاراکتر)');
+    }
+    return missing.length ? `لطفاً این فیلدها را پر کنید: ${missing.join('، ')}` : null;
+  };
+
+  const validateStep3 = () => {
+    const missing = [];
+    if (!form.city) missing.push('شهر');
+    if (!form.color) missing.push('رنگ');
+    return missing.length ? `لطفاً این فیلدها را پر کنید: ${missing.join('، ')}` : null;
+  };
+
+  const goToStep2 = () => {
+    const err = validateStep1();
+    if (err) { setError(err); return; }
+    setError(null);
+    setStep(2);
+  };
+
+  const goToStep3 = () => {
+    const err = validateStep2();
+    if (err) { setError(err); return; }
+    setError(null);
+    setStep(3);
+  };
+
+  const handleSlotUpload = (slotKey, file) => {
+    if (!file) return;
+    setImageSlots((prev) => ({
+      ...prev,
+      [slotKey]: { file, url: URL.createObjectURL(file) },
+    }));
+  };
+
+  const removeSlotImage = (slotKey) => {
+    setImageSlots((prev) => ({ ...prev, [slotKey]: null }));
+  };
   const updateForm = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
 
   const handleSubmit = async (e) => {
@@ -54,18 +137,17 @@ export default function PostAd() {
         color: COLOR_MAP[form.color],
         city: CITY_MAP[form.city],
         description: form.description,
-        features: form.features
-          ? form.features.split(',').map((f) => f.trim()).filter(Boolean)
-          : [],
+        features,
       };
 
       const newCar = await createCar(carData);
 
-      if (images.length > 0) {
-        for (let i = 0; i < images.length; i++) {
+      for (const slot of SLOT_CONFIG) {
+        const imageData = imageSlots[slot.key];
+        if (imageData) {
           const formData = new FormData();
-          formData.append('image', images[i].file);
-          formData.append('order', i);
+          formData.append('image', imageData.file);
+          formData.append('order', slot.order);
           await uploadCarImages(newCar.id, formData);
         }
       }
@@ -74,10 +156,35 @@ export default function PostAd() {
     } catch (err) {
       const data = err.response?.data;
       if (data) {
-        const messages = Object.entries(data)
-          .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
-          .join('\n');
-        setError(messages);
+        const fieldLabels = {
+          title: 'عنوان',
+          brand: 'برند',
+          model_name: 'مدل',
+          year: 'سال ساخت',
+          price: 'قیمت',
+          mileage: 'کارکرد',
+          fuel_type: 'نوع سوخت',
+          transmission: 'گیربکس',
+          body_type: 'نوع بدنه',
+          condition: 'وضعیت',
+          color: 'رنگ',
+          city: 'شهر',
+          description: 'توضیحات',
+          features: 'امکانات',
+          detail: 'جزئیات',
+        };
+        const lines = Object.entries(data)
+          .filter(([field]) => field !== 'non_field_errors')
+          .map(([field, msgs]) => {
+            const label = fieldLabels[field] || field;
+            const msg = Array.isArray(msgs) ? msgs.join('، ') : msgs;
+            return `${label}: ${msg}`;
+          });
+        if (lines.length === 0) {
+          setError('لطفاً تمام فیلدهای الزامی را پر کنید.');
+        } else {
+          setError(lines.join('\n'));
+        }
       } else {
         setError('خطایی رخ داد. لطفاً دوباره تلاش کنید.');
       }
@@ -176,7 +283,7 @@ export default function PostAd() {
 
             <div className="flex justify-start">
               <button type="button" onClick={() => setStep(2)} className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
-                بعدی <ChevronRight className="w-4 h-4" />
+                بعدی <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -186,24 +293,42 @@ export default function PostAd() {
           <div className="bg-surface rounded-2xl border border-border p-6 space-y-5">
             <h2 className="text-lg font-bold text-text-primary">عکس‌ها و توضیحات</h2>
             <div>
-              <label className="block text-sm font-medium text-text-primary mb-1.5">آپلود عکس (حداکثر ۱۰ عدد)</label>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                {images.map((img, i) => (
-                  <div key={i} className="relative aspect-square bg-surface-tertiary rounded-xl overflow-hidden border border-border">
-                    <img src={img.url} alt="" className="w-full h-full object-cover" />
-                    <button type="button" onClick={() => removeImage(i)} className="absolute top-1 left-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-black/80">
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
-                {images.length < 10 && (
-                  <label className="aspect-square bg-surface-tertiary border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950 transition-colors">
-                    <Upload className="w-6 h-6 text-text-tertiary mb-1" />
-                    <span className="text-xs text-text-tertiary">آپلود</span>
-                    <input type="file" accept="image/*" multiple onChange={handleImageUpload} className="hidden" />
-                  </label>
-                )}
+              <label className="block text-sm font-medium text-text-primary mb-1.5">آپلود عکس (حداکثر ۵ عدد)</label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {SLOT_CONFIG.map((slot) => {
+                  const imageData = imageSlots[slot.key];
+                  return (
+                    <div key={slot.key} className="flex flex-col gap-1.5">
+                      {imageData ? (
+                        <div className="relative aspect-[4/3] bg-surface-tertiary rounded-xl overflow-hidden border border-border group">
+                          <img src={imageData.url} alt={slot.label} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeSlotImage(slot.key)}
+                            className="absolute top-1.5 left-1.5 w-7 h-7 bg-black/60 text-white rounded-full flex items-center justify-center hover:bg-black/80 transition-colors"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="aspect-[4/3] bg-surface-tertiary border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-brand-500 hover:bg-brand-50 dark:hover:bg-brand-950 transition-colors">
+                          <Upload className="w-6 h-6 text-text-tertiary mb-1.5" />
+                          <span className="text-xs font-medium text-text-secondary">{slot.label}</span>
+                          <span className="text-[10px] text-text-tertiary mt-0.5">آپلود</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleSlotUpload(slot.key, e.target.files?.[0])}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                      <p className="text-[11px] text-text-tertiary text-center leading-tight">{slot.desc}</p>
+                    </div>
+                  );
+                })}
               </div>
+              <p className="text-xs text-text-tertiary mt-2">حداکثر یک تصویر برای هر زاویه آپلود شود.</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1.5">عنوان آگهی *</label>
@@ -222,13 +347,42 @@ export default function PostAd() {
             </div>
             <div>
               <label className="block text-sm font-medium text-text-primary mb-1.5">امکانات (اختیاری)</label>
-              <input type="text" value={form.features} onChange={(e) => updateForm('features', e.target.value)} placeholder="مثال: سقف شیشه‌ای, صندلی چرم, ناوبری" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" />
-              <p className="text-xs text-text-tertiary mt-1">با کاما جدا کنید</p>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={featureInput}
+                  onChange={(e) => setFeatureInput(e.target.value)}
+                  onKeyDown={handleFeatureKeyDown}
+                  placeholder="مثال: سقف شیشه‌ای، صندلی چرم، ناوبری"
+                  className="flex-1 px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+                <button
+                  type="button"
+                  onClick={addFeature}
+                  className="px-4 py-3 bg-brand-500 hover:bg-brand-600 text-white rounded-xl transition-colors flex items-center gap-1 shrink-0"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="text-sm font-medium">افزودن</span>
+                </button>
+              </div>
+              {features.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {features.map((feature, i) => (
+                    <span key={i} className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 dark:bg-brand-950 text-brand-700 dark:text-brand-300 text-sm rounded-xl border border-brand-200 dark:border-brand-800">
+                      {feature}
+                      <button type="button" onClick={() => removeFeature(i)} className="hover:text-red-500 transition-colors">
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-text-tertiary mt-1">برای افزودن، تایپ کرده و Enter یا دکمه افزودن را بزنید</p>
             </div>
             <div className="flex justify-between">
               <button type="button" onClick={() => setStep(1)} className="px-6 py-3 text-text-secondary border border-border hover:bg-surface-tertiary font-semibold rounded-xl transition-colors">قبلی</button>
               <button type="button" onClick={() => setStep(3)} className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
-                بعدی <ChevronRight className="w-4 h-4" />
+                بعدی <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
           </div>
