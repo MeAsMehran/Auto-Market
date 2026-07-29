@@ -37,9 +37,9 @@ class CreateCarAdView(APIView):
     def post(self, request):
         serializer = CreateCarAdSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status.HTTP_201_CREATED)
-
+            car = serializer.save()
+            response = DetailCarAdSerializer(car, context={'request': request})
+            return Response(response.data, status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 

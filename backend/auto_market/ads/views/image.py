@@ -9,8 +9,6 @@ from core.permissions.is_owner import IsCarOwner
 
 from django.shortcuts import get_object_or_404
 
-from drf_spectacular.utils import extend_schema
-
 from ..serializers.image_serializer import CreateCarImageSerializer, DetailCarImageSerializer
 
 from ..models import Car, CarImage
