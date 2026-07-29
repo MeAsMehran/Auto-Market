@@ -23,7 +23,7 @@ class CreateCarAdSerializer(serializers.Serializer):
     city         = serializers.ChoiceField(choices=Car.CITY_CHOICES, required=True, allow_null=False)
     description  = serializers.CharField(required=True, allow_null=False)
     features     = serializers.ListField(child=serializers.CharField(), required=False, default=list)
-    images       = CreateCarImageSerializer(many=True)
+    # images       = CreateCarImageSerializer(many=True, required=False)
 
     def validate(self, attrs):
         return create_car_validate(attrs)
@@ -46,11 +46,11 @@ class CreateCarAdSerializer(serializers.Serializer):
             city         = validated_data.get('city'),
             description  = validated_data.get('description'),
         )'''        
-        images_data = validated_data.pop('images', [])
+        # images_data = validated_data.pop('images', [])
         car = Car.objects.create(seller=user, **validated_data)     # the **validated_data is doing all the fields of the above
         car.features = validated_data.get('features', [])
-        for image_data in images_data:
-            CarImage.objects.create(car=car, **image_data)
+        # for image_data in images_data:
+        #     CarImage.objects.create(car=car, **image_data)
         car.save()
 
         return car

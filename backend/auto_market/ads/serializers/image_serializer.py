@@ -23,3 +23,5 @@ class DetailCarImageSerializer(serializers.Serializer):
     image = serializers.ImageField(read_only=True, use_url=True)
     order = serializers.IntegerField(read_only=True)
 
+
+

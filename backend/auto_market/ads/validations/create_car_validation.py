@@ -50,7 +50,7 @@ def validate(data):
 
     for feat in features:
         if not isinstance(feat, str) or not feat.strip():
-            raise ValidationError("هر امکان باید متن غیر خالی باشد.")
+            raise ValidationError("هر امکان باید متن غیر خالی باشد.")   
 
     return data
 
