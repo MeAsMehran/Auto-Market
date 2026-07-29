@@ -1,4 +1,5 @@
 
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -7,6 +8,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import NotFound
 
 from drf_spectacular.utils import extend_schema
+
+from core.permissions.is_owner import IsCarOwner
 
 from ..serializers.car_serializer import CreateCarAdSerializer, DetailCarAdSerializer, ListCarAdSerializer
 
@@ -41,6 +44,20 @@ class CreateCarAdView(APIView):
             response = DetailCarAdSerializer(car, context={'request': request})
             return Response(response.data, status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class DeleteCarAdView(APIView):
+    permission_classes = [IsAuthenticated , IsCarOwner]
+    
+    @extend_schema(
+    responses={204: None},
+    description="Soft-delete a car ad. Sets is_active=False. Only the car owner can delete their ad.",
+    )
+    def delete(self, request, car_id):
+        car = get_object_or_404(Car, pk=car_id, is_active=True)
+        car.is_active = False
+        car.save(update_fields=['is_active'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class DetailCarAdView(APIView):
@@ -80,7 +97,14 @@ class CarListView(APIView):
         return paginator.get_paginated_response(serializer.data)
 
 
-
+'''
+Still needed:
+1. UpdateCarAdView — PATCH /cars/<id>/ (edit car details)
+2. MyListingsView — GET /my-listings/ (list current user's cars)
+These match the two remaining frontend API calls in carApi.js:
+- updateCar(id, data) → PATCH /cars/${id}/
+- getMyListings() → GET /my-listings/
+'''
 
 
 

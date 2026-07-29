@@ -1,8 +1,8 @@
 
-from .car import CreateCarAdView, DetailCarAdView, CarListView
+from .car import CreateCarAdView, DetailCarAdView, CarListView, DeleteCarAdView
 from .image import CarImageUploadView, CarImageDeleteView
 
 __all__ = [
-    'CreateCarAdView', 'DetailCarAdView', 'CarListView',
+    'CreateCarAdView', 'DetailCarAdView', 'CarListView', 'DeleteCarAdView',
     'CarImageUploadView', 'CarImageDeleteView',
 ]
