@@ -1,9 +1,8 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Heart } from 'lucide-react';
+import { MapPin, Clock, Heart, Car } from 'lucide-react';
 import { useState } from 'react';
-
-const fuelLabels = { petrol: 'بنزینی', diesel: 'دیزلی', hybrid: 'هیبرید', electric: 'برقی', cng: 'دوگانه' };
+import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -22,6 +21,20 @@ function timeAgo(dateStr) {
   return `${Math.floor(days / 30)} ماه پیش`;
 }
 
+const BACKEND_URL = 'http://localhost:8000';
+
+function fixImageUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function getFirstImage(car) {
+  if (car.images && car.images.length > 0) return fixImageUrl(car.images[0].image);
+  if (car.image) return car.image;
+  return '';
+}
+
 function ImageWithLoader({ src, alt, className }) {
   const [loaded, setLoaded] = useState(false);
   return (
@@ -35,6 +48,22 @@ function ImageWithLoader({ src, alt, className }) {
         className={`w-full h-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setLoaded(true)}
       />
+    </div>
+  );
+}
+
+function NoImagePlaceholder({ car, className }) {
+  const initials = car.brand ? car.brand.slice(0, 2) : '...';
+  return (
+    <div className={`relative overflow-hidden ${className} bg-gradient-to-br from-surface-tertiary to-surface-secondary flex flex-col items-center justify-center gap-2`}>
+      <motion.div
+        animate={{ y: [0, -4, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <Car className="w-12 h-12 text-text-tertiary/40" strokeWidth={1.2} />
+      </motion.div>
+      <span className="text-xl font-bold text-text-tertiary/30 tracking-widest select-none">{initials}</span>
+      <span className="text-[10px] text-text-tertiary/50 font-medium">بدون تصویر</span>
     </div>
   );
 }
@@ -58,11 +87,15 @@ export function CarGridCard({ car, index }) {
           transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         >
           <div className="relative aspect-[4/3] overflow-hidden bg-surface-tertiary">
-            <ImageWithLoader
-              src={car.image || car.images?.[0]?.image || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop'}
-              alt={car.title}
-              className="w-full h-full"
-            />
+            {getFirstImage(car) ? (
+              <ImageWithLoader
+                src={getFirstImage(car)}
+                alt={car.title}
+                className="w-full h-full"
+              />
+            ) : (
+              <NoImagePlaceholder car={car} className="w-full h-full" />
+            )}
             {car.is_featured && (
               <motion.span
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -93,10 +126,10 @@ export function CarGridCard({ car, index }) {
             <div className="flex flex-wrap gap-1.5 mb-3">
               <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.year}</span>
               <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.mileage?.toLocaleString('fa-IR')} ک.م</span>
-              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{fuelLabels[car.fuel_type] || car.fuel_type}</span>
+              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{FUEL_LABELS[car.fuel_type] || car.fuel_type}</span>
             </div>
             <div className="flex items-center justify-between text-xs text-text-tertiary">
-              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {car.city}</span>
+              <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {CITY_LABELS[car.city] || car.city}</span>
               <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {timeAgo(car.created_at)}</span>
             </div>
           </div>
@@ -121,11 +154,15 @@ export function CarListCard({ car, index }) {
         className="group flex bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300"
       >
         <div className="w-48 shrink-0 relative overflow-hidden bg-surface-tertiary">
-          <ImageWithLoader
-            src={car.image || car.images?.[0]?.image || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop'}
-            alt={car.title}
-            className="w-full h-full"
-          />
+          {getFirstImage(car) ? (
+            <ImageWithLoader
+              src={getFirstImage(car)}
+              alt={car.title}
+              className="w-full h-full"
+            />
+          ) : (
+            <NoImagePlaceholder car={car} className="w-full h-full" />
+          )}
           {car.is_featured && (
             <span className="absolute top-2 right-2 bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg">ویژه</span>
           )}
@@ -145,15 +182,15 @@ export function CarListCard({ car, index }) {
             <div className="flex flex-wrap gap-2 mt-2">
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.year}</span>
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.mileage?.toLocaleString('fa-IR')} ک.م</span>
-              <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{fuelLabels[car.fuel_type] || car.fuel_type}</span>
-              <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.color}</span>
+              <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{FUEL_LABELS[car.fuel_type] || car.fuel_type}</span>
+              <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{COLOR_LABELS[car.color] || car.color}</span>
             </div>
           </div>
           <div className="flex items-center justify-between mt-3">
             <div>
               <p className="text-lg font-bold text-brand-500">{formatPrice(car.price)}</p>
               <div className="flex items-center gap-3 text-xs text-text-tertiary mt-0.5">
-                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {car.city}</span>
+                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {CITY_LABELS[car.city] || car.city}</span>
                 <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {timeAgo(car.created_at)}</span>
               </div>
             </div>
