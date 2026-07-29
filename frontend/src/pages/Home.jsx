@@ -9,6 +9,7 @@ import {
 import { getCars } from '../lib/carApi';
 import { CarGridCard, CarListCard } from '../components/CarCard';
 import CarSpinner from '../components/CarSpinner';
+import { CITY_LABELS } from '../lib/constants';
 
 const MOCK_CARS = [
   { id: 1, title: '۲۰۲۲ تسلا مدل ۳ لانگ رنج', price: 4500000000, year: 2022, mileage: 12000, fuel_type: 'electric', transmission: 'automatic', city: 'تهران', created_at: '2026-07-27T10:00:00Z', image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop', color: 'سفید', is_featured: true, brand: 'تسلا', model: 'مدل ۳' },
@@ -173,7 +174,7 @@ function FeaturedMarquee({ cars }) {
             >
               <div className="bg-surface rounded-xl border border-border overflow-hidden hover:shadow-md hover:border-brand-500/30 transition-all">
                 <div className="relative h-36 overflow-hidden">
-                  <img src={car.image} alt={car.title} className="w-full h-full object-cover" />
+                  <img src={car.image || car.images?.[0]?.image || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop'} alt={car.title} className="w-full h-full object-cover" />
                   <span className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                     <Star className="w-2.5 h-2.5 fill-white" /> ویژه
                   </span>
@@ -182,7 +183,7 @@ function FeaturedMarquee({ cars }) {
                   <h3 className="text-xs font-semibold text-text-primary line-clamp-1">{car.title}</h3>
                   <p className="text-sm font-bold text-brand-500 mt-1">{formatPrice(car.price)}</p>
                   <p className="text-[10px] text-text-tertiary mt-1 flex items-center gap-1">
-                    <MapPin className="w-2.5 h-2.5" /> {car.city}
+                    <MapPin className="w-2.5 h-2.5" /> {CITY_LABELS[car.city] || car.city}
                   </p>
                 </div>
               </div>
@@ -375,7 +376,7 @@ export default function Home() {
       </section>
 
       {/* ── Featured Marquee ── */}
-      <FeaturedMarquee cars={useMock ? MOCK_CARS : cars} />
+      <FeaturedMarquee cars={MOCK_CARS} />
 
       {/* ── Stats Section ── */}
       <section className="bg-surface-secondary border-b border-border">

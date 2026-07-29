@@ -1,47 +1,83 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Phone, MessageCircle, Share2, Heart, MapPin, Clock, Fuel, Gauge, Calendar, Settings, CheckCircle, ChevronLeft, ChevronRight, Shield, Flag, User } from 'lucide-react';
+import { getCar, getCarImages } from '../lib/carApi';
+import {
+  FUEL_LABELS, TRANSMISSION_LABELS, CONDITION_LABELS, COLOR_LABELS, CITY_LABELS, BODY_LABELS,
+} from '../lib/constants';
+import CarSpinner from '../components/CarSpinner';
 
-const MOCK_CAR = {
-  id: 1,
-  title: '۲۰۲۲ تسلا مدل ۳ لانگ رنج',
-  price: '$۴۵,۰۰۰',
-  description: 'وضعیت عالی، سرویس‌های دوره‌ای در نمایندگی تسلا. قابلیت رانندگی خودکار کامل. داخل سفید ممتاز با دکور چوب گردو. فقط ۱۲,۰۰۰ مایل. بدون تصادف، سند تمیز. گارانتی تا ۲۰۲۷.',
-  year: 2022,
-  mileage: '۱۲,۰۰۰ مایل',
-  fuel: 'برقی',
-  transmission: 'اتوماتیک',
-  color: 'سفید',
-  location: 'تهران، ایران',
-  date: 'ثبت شده ۲ ساعت پیش',
-  vin: '۵YJ۳E۱EA۷NF۱۲۳۴۵۶',
-  condition: 'عالی',
-  images: [
-    'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1619767886558-efdc7b9af533?w=800&h=600&fit=crop',
-    'https://images.unsplash.com/photo-1536700503339-0e4f1a5d8b8a?w=800&h=600&fit=crop',
-  ],
-  seller: {
-    name: 'امیر ر.',
-    phone: '+۹۸ ۹۱۲ ۳۴۵ ۶۷۸۹',
-    memberSince: '۲۰۲۱',
-    listingsCount: 5,
-    avatar: null,
-    verified: true,
-  },
-  features: ['سقف شیشه‌ای', 'صندلی چرم', 'ناوبری', 'بلوتوث', 'دوربین عقب', 'صندلی گرم‌شونده', 'ورود بدون کلید', 'مانیتور نقاط کور'],
-};
+function formatPrice(price) {
+  if (!price) return 'قیمت توافقی';
+  return `${(price / 1000000).toLocaleString('fa-IR')} م.تومان`;
+}
+
+const BACKEND_URL = 'http://localhost:8000';
+
+function fixImageUrl(url) {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '';
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 60) return `${mins} دقیقه پیش`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} ساعت پیش`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} روز پیش`;
+  return `${Math.floor(days / 30)} ماه پیش`;
+}
 
 export default function CarDetail() {
   const { id } = useParams();
+  const [car, setCar] = useState(null);
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
 
-  const car = MOCK_CAR;
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+    Promise.all([getCar(id), getCarImages(id)])
+      .then(([carData, imagesData]) => {
+        setCar(carData);
+        const urls = imagesData.map((img) => fixImageUrl(img.image));
+        setImages(urls);
+      })
+      .catch((err) => {
+        setError(err.response?.status === 404 ? 'آگهی یافت نشد.' : 'خطا در دریافت اطلاعات آگهی.');
+      })
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % car.images.length);
-  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + car.images.length) % car.images.length);
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-20 flex justify-center">
+        <CarSpinner />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20 text-center">
+        <p className="text-lg font-semibold text-red-500 mb-4">{error}</p>
+        <Link to="/" className="px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">بازگشت به خانه</Link>
+      </div>
+    );
+  }
+
+  if (!car) return null;
+
+  const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % images.length);
+  const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
+  const memberYear = car.seller?.date_joined ? new Date(car.seller.date_joined).getFullYear() : '';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -49,12 +85,21 @@ export default function CarDetail() {
         <div className="flex-1 min-w-0">
           <div className="relative bg-surface-secondary rounded-2xl overflow-hidden mb-4">
             <div className="aspect-[16/10] sm:aspect-[16/9] relative">
-              <img
-                src={car.images[currentImageIndex]}
-                alt={car.title}
-                className="w-full h-full object-cover"
-              />
-              {car.images.length > 1 && (
+              {images.length > 0 ? (
+                <img
+                  src={images[currentImageIndex]}
+                  alt={car.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-text-tertiary">
+                  <div className="text-center">
+                    <User className="w-12 h-12 mx-auto mb-2" />
+                    <p className="text-sm">تصویری موجود نیست</p>
+                  </div>
+                </div>
+              )}
+              {images.length > 1 && (
                 <>
                   <button onClick={prevImage} className="absolute right-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-surface/90 hover:bg-surface rounded-full flex items-center justify-center shadow-lg transition-colors">
                     <ChevronRight className="w-5 h-5 text-text-primary" />
@@ -64,13 +109,15 @@ export default function CarDetail() {
                   </button>
                 </>
               )}
-              <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-lg">
-                {currentImageIndex + 1} / {car.images.length}
-              </div>
+              {images.length > 0 && (
+                <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-lg">
+                  {currentImageIndex + 1} / {images.length}
+                </div>
+              )}
             </div>
-            {car.images.length > 1 && (
+            {images.length > 1 && (
               <div className="flex gap-2 p-3 overflow-x-auto scrollbar-hide">
-                {car.images.map((img, i) => (
+                {images.map((img, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentImageIndex(i)}
@@ -88,9 +135,9 @@ export default function CarDetail() {
               <div>
                 <h1 className="text-2xl sm:text-3xl font-bold text-text-primary leading-tight">{car.title}</h1>
                 <p className="text-text-tertiary text-sm mt-2 flex items-center gap-2">
-                  <MapPin className="w-4 h-4" /> {car.location}
+                  <MapPin className="w-4 h-4" /> {CITY_LABELS[car.city] || car.city}
                   <span className="w-1 h-1 bg-text-tertiary rounded-full" />
-                  <Clock className="w-4 h-4" /> {car.date}
+                  <Clock className="w-4 h-4" /> {timeAgo(car.created_at)}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -103,14 +150,14 @@ export default function CarDetail() {
               </div>
             </div>
 
-            <p className="text-3xl font-bold text-brand-500 mb-6">{car.price}</p>
+            <p className="text-3xl font-bold text-brand-500 mb-6">{formatPrice(car.price)}</p>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-surface-secondary rounded-xl mb-6">
               {[
                 { icon: Calendar, label: 'سال', value: car.year },
-                { icon: Gauge, label: 'کارکرد', value: car.mileage },
-                { icon: Fuel, label: 'سوخت', value: car.fuel },
-                { icon: Settings, label: 'گیربکس', value: car.transmission },
+                { icon: Gauge, label: 'کارکرد', value: `${car.mileage?.toLocaleString('fa-IR')} ک.م` },
+                { icon: Fuel, label: 'سوخت', value: FUEL_LABELS[car.fuel_type] || car.fuel_type },
+                { icon: Settings, label: 'گیربکس', value: TRANSMISSION_LABELS[car.transmission] || car.transmission },
               ].map((item) => (
                 <div key={item.label} className="text-center">
                   <item.icon className="w-5 h-5 mx-auto text-brand-500 mb-1.5" />
@@ -122,9 +169,9 @@ export default function CarDetail() {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
               {[
-                { label: 'وضعیت', value: car.condition },
-                { label: 'رنگ', value: car.color },
-                { label: 'VIN', value: car.vin },
+                { label: 'وضعیت', value: CONDITION_LABELS[car.condition] || car.condition },
+                { label: 'رنگ', value: COLOR_LABELS[car.color] || car.color },
+                { label: 'نوع بدنه', value: BODY_LABELS[car.body_type] || car.body_type },
               ].map((item) => (
                 <div key={item.label} className="px-4 py-3 border border-border rounded-xl">
                   <p className="text-xs text-text-tertiary mb-0.5">{item.label}</p>
@@ -138,16 +185,18 @@ export default function CarDetail() {
               <p className="text-text-secondary leading-relaxed">{car.description}</p>
             </div>
 
-            <div>
-              <h2 className="text-lg font-bold text-text-primary mb-3">امکانات</h2>
-              <div className="flex flex-wrap gap-2">
-                {car.features.map((feature) => (
-                  <span key={feature} className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-tertiary text-text-secondary text-sm rounded-xl">
-                    <CheckCircle className="w-3.5 h-3.5 text-accent-500" /> {feature}
-                  </span>
-                ))}
+            {car.features && car.features.length > 0 && (
+              <div>
+                <h2 className="text-lg font-bold text-text-primary mb-3">امکانات</h2>
+                <div className="flex flex-wrap gap-2">
+                  {car.features.map((feature) => (
+                    <span key={feature} className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-tertiary text-text-secondary text-sm rounded-xl">
+                      <CheckCircle className="w-3.5 h-3.5 text-accent-500" /> {feature}
+                    </span>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="bg-surface rounded-2xl border border-border p-6 mb-6">
@@ -156,7 +205,7 @@ export default function CarDetail() {
               <div className="text-center">
                 <MapPin className="w-8 h-8 mx-auto mb-2" />
                 <p className="text-sm">نقشه در اینجا نمایش داده می‌شود</p>
-                <p className="text-xs">{car.location}</p>
+                <p className="text-xs">{CITY_LABELS[car.city] || car.city}</p>
               </div>
             </div>
           </div>
@@ -171,24 +220,17 @@ export default function CarDetail() {
           <div className="bg-surface rounded-2xl border border-border p-6 sticky top-20">
             <div className="flex items-center gap-3 mb-5 pb-5 border-b border-border">
               <div className="w-14 h-14 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center shrink-0">
-                {car.seller.avatar ? (
-                  <img src={car.seller.avatar} alt="" className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  <User className="w-6 h-6 text-brand-500" />
-                )}
+                <User className="w-6 h-6 text-brand-500" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-semibold text-text-primary">{car.seller.name}</p>
-                  {car.seller.verified && <CheckCircle className="w-4 h-4 text-brand-500" />}
-                </div>
-                <p className="text-xs text-text-tertiary">{car.seller.listingsCount} آگهی</p>
+                <p className="font-semibold text-text-primary">{car.seller?.name || 'فروشنده'}</p>
+                {memberYear && <p className="text-xs text-text-tertiary">عضو از {memberYear}</p>}
               </div>
             </div>
 
             <div className="space-y-3">
               <Link
-                to={`/chat?seller=${car.seller.name}&car=${car.title}`}
+                to={`/chat?seller=${car.seller?.name || ''}&car=${car.title}`}
                 className="flex items-center justify-center gap-2 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors"
               >
                 <MessageCircle className="w-4 h-4" />
@@ -197,11 +239,11 @@ export default function CarDetail() {
 
               {showPhone ? (
                 <a
-                  href={`tel:${car.seller.phone}`}
+                  href={`tel:${car.seller?.phone || ''}`}
                   className="flex items-center justify-center gap-2 w-full py-3 bg-accent-500 hover:bg-accent-600 text-white font-semibold rounded-xl transition-colors"
                 >
                   <Phone className="w-4 h-4" />
-                  <span dir="ltr">{car.seller.phone}</span>
+                  <span dir="ltr">{car.seller?.phone || ''}</span>
                 </a>
               ) : (
                 <button
