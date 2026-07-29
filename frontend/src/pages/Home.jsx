@@ -85,7 +85,8 @@ function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 
       animate={{ x: ['-20%', '110%'] }}
       transition={{ duration: speed, repeat: Infinity, ease: 'linear', delay }}
     >
-      <svg width={size} height={size * 0.4} viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg width={size} height={size * 0.4} viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg"
+           style={{ transform: 'scaleX(-1)' }}>
         <defs>
           <filter id={`glow-hl-${size}`} x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="4" result="blur" />
@@ -113,10 +114,10 @@ function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 
         <path d="M74 16 L60 36 L105 36 L105 16Z" fill="white" opacity="0.5" />
         <path d="M108 16 L108 36 L148 36 L138 16Z" fill="white" opacity="0.4" />
         <line x1="106" y1="38" x2="106" y2="64" stroke="white" strokeWidth="0.5" opacity="0.3" />
-        <rect x="155" y="42" width="8" height="6" rx="2" fill="#fbbf24" filter={`url(#glow-hl-${size})`} opacity="0.95" />
-        <rect x="155" y="42" width="12" height="6" rx="2" fill="#fbbf24" opacity="0.3" />
-        <rect x="16" y="42" width="6" height="6" rx="2" fill="#ef4444" filter={`url(#glow-tl-${size})`} opacity="0.9" />
-        <rect x="12" y="42" width="8" height="6" rx="2" fill="#ef4444" opacity="0.25" />
+        <rect x="155" y="42" width="8" height="6" rx="2" fill="#ef4444" filter={`url(#glow-tl-${size})`} opacity="0.9" />
+        <rect x="155" y="42" width="12" height="6" rx="2" fill="#ef4444" opacity="0.25" />
+        <rect x="16" y="42" width="6" height="6" rx="2" fill="#fbbf24" filter={`url(#glow-hl-${size})`} opacity="0.95" />
+        <rect x="12" y="42" width="8" height="6" rx="2" fill="#fbbf24" opacity="0.3" />
         <circle cx="140" cy="68" r="10" fill="white" opacity="0.85" />
         <circle cx="140" cy="68" r="5" fill="white" opacity="0.4" />
         <line x1="140" y1="60" x2="140" y2="76" stroke="white" strokeWidth="0.8" opacity="0.4" />
