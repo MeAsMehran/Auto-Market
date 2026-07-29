@@ -40,6 +40,7 @@ export default function PostAd() {
   });
   const [features, setFeatures] = useState([]);
   const [featureInput, setFeatureInput] = useState('');
+  const [stepErrors, setStepErrors] = useState({});
 
   const addFeature = () => {
     const trimmed = featureInput.trim();
@@ -119,8 +120,18 @@ export default function PostAd() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    const err = validateStep3();
+    const fieldErrors = {};
+    if (!form.city) fieldErrors.city = 'لطفاً شهر را انتخاب کنید.';
+    if (!form.color) fieldErrors.color = 'لطفاً رنگ را انتخاب کنید.';
+    if (err) {
+      setStepErrors(fieldErrors);
+      setError(err);
+      return;
+    }
+    setStepErrors({});
     setError(null);
+    setLoading(true);
 
     try {
       const carData = {
@@ -282,7 +293,7 @@ export default function PostAd() {
             </div>
 
             <div className="flex justify-start">
-              <button type="button" onClick={() => setStep(2)} className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
+              <button type="button" onClick={goToStep2} className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
                 بعدی <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
@@ -381,7 +392,7 @@ export default function PostAd() {
             </div>
             <div className="flex justify-between">
               <button type="button" onClick={() => setStep(1)} className="px-6 py-3 text-text-secondary border border-border hover:bg-surface-tertiary font-semibold rounded-xl transition-colors">قبلی</button>
-              <button type="button" onClick={() => setStep(3)} className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
+              <button type="button" onClick={goToStep3} className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
                 بعدی <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
@@ -394,17 +405,19 @@ export default function PostAd() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">شهر *</label>
-                <select value={form.city} onChange={(e) => updateForm('city', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
+                <select value={form.city} onChange={(e) => { updateForm('city', e.target.value); setStepErrors((p) => ({ ...p, city: undefined })); }} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.city ? 'border-red-500' : 'border-border'}`} required>
                   <option value="">انتخاب شهر</option>
                   {CITY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
+                {stepErrors.city && <p className="text-xs text-red-500 mt-1">{stepErrors.city}</p>}
               </div>
               <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">رنگ *</label>
-                <select value={form.color} onChange={(e) => updateForm('color', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
+                <select value={form.color} onChange={(e) => { updateForm('color', e.target.value); setStepErrors((p) => ({ ...p, color: undefined })); }} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.color ? 'border-red-500' : 'border-border'}`} required>
                   <option value="">انتخاب رنگ</option>
                   {COLOR_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
+                {stepErrors.color && <p className="text-xs text-red-500 mt-1">{stepErrors.color}</p>}
               </div>
             </div>
 
