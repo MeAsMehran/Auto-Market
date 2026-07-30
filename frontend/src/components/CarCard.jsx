@@ -23,13 +23,13 @@ function timeAgo(dateStr) {
 
 const BACKEND_URL = 'http://localhost:8000';
 
-function fixImageUrl(url) {
+export function fixImageUrl(url) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
   return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
-function getFirstImage(car) {
+export function getFirstImage(car) {
   if (car.images && car.images.length > 0) return fixImageUrl(car.images[0].image);
   if (car.image) return car.image;
   return '';

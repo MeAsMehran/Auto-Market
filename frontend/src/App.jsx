@@ -11,6 +11,7 @@ import CarDetail from './pages/CarDetail';
 import PostAd from './pages/PostAd';
 import Dashboard from './pages/Dashboard';
 import MyListings from './pages/MyListings';
+import EditAd from './pages/EditAd';
 import Chat from './pages/Chat';
 import Settings from './pages/Settings';
 
@@ -40,6 +41,10 @@ export default function App() {
             <Route
               path="/my-listings"
               element={<ProtectedRoute><AnimatedPage><MyListings /></AnimatedPage></ProtectedRoute>}
+            />
+            <Route
+              path="/my-listings/:id/edit"
+              element={<ProtectedRoute><AnimatedPage><EditAd /></AnimatedPage></ProtectedRoute>}
             />
             <Route
               path="/chat"
