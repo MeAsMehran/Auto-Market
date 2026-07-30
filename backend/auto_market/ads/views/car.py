@@ -117,7 +117,7 @@ class UpdateCarAdView(APIView):
 
 class ListMyCarAdView(APIView):
     permission_classes = [IsAuthenticated]
-    pagination_class = SmallPageNumberPagination
+    # pagination_class = SmallPageNumberPagination
 
     def get(self, request):
         current_user = request.user
@@ -128,6 +128,32 @@ class ListMyCarAdView(APIView):
         page = paginator.paginate_queryset(car_ads, request)
         serializer = ListCarAdSerializer(page, many=True, context={'request' : request})
         return paginator.get_paginated_response(serializer.data) 
+
+
+class RestoreCarAdView(APIView):
+    permission_classes = [IsAuthenticated , IsCarOwner]
+    
+    @extend_schema(
+    responses={200: None},
+    description="Restore a soft-deleted car ad. Sets is_active=True. Only the car owner can restore.",
+    )
+    def post(self, request, car_id):
+        car_ad = get_object_or_404(Car, pk=car_id, is_active=False)
+        car_ad.is_active = True
+        car_ad.save(update_fields=['is_active'])
+        return Response(status=status.HTTP_200_OK)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
