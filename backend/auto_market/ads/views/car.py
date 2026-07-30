@@ -10,6 +10,7 @@ from rest_framework.exceptions import NotFound
 from drf_spectacular.utils import extend_schema
 
 from core.permissions.is_owner import IsCarOwner
+from core.pagination.pagination import SmallPageNumberPagination
 
 from ..serializers.car_serializer import CreateCarAdSerializer, DetailCarAdSerializer, ListCarAdSerializer, UpdateCarAdSerializer
 
@@ -116,12 +117,17 @@ class UpdateCarAdView(APIView):
 
 class ListMyCarAdView(APIView):
     permission_classes = [IsAuthenticated]
+    pagination_class = SmallPageNumberPagination
 
     def get(self, request):
         current_user = request.user
-        car_ads = Car.objects.filter(seller=current_user)
-        serializer = ListCarAdSerializer(car_ads, many=True, context={'request' : request})
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        car_ads = Car.objects.filter(
+            seller=current_user, is_active=True
+        ).select_related('seller').prefetch_related('images')
+        paginator = SmallPageNumberPagination()
+        page = paginator.paginate_queryset(car_ads, request)
+        serializer = ListCarAdSerializer(page, many=True, context={'request' : request})
+        return paginator.get_paginated_response(serializer.data) 
 
 
 
