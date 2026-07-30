@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Eye, Edit3, Trash2, RotateCcw, Search, ChevronLeft, ChevronRight, Clock, MapPin, Loader2, AlertCircle, Car } from 'lucide-react';
 import { getMyListings, deleteCar, restoreCar } from '../lib/carApi';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { getFirstImage } from '../components/CarCard';
+
+const PER_PAGE = 5;
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -23,34 +25,59 @@ function timeAgo(dateStr) {
 }
 
 export default function MyListings() {
-  const [listings, setListings] = useState([]);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  const [allListings, setAllListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filter, setFilter] = useState('all');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
 
-  const totalPages = Math.ceil(totalCount / 5);
+  const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+  const filter = searchParams.get('filter') || 'all';
+  const searchQuery = searchParams.get('search') || '';
+
+  const setFilter = (f) => {
+    setSearchParams((prev) => { prev.set('filter', f); prev.set('page', '1'); return prev; });
+  };
+  const setPage = (p) => {
+    setSearchParams((prev) => { prev.set('page', String(p)); return prev; });
+  };
+  const setSearchQuery = (q) => {
+    setSearchParams((prev) => { prev.set('search', q); prev.set('page', '1'); return prev; });
+  };
 
   useEffect(() => {
-    fetchListings();
-  }, [page]);
+    const cached = sessionStorage.getItem('myListings');
+    if (cached) {
+      try {
+        setAllListings(JSON.parse(cached));
+        setLoading(false);
+        return;
+      } catch {}
+    }
+    fetchAllListings();
+  }, []);
 
-  const fetchListings = async () => {
+  const fetchAllListings = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await getMyListings(page);
-      if (Array.isArray(data)) {
-        setListings(data);
-        setTotalCount(data.length);
-      } else {
-        setListings(data.results || []);
-        setTotalCount(data.count || 0);
+      let allResults = [];
+      let currentPage = 1;
+      const pageSize = 50;
+
+      while (true) {
+        const data = await getMyListings(currentPage, pageSize);
+        const results = Array.isArray(data) ? data : (data.results || []);
+        allResults = allResults.concat(results);
+        if (Array.isArray(data) || !data.next || allResults.length >= (data.count || 0)) break;
+        currentPage++;
+        if (currentPage > 20) break;
       }
+
+      sessionStorage.setItem('myListings', JSON.stringify(allResults));
+      setAllListings(allResults);
     } catch {
       setError('خطا در دریافت آگهی‌ها. لطفاً دوباره تلاش کنید.');
     } finally {
@@ -62,9 +89,11 @@ export default function MyListings() {
     setActionLoading(id);
     try {
       await deleteCar(id);
-      setListings((prev) =>
-        prev.map((l) => (l.id === id ? { ...l, is_active: false } : l))
-      );
+      setAllListings((prev) => {
+        const next = prev.map((l) => (l.id === id ? { ...l, is_active: false } : l));
+        sessionStorage.setItem('myListings', JSON.stringify(next));
+        return next;
+      });
       setDeleteConfirm(null);
     } catch {
       setError('خطا در حذف آگهی.');
@@ -77,9 +106,11 @@ export default function MyListings() {
     setActionLoading(id);
     try {
       await restoreCar(id);
-      setListings((prev) =>
-        prev.map((l) => (l.id === id ? { ...l, is_active: true } : l))
-      );
+      setAllListings((prev) => {
+        const next = prev.map((l) => (l.id === id ? { ...l, is_active: true } : l));
+        sessionStorage.setItem('myListings', JSON.stringify(next));
+        return next;
+      });
     } catch {
       setError('خطا در بازیابی آگهی.');
     } finally {
@@ -87,18 +118,30 @@ export default function MyListings() {
     }
   };
 
-  const filtered = listings.filter((l) => {
-    if (filter === 'active' && !l.is_active) return false;
-    if (filter === 'deleted' && l.is_active) return false;
-    if (searchQuery && !l.title?.includes(searchQuery) && !l.brand?.includes(searchQuery)) return false;
-    return true;
-  });
+  const statusCounts = useMemo(() => ({
+    all: allListings.length,
+    active: allListings.filter((l) => l.is_active).length,
+    deleted: allListings.filter((l) => !l.is_active).length,
+  }), [allListings]);
 
-  const statusCounts = {
-    all: listings.length,
-    active: listings.filter((l) => l.is_active).length,
-    deleted: listings.filter((l) => !l.is_active).length,
-  };
+  const filtered = useMemo(() => {
+    return allListings.filter((l) => {
+      if (filter === 'active' && !l.is_active) return false;
+      if (filter === 'deleted' && l.is_active) return false;
+      if (searchQuery && !l.title?.includes(searchQuery) && !l.brand?.includes(searchQuery)) return false;
+      return true;
+    });
+  }, [allListings, filter, searchQuery]);
+
+  const totalPages = Math.ceil(filtered.length / PER_PAGE);
+  const safePage = Math.min(page, totalPages || 1);
+  const paginated = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
+
+  useEffect(() => {
+    if (page > totalPages && totalPages > 0) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -153,7 +196,7 @@ export default function MyListings() {
           <Loader2 className="w-8 h-8 text-brand-500 animate-spin mb-3" />
           <p className="text-text-secondary text-sm">در حال بارگذاری آگهی‌ها...</p>
         </div>
-      ) : filtered.length === 0 ? (
+      ) : paginated.length === 0 ? (
         <div className="text-center py-20 bg-surface rounded-2xl border border-border">
           <Car className="w-10 h-10 mx-auto text-text-tertiary mb-3" />
           <h3 className="font-semibold text-text-primary">آگهی‌ای یافت نشد</h3>
@@ -164,14 +207,14 @@ export default function MyListings() {
       ) : (
         <>
           <div className="space-y-4">
-            {filtered.map((listing) => {
+            {paginated.map((listing) => {
               const isDeleted = listing.is_active === false;
               return (
                 <div key={listing.id} className={`bg-surface rounded-2xl border p-4 sm:p-5 transition-colors ${isDeleted ? 'border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/20' : 'border-border'}`}>
                   <div className="flex flex-col sm:flex-row gap-4">
                     <div className={`sm:w-32 h-24 rounded-xl overflow-hidden shrink-0 ${isDeleted ? 'bg-red-100 dark:bg-red-950' : 'bg-surface-tertiary'}`}>
                       {getFirstImage(listing) ? (
-                        <img src={getFirstImage(listing)} alt="" className={`w-full h-full object-cover ${isDeleted ? 'opacity-50 grayscale' : ''}`} />
+                        <img src={getFirstImage(listing)} alt="" loading="lazy" className={`w-full h-full object-cover ${isDeleted ? 'opacity-50 grayscale' : ''}`} />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Car className="w-8 h-8 text-text-tertiary/30" />
@@ -246,8 +289,8 @@ export default function MyListings() {
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-8">
               <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
+                onClick={() => setPage(Math.max(1, safePage - 1))}
+                disabled={safePage === 1}
                 className="p-2 rounded-xl border border-border hover:bg-surface-tertiary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronRight className="w-4 h-4" />
@@ -256,14 +299,14 @@ export default function MyListings() {
                 <button
                   key={p}
                   onClick={() => setPage(p)}
-                  className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors ${page === p ? 'bg-brand-500 text-white' : 'border border-border hover:bg-surface-tertiary text-text-secondary'}`}
+                  className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors ${safePage === p ? 'bg-brand-500 text-white' : 'border border-border hover:bg-surface-tertiary text-text-secondary'}`}
                 >
                   {p}
                 </button>
               ))}
               <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
+                onClick={() => setPage(Math.min(totalPages, safePage + 1))}
+                disabled={safePage === totalPages}
                 className="p-2 rounded-xl border border-border hover:bg-surface-tertiary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ChevronLeft className="w-4 h-4" />
