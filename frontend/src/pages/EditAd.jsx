@@ -193,6 +193,7 @@ export default function EditAd() {
         }
       }
 
+      sessionStorage.removeItem('myListings');
       navigate('/my-listings');
     } catch (err) {
       const data = err.response?.data;
@@ -202,9 +203,9 @@ export default function EditAd() {
           price: 'قیمت', mileage: 'کارکرد', fuel_type: 'نوع سوخت', transmission: 'گیربکس',
           body_type: 'نوع بدنه', condition: 'وضعیت', color: 'رنگ', city: 'شهر',
           description: 'توضیحات', features: 'امکانات', detail: 'جزئیات',
+          non_field_errors: 'خطا',
         };
         const lines = Object.entries(data)
-          .filter(([field]) => field !== 'non_field_errors')
           .map(([field, msgs]) => {
             const label = fieldLabels[field] || field;
             const msg = Array.isArray(msgs) ? msgs.join('، ') : msgs;
@@ -447,8 +448,8 @@ export default function EditAd() {
             <div className="bg-accent-50 dark:bg-accent-950 border border-accent-200 dark:border-accent-800 rounded-xl p-4 flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-accent-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-accent-700 dark:text-accent-300">آماده ذخیره!</p>
-                <p className="text-xs text-accent-600 dark:text-accent-400 mt-0.5">تغییرات خود را بررسی کرده و ذخیره کنید.</p>
+                <p className="text-sm font-medium text-green-800 dark:text-green-300">آماده ذخیره!</p>
+                <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">تغییرات خود را بررسی کرده و ذخیره کنید.</p>
               </div>
             </div>
             <div className="flex justify-between">
