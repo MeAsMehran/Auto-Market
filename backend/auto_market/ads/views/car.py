@@ -117,7 +117,7 @@ class UpdateCarAdView(APIView):
 
 class ListMyCarAdView(APIView):
     permission_classes = [IsAuthenticated]
-    pagination_class = SmallPageNumberPagination
+    # pagination_class = SmallPageNumberPagination
 
     def get(self, request):
         current_user = request.user
