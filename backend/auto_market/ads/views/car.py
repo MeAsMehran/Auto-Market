@@ -97,6 +97,7 @@ class CarListView(APIView):
         return paginator.get_paginated_response(serializer.data)
 
 
+
 '''
 Still needed:
 1. UpdateCarAdView — PATCH /cars/<id>/ (edit car details)
