@@ -10,8 +10,9 @@ from rest_framework.exceptions import NotFound
 from drf_spectacular.utils import extend_schema
 
 from core.permissions.is_owner import IsCarOwner
+from core.pagination.pagination import SmallPageNumberPagination
 
-from ..serializers.car_serializer import CreateCarAdSerializer, DetailCarAdSerializer, ListCarAdSerializer
+from ..serializers.car_serializer import CreateCarAdSerializer, DetailCarAdSerializer, ListCarAdSerializer, UpdateCarAdSerializer
 
 from ..models import Car
 from ..filters import CarFilter
@@ -77,7 +78,7 @@ class DetailCarAdView(APIView):
         return Response(serializer.data)
 
 
-class CarListView(APIView):
+class ListCarAdView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(
@@ -97,18 +98,36 @@ class CarListView(APIView):
         return paginator.get_paginated_response(serializer.data)
 
 
+class UpdateCarAdView(APIView):
+    permission_classes = [IsAuthenticated , IsCarOwner]
 
-'''
-Still needed:
-1. UpdateCarAdView — PATCH /cars/<id>/ (edit car details)
-2. MyListingsView — GET /my-listings/ (list current user's cars)
-These match the two remaining frontend API calls in carApi.js:
-- updateCar(id, data) → PATCH /cars/${id}/
-- getMyListings() → GET /my-listings/
-'''
+    @extend_schema(
+        request=UpdateCarAdSerializer,
+        responses={200: UpdateCarAdSerializer},
+    )
+    def patch(self, request, car_id):
+        car_ad = get_object_or_404(Car, pk=car_id, seller=request.user)
+        serializer = UpdateCarAdSerializer(car_ad, data=request.data, partial=True)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+class ListMyCarAdView(APIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = SmallPageNumberPagination
 
+    def get(self, request):
+        current_user = request.user
+        car_ads = Car.objects.filter(
+            seller=current_user, is_active=True
+        ).select_related('seller').prefetch_related('images')
+        paginator = SmallPageNumberPagination()
+        page = paginator.paginate_queryset(car_ads, request)
+        serializer = ListCarAdSerializer(page, many=True, context={'request' : request})
+        return paginator.get_paginated_response(serializer.data) 
 
 
 

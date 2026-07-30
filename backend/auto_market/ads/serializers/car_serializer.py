@@ -99,5 +99,38 @@ class ListCarAdSerializer(serializers.Serializer):
     images       = DetailCarImageSerializer(many=True, read_only=True)
 
 
+from ..validations.update_car_validation import validate as update_car_validate
+class UpdateCarAdSerializer(serializers.Serializer):
+
+    title        = serializers.CharField(max_length=200, required=True, allow_null=False)
+    brand        = serializers.CharField(max_length=50, required=True, allow_null=False)
+    model_name   = serializers.CharField(max_length=50, required=True, allow_null=False)
+    year         = serializers.IntegerField(required=True, allow_null=False)
+    price        = serializers.IntegerField(required=True, allow_null=False)
+    mileage      = serializers.IntegerField(required=True, allow_null=False)
+    fuel_type    = serializers.ChoiceField(choices=Car.FUEL_CHOICES, required=True, allow_null=False)
+    transmission = serializers.ChoiceField(choices=Car.TRANSMISSION_CHOICES, required=True, allow_null=False)
+    body_type    = serializers.ChoiceField(choices=Car.BODY_CHOICES, required=True, allow_null=False)
+    condition    = serializers.ChoiceField(choices=Car.CONDITION_CHOICES, required=True, allow_null=False)
+    color        = serializers.ChoiceField(choices=Car.COLOR_CHOICES, required=True, allow_null=False)
+    city         = serializers.ChoiceField(choices=Car.CITY_CHOICES, required=True, allow_null=False)
+    description  = serializers.CharField(required=True, allow_null=False)
+    features     = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    updated_at   = serializers.DateTimeField()
+    # images       = CreateCarImageSerializer(many=True, required=False)
+
+    def validate(self, attrs):
+        return update_car_validate(attrs)
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+        return instance
+
+
+
+
 
 
