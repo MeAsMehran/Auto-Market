@@ -122,7 +122,7 @@ class ListMyCarAdView(APIView):
     def get(self, request):
         current_user = request.user
         car_ads = Car.objects.filter(
-            seller=current_user, is_active=True
+            seller=current_user
         ).select_related('seller').prefetch_related('images')
         paginator = SmallPageNumberPagination()
         page = paginator.paginate_queryset(car_ads, request)

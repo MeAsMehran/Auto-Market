@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, X, ChevronRight, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { createCar, uploadCarImages } from '../lib/carApi';
@@ -13,17 +13,43 @@ const BODY_OPTIONS = Object.keys(BODY_MAP);
 const COLOR_OPTIONS = Object.keys(COLOR_MAP);
 const CITY_OPTIONS = Object.keys(CITY_MAP);
 
+const STORAGE_KEY = 'postAdDraft';
+
+const defaultForm = {
+  brand: '', model_name: '', year: '', price: '', mileage: '',
+  fuel_type: '', transmission: '', condition: '', body_type: '',
+  color: '', city: '', title: '', description: '',
+};
+
+const DRAFT_TTL = 10 * 60 * 1000;
+
+function loadDraft() {
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const draft = JSON.parse(raw);
+      if (Date.now() - (draft.savedAt || 0) > DRAFT_TTL) {
+        sessionStorage.removeItem(STORAGE_KEY);
+        return { step: 1, form: defaultForm, features: [] };
+      }
+      return { step: draft.step || 1, form: { ...defaultForm, ...draft.form }, features: draft.features || [] };
+    }
+  } catch {}
+  return { step: 1, form: defaultForm, features: [] };
+}
+
+function saveDraft(step, form, features) {
+  sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ step, form, features, savedAt: Date.now() }));
+}
+
 export default function PostAd() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const draft = loadDraft();
+  const [step, setStep] = useState(draft.step);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [imageSlots, setImageSlots] = useState({
-    front: null,
-    rear: null,
-    left: null,
-    right: null,
-    other: null,
+    front: null, rear: null, left: null, right: null, other: null,
   });
 
   const SLOT_CONFIG = [
@@ -33,14 +59,14 @@ export default function PostAd() {
     { key: 'right',  label: 'سمت راست', desc: 'نمای سمت راست خودرو', order: 3 },
     { key: 'other',  label: 'سایر',     desc: 'تصویر دیگر (اختیاری)', order: 4 },
   ];
-  const [form, setForm] = useState({
-    brand: '', model_name: '', year: '', price: '', mileage: '',
-    fuel_type: '', transmission: '', condition: '', body_type: '',
-    color: '', city: '', title: '', description: '',
-  });
-  const [features, setFeatures] = useState([]);
+  const [form, setForm] = useState(draft.form);
+  const [features, setFeatures] = useState(draft.features);
   const [featureInput, setFeatureInput] = useState('');
   const [stepErrors, setStepErrors] = useState({});
+
+  useEffect(() => {
+    saveDraft(step, form, features);
+  }, [step, form, features]);
 
   const addFeature = () => {
     const trimmed = featureInput.trim();
@@ -163,6 +189,8 @@ export default function PostAd() {
         }
       }
 
+      sessionStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem('myListings');
       navigate('/my-listings');
     } catch (err) {
       const data = err.response?.data;
@@ -183,9 +211,9 @@ export default function PostAd() {
           description: 'توضیحات',
           features: 'امکانات',
           detail: 'جزئیات',
+          non_field_errors: 'خطا',
         };
         const lines = Object.entries(data)
-          .filter(([field]) => field !== 'non_field_errors')
           .map(([field, msgs]) => {
             const label = fieldLabels[field] || field;
             const msg = Array.isArray(msgs) ? msgs.join('، ') : msgs;
@@ -424,8 +452,8 @@ export default function PostAd() {
             <div className="bg-accent-50 dark:bg-accent-950 border border-accent-200 dark:border-accent-800 rounded-xl p-4 flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-accent-500 shrink-0 mt-0.5" />
               <div>
-                <p className="text-sm font-medium text-accent-700 dark:text-accent-300">نزدیک به اتمام!</p>
-                <p className="text-xs text-accent-600 dark:text-accent-400 mt-0.5">آگهی خود را بررسی کرده و ثبت کنید. بعداً می‌توانید از پیشخوان آن را ویرایش کنید.</p>
+                <p className="text-sm font-medium text-green-800 dark:text-green-300">نزدیک به اتمام!</p>
+                <p className="text-xs text-green-700 dark:text-green-400 mt-0.5">آگهی خود را بررسی کرده و ثبت کنید. بعداً می‌توانید از پیشخوان آن را ویرایش کنید.</p>
               </div>
             </div>
 

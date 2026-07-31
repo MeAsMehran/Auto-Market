@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 @theme {
+  /* Brand Colors */
   --color-brand-50: #eff6ff;
   --color-brand-100: #dbeafe;
   --color-brand-200: #bfdbfe;
@@ -11,14 +12,31 @@
   --color-brand-700: #1a365d;
   --color-brand-800: #1a2a4a;
   --color-brand-900: #0f172a;
-  --color-accent-50: #f0fdf4;
-  --color-accent-100: #dcfce7;
-  --color-accent-200: #bbf7d0;
-  --color-accent-300: #86efac;
-  --color-accent-400: #4ade80;
+
+  /* Accent Colors */
+  --color-accent-50: #ecfdf5;
+  --color-accent-100: #d1fae5;
+  --color-accent-200: #a7f3d0;
+  --color-accent-300: #6ee7b7;
+  --color-accent-400: #34d399;
   --color-accent-500: #059669;
-  --color-accent-600: #16a34a;
-  --color-accent-700: #15803d;
+  --color-accent-600: #065f46;
+  --color-accent-700: #064e3b;
+
+  /* Lighter Red Colors for Deleted State */
+  --color-red-50: #fef2f2;
+  --color-red-100: #fee2e2;
+  --color-red-200: #fecaca;
+  --color-red-300: #fca5a5;
+  --color-red-400: #f87171;
+  --color-red-500: #f87171;
+  --color-red-600: #fca5a5;
+  --color-red-700: #fecaca;
+  --color-red-800: #fee2e2;
+  --color-red-900: #fef2f2;
+  --color-red-950: #fef2f2;
+
+  /* Surface & Other Colors */
   --color-surface: #ffffff;
   --color-surface-secondary: #f8fafc;
   --color-surface-tertiary: #f1f5f9;
@@ -30,6 +48,7 @@
 }
 
 .dark {
+  /* Dark Mode Surface Colors */
   --color-surface: #0f172a;
   --color-surface-secondary: #1e293b;
   --color-surface-tertiary: #334155;
@@ -38,6 +57,19 @@
   --color-text-primary: #f1f5f9;
   --color-text-secondary: #94a3b8;
   --color-text-tertiary: #64748b;
+
+  /* Dark Mode Lighter Red Colors */
+  --color-red-50: #450a0a;
+  --color-red-100: #7f1d1d;
+  --color-red-200: #991b1b;
+  --color-red-300: #b91c1c;
+  --color-red-400: #dc2626;
+  --color-red-500: #f87171;
+  --color-red-600: #fca5a5;
+  --color-red-700: #fecaca;
+  --color-red-800: #fee2e2;
+  --color-red-900: #fef2f2;
+  --color-red-950: #fef2f2;
 }
 
 body {

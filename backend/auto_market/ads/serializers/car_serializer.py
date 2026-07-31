@@ -77,6 +77,7 @@ class DetailCarAdSerializer(serializers.Serializer):
     created_at   = serializers.DateTimeField(read_only=True)
     images       = DetailCarImageSerializer(many=True, read_only=True)
     is_featured  = serializers.BooleanField(read_only=True)
+    is_active    = serializers.BooleanField(read_only=True)
 
 
 class ListCarAdSerializer(serializers.Serializer):
@@ -97,6 +98,7 @@ class ListCarAdSerializer(serializers.Serializer):
     is_featured  = serializers.BooleanField(read_only=True)
     created_at   = serializers.DateTimeField(read_only=True)
     images       = DetailCarImageSerializer(many=True, read_only=True)
+    is_active    = serializers.BooleanField(read_only=True)
 
 
 from ..validations.update_car_validation import validate as update_car_validate
@@ -117,6 +119,7 @@ class UpdateCarAdSerializer(serializers.Serializer):
     description  = serializers.CharField(required=True, allow_null=False)
     features     = serializers.ListField(child=serializers.CharField(), required=False, default=list)
     updated_at   = serializers.DateTimeField()
+    is_active    = serializers.BooleanField()
     # images       = CreateCarImageSerializer(many=True, required=False)
 
     def validate(self, attrs):

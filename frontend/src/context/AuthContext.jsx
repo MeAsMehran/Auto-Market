@@ -61,6 +61,8 @@ export function AuthProvider({ children }) {
       setAccessToken(null);
       setAuthToken(null);
       setUser(null);
+      sessionStorage.removeItem('postAdDraft');
+      sessionStorage.removeItem('myListings');
     }
   }, []);
 
