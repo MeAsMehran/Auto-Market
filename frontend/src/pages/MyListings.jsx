@@ -111,7 +111,8 @@ export default function MyListings() {
         sessionStorage.setItem('myListings', JSON.stringify(next));
         return next;
       });
-    } catch {
+    } catch (err) {
+      console.error('Restore error:', err.response?.data || err.message);
       setError('خطا در بازیابی آگهی.');
     } finally {
       setActionLoading(null);
