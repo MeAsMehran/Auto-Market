@@ -9,6 +9,7 @@ from rest_framework import status
 from drf_spectacular.utils import extend_schema
 
 from ..models import Car, Favorite
+from ..serializers.favorite_serializer import ListFavoriteAdSerializer
 
 ########################################
 
@@ -53,7 +54,8 @@ class ToggleFavoriteView(APIView):
     )
     def post(self, request, car_id):
         current_user = request.user
-        favorite_ad, created = Favorite.objects.get_or_create(user=current_user, car_id=car_id)
+        car_ad = get_object_or_404(Car, pk=car_id, is_active=True)
+        favorite_ad, created = Favorite.objects.get_or_create(user=current_user, car=car_ad)
 
         if created:
             return Response(status=status.HTTP_201_CREATED)     # Added
@@ -66,10 +68,19 @@ class ListFavoriteView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-
+        responses={200: ListFavoriteAdSerializer(many=True)}
     )
     def get(self, request):
-        pass
+        # filter + select_related for performance
+        favorite_ads = Favorite.objects.filter(user=request.user).select_related('car')
+
+        # Actually serialize and return the data
+        serializer = ListFavoriteAdSerializer(favorite_ads, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
 
 
 

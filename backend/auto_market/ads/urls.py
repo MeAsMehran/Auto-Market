@@ -23,6 +23,8 @@ urlpatterns = [
 
     # Favorite Views:
     path('cars/add-favorite-ad/<int:car_ad_id>/', AddFavoriteAdView.as_view(), name='add-favorite-ad'),
+    path('cars/remove-favorite-ad/<int:car_ad_id>/', RemoveFavoriteAdView.as_view(), name='remove-favorite-ad'),
+    path('cars/list-favorite-ads/', ListFavoriteView.as_view(), name='list-favorite-ads'),
 
 ]
 

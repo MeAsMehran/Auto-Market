@@ -1,5 +1,6 @@
 
 from rest_framework import serializers
+from serializers.car_serializer import ListCarAdSerializer
 
 ##########################################################
 
@@ -7,9 +8,10 @@ class AddFavoriteAdSerializer(serializers.Serializer):
     pass
 
 
-'''
-    user       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='favorites')
-    car        = models.ForeignKey(Car, on_delete=models.CASCADE, related_name='favorited_by')
-    created_at = models.DateTimeField(auto_now_add=True)
-'''
+class ListFavoriteAdSerializer(serializers.Serializer):
+    id         = serializers.IntegerField(read_only=True)
+    car        = ListCarAdSerializer(read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+
+
 
