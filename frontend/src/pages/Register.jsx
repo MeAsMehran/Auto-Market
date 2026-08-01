@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Car, Eye, EyeOff, Loader2, ChevronRight } from 'lucide-react';
+import { Car, Eye, EyeOff, Loader2, ChevronRight, AlertCircle, Mail } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Register() {
@@ -8,40 +8,193 @@ export default function Register() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
+  const [generalError, setGeneralError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const clearError = (field) => {
+    setErrors(prev => ({ ...prev, [field]: '' }));
+    if (generalError) setGeneralError('');
+  };
 
   const handleStep1 = (e) => {
     e.preventDefault();
-    setError('');
-    if (password !== confirmPassword) {
-      setError('رمز عبور و تکرار آن مطابقت ندارند');
-      return;
+    setErrors({});
+    setGeneralError('');
+
+    let hasError = false;
+    if (!name.trim()) {
+      setErrors(prev => ({ ...prev, name: 'نام و نام خانوادگی الزامی است' }));
+      hasError = true;
     }
     if (password.length < 8) {
-      setError('رمز عبور باید حداقل ۸ کاراکتر باشد');
-      return;
+      setErrors(prev => ({ ...prev, password: 'رمز عبور باید حداقل ۸ کاراکتر باشد' }));
+      hasError = true;
     }
+    if (password !== confirmPassword) {
+      setErrors(prev => ({ ...prev, confirmPassword: 'رمز عبور و تکرار آن مطابقت ندارند' }));
+      hasError = true;
+    }
+    if (hasError) return;
     setStep(2);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    setErrors({});
+    setGeneralError('');
     setLoading(true);
     try {
-      await register({ name, phone, password });
+      await register({ name, phone, password, confirm_password: confirmPassword, email });
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.detail || 'ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.');
+      if (err.response?.data) {
+        const data = err.response.data;
+        const status = err.response.status;
+
+        if (status === 400) {
+          const fieldErrors = {};
+          if (data.name) fieldErrors.name = data.name[0];
+          if (data.phone) fieldErrors.phone = data.phone[0];
+          if (data.password) fieldErrors.password = data.password[0];
+          if (data.confirm_password) fieldErrors.confirmPassword = data.confirm_password[0];
+          if (data.email) fieldErrors.email = data.email[0];
+
+          if (Object.keys(fieldErrors).length > 0) setErrors(fieldErrors);
+
+          if (data.non_field_errors) setGeneralError(data.non_field_errors[0]);
+          else if (data.detail) setGeneralError(data.detail);
+          else if (Object.keys(fieldErrors).length === 0) setGeneralError('ثبت‌نام انجام نشد. لطفاً دوباره تلاش کنید.');
+        }
+        else if (status === 500 && data.detail) {
+          const detail = data.detail;
+          if (detail.includes('phone') || detail.includes('format') || detail.includes('Invalid')) {
+            setErrors({ phone: 'فرمت شماره تلفن نامعتبر است. مثال: ۰۹۱۲۳۴۵۶۷۸۹' });
+          } else setGeneralError(detail);
+        }
+        else if (data.detail) setGeneralError(data.detail);
+        else setGeneralError('خطای سرور. لطفاً دوباره تلاش کنید.');
+      } else if (err.request) {
+        setGeneralError('خطای شبکه. سرور در دسترس نیست.');
+      } else {
+        setGeneralError('خطای ناشناخته. لطفاً دوباره تلاش کنید.');
+      }
     } finally {
       setLoading(false);
     }
   };
+
+  const renderStep1 = () => (
+    <form onSubmit={handleStep1} className="space-y-5">
+      <div>
+        <label className="block text-sm font-medium text-text-primary mb-1.5">نام و نام خانوادگی</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => { setName(e.target.value); clearError('name'); }}
+          placeholder="مثال: علی محمدی"
+          className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${
+            errors.name ? 'border-red-400 dark:border-red-500 focus:border-red-500' : 'border-border focus:border-brand-500'
+          }`}
+          required
+        />
+        {errors.name && <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.name}</p>}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-text-primary mb-1.5">
+          آدرس ایمیل <span className="text-text-tertiary text-xs">(اختیاری)</span>
+        </label>
+        <div className="relative">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => { setEmail(e.target.value); clearError('email'); }}
+            placeholder="example@mail.com"
+            className={`w-full pr-10 pl-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${
+              errors.email ? 'border-red-400 dark:border-red-500 focus:border-red-500' : 'border-border focus:border-brand-500'
+            }`}
+          />
+          <Mail className="absolute right-3.5 top-3.5 w-4 h-4 text-text-tertiary" />
+        </div>
+        {errors.email && <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.email}</p>}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-text-primary mb-1.5">رمز عبور</label>
+        <div className="relative">
+          <input
+            type={showPassword ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => { setPassword(e.target.value); clearError('password'); }}
+            placeholder="حداقل ۸ کاراکتر"
+            className={`w-full px-4 py-3 pl-11 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${
+              errors.password ? 'border-red-400 dark:border-red-500 focus:border-red-500' : 'border-border focus:border-brand-500'
+            }`}
+            required
+            minLength={8}
+          />
+          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary">
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+        {errors.password && <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.password}</p>}
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-text-primary mb-1.5">تکرار رمز عبور</label>
+        <input
+          type={showPassword ? 'text' : 'password'}
+          value={confirmPassword}
+          onChange={(e) => { setConfirmPassword(e.target.value); clearError('confirmPassword'); }}
+          placeholder="رمز عبور را دوباره وارد کنید"
+          className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${
+            errors.confirmPassword ? 'border-red-400 dark:border-red-500 focus:border-red-500' : 'border-border focus:border-brand-500'
+          }`}
+          required
+          minLength={8}
+        />
+        {errors.confirmPassword && <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.confirmPassword}</p>}
+      </div>
+      <button type="submit" className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
+        ادامه <ChevronRight className="w-4 h-4" />
+      </button>
+    </form>
+  );
+
+  const renderStep2 = () => (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {generalError && (
+        <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 px-4 py-3 rounded-xl text-sm mb-4 flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          {generalError}
+        </div>
+      )}
+      <div>
+        <label className="block text-sm font-medium text-text-primary mb-1.5">شماره تلفن</label>
+        <input
+          type="tel"
+          value={phone}
+          onChange={(e) => { setPhone(e.target.value); clearError('phone'); }}
+          placeholder="۰۹۱۲ ۳۴۵ ۶۷۸۹"
+          className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 transition-colors ${
+            errors.phone ? 'border-red-400 dark:border-red-500 focus:border-red-500' : 'border-border focus:border-brand-500'
+          }`}
+          required
+        />
+        {errors.phone && <p className="mt-1.5 text-sm text-red-600 dark:text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.phone}</p>}
+      </div>
+      <button type="submit" disabled={loading} className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2">
+        {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+        {loading ? 'در حال ایجاد حساب...' : 'ایجاد حساب'}
+      </button>
+      <button type="button" onClick={() => setStep(1)} className="w-full py-3 text-text-secondary border border-border hover:bg-surface-tertiary font-medium rounded-xl transition-colors">
+        قبلی
+      </button>
+    </form>
+  );
 
   return (
     <div className="min-h-screen flex">
@@ -69,95 +222,7 @@ export default function Register() {
             {step === 1 ? 'اطلاعات خود را وارد کنید.' : 'شماره تلفن خود را برای تایید وارد کنید.'}
           </p>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm mb-6">
-              {error}
-            </div>
-          )}
-
-          {step === 1 ? (
-            <form onSubmit={handleStep1} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">نام و نام خانوادگی</label>
-                <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="مثال: علی محمدی"
-                  className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">رمز عبور</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="حداقل ۸ کاراکتر"
-                    className="w-full px-4 py-3 pl-11 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
-                    required
-                    minLength={8}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">تکرار رمز عبور</label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="رمز عبور را دوباره وارد کنید"
-                  className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
-                  required
-                  minLength={8}
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
-              >
-                ادامه <ChevronRight className="w-4 h-4" />
-              </button>
-            </form>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">شماره تلفن</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="۰۹۱۲ ۳۴۵ ۶۷۸۹"
-                  className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-semibold rounded-xl transition-colors flex items-center justify-center gap-2"
-              >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                {loading ? 'در حال ایجاد حساب...' : 'ایجاد حساب'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="w-full py-3 text-text-secondary border border-border hover:bg-surface-tertiary font-medium rounded-xl transition-colors"
-              >
-                قبلی
-              </button>
-            </form>
-          )}
+          {step === 1 ? renderStep1() : renderStep2()}
 
           {step === 2 && (
             <p className="mt-6 text-center text-sm text-text-secondary">

@@ -1,0 +1,2207 @@
+[
+  {
+    "brand": "پژو",
+    "model": "206 صندوقدار",
+    "manufacturer": "ایران خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "پژو",
+    "model": "206 هاچ‌بک",
+    "manufacturer": "ایران خودرو",
+    "country": "فرانسه",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "پژو",
+    "model": "207 صندوقدار",
+    "manufacturer": "ایران خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "پژو",
+    "model": "207 هاچ‌بک",
+    "manufacturer": "ایران خودرو",
+    "country": "فرانسه",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "پژو",
+    "model": "405",
+    "manufacturer": "ایران خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "پژو",
+    "model": "پارس",
+    "manufacturer": "ایران خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "پژو",
+    "model": "پارس ELX",
+    "manufacturer": "ایران خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "پژو",
+    "model": "پارس TU5",
+    "manufacturer": "ایران خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "آریسان 2",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "وانت"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "رانا پلاس",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "سمند LX",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "سمند EF7",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "سورن پلاس",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "سورن پلاس XU7",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "دنا +",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "دنا پلاس توربو اتومات",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "تارا دنده‌ای",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "تارا اتومات",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "تارا V4",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "ایران خودرو",
+    "model": "ری را",
+    "manufacturer": "ایران خودرو",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "هایما",
+    "model": "S5",
+    "manufacturer": "ایران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هایما",
+    "model": "S7",
+    "manufacturer": "ایران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هایما",
+    "model": "8S",
+    "manufacturer": "ایران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هایما",
+    "model": "7X",
+    "manufacturer": "ایران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "سایپا",
+    "model": "پراید 111",
+    "manufacturer": "سایپا",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "پراید 131",
+    "manufacturer": "سایپا",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "پراید 132",
+    "manufacturer": "سایپا",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "پراید 151",
+    "manufacturer": "سایپا",
+    "country": "ژاپن",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "سایپا",
+    "model": "تیبا صندوقدار",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "تیبا 2 هاچ‌بک",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "سایپا",
+    "model": "ساینا S",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "ساینا دنده‌ای",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "ساینا GX",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "کوییک R",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "سایپا",
+    "model": "کوییک S",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "سایپا",
+    "model": "کوییک GX",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "سایپا",
+    "model": "کوییک اتومات",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "سایپا",
+    "model": "شاهین دنده‌ای",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "شاهین اتومات",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "شاهین پلاس",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "اطلس",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "سهند",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "سایپا",
+    "model": "سهند اتومات",
+    "manufacturer": "سایپا",
+    "country": "ایران",
+    "type": "سدان"
+  },
+  {
+    "brand": "رنو",
+    "model": "تندر 90",
+    "manufacturer": "پارس خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "رنو",
+    "model": "پارس تندر",
+    "manufacturer": "پارس خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "رنو",
+    "model": "ساندرو",
+    "manufacturer": "پارس خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "رنو",
+    "model": "ساندرو اتومات",
+    "manufacturer": "پارس خودرو",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "رنو",
+    "model": "ساندرو استپ‌وی",
+    "manufacturer": "پارس خودرو",
+    "country": "فرانسه",
+    "type": "کراس اوور"
+  },
+  {
+    "brand": "برلیانس",
+    "model": "H220",
+    "manufacturer": "پارس خودرو",
+    "country": "چین",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "برلیانس",
+    "model": "H230",
+    "manufacturer": "پارس خودرو",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "برلیانس",
+    "model": "H320",
+    "manufacturer": "پارس خودرو",
+    "country": "چین",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "برلیانس",
+    "model": "H330",
+    "manufacturer": "پارس خودرو",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "برلیانس",
+    "model": "کراس",
+    "manufacturer": "پارس خودرو",
+    "country": "چین",
+    "type": "کراس اوور"
+  },
+  {
+    "brand": "برلیانس",
+    "model": "V5",
+    "manufacturer": "پارس خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "نیسان",
+    "model": "ماکسیما",
+    "manufacturer": "پارس خودرو",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "زامیاد",
+    "model": "نیسان آبی تک‌کابین",
+    "manufacturer": "زامیاد",
+    "country": "ژاپن",
+    "type": "وانت"
+  },
+  {
+    "brand": "زامیاد",
+    "model": "نیسان آبی دوکابین",
+    "manufacturer": "زامیاد",
+    "country": "ژاپن",
+    "type": "وانت"
+  },
+  {
+    "brand": "زامیاد",
+    "model": "نیسان دوگانه‌سوز",
+    "manufacturer": "زامیاد",
+    "country": "ژاپن",
+    "type": "وانت"
+  },
+  {
+    "brand": "زامیاد",
+    "model": "پادرا",
+    "manufacturer": "زامیاد",
+    "country": "ایران",
+    "type": "وانت"
+  },
+  {
+    "brand": "زامیاد",
+    "model": "پادرا پلاس",
+    "manufacturer": "زامیاد",
+    "country": "ایران",
+    "type": "وانت"
+  },
+  {
+    "brand": "زامیاد",
+    "model": "کارون",
+    "manufacturer": "زامیاد",
+    "country": "ایران",
+    "type": "وانت"
+  },
+  {
+    "brand": "زامیاد",
+    "model": "اکستند",
+    "manufacturer": "زامیاد",
+    "country": "ایران",
+    "type": "وانت"
+  },
+  {
+    "brand": "جک",
+    "model": "J4",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "جک",
+    "model": "J4 اتومات",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "جک",
+    "model": "S3",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "جک",
+    "model": "S5",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "جک",
+    "model": "T8",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "وانت"
+  },
+  {
+    "brand": "جک",
+    "model": "T9",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "وانت"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "J7",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "J7 پلاس",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "A5",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "K7",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "X5",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "X7",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "T8",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "وانت"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "T9",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "وانت"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "ایگل",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "کی ام سی",
+    "model": "T15",
+    "manufacturer": "کرمان موتور",
+    "country": "چین",
+    "type": "وانت"
+  },
+  {
+    "brand": "ام وی ام",
+    "model": "110",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "ام وی ام",
+    "model": "315",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "ام وی ام",
+    "model": "X22",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "ام وی ام",
+    "model": "X33",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "ام وی ام",
+    "model": "X55",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "ام وی ام",
+    "model": "X55 پرو",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "چری",
+    "model": "آریزو 5",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "چری",
+    "model": "آریزو 6",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "چری",
+    "model": "آریزو 6 پرو",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "چری",
+    "model": "آریزو 8",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "چری",
+    "model": "آریزو 8 FL",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "چری",
+    "model": "تیگو 5",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "چری",
+    "model": "تیگو 7",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "چری",
+    "model": "تیگو 7 پرو",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "چری",
+    "model": "تیگو 8",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "چری",
+    "model": "تیگو 8 پرو",
+    "manufacturer": "مدیران خودرو",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فونیکس",
+    "model": "FX",
+    "manufacturer": "فونیکس",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فونیکس",
+    "model": "FX پرو",
+    "manufacturer": "فونیکس",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فونیکس",
+    "model": "آریزو 6 پرو",
+    "manufacturer": "فونیکس",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "فونیکس",
+    "model": "آریزو 8 پرو",
+    "manufacturer": "فونیکس",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "فونیکس",
+    "model": "تیگو 7 پرو",
+    "manufacturer": "فونیکس",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فونیکس",
+    "model": "تیگو 7 پرو مکس",
+    "manufacturer": "فونیکس",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فونیکس",
+    "model": "تیگو 8 پرو",
+    "manufacturer": "فونیکس",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فونیکس",
+    "model": "تیگو 8 پرو مکس",
+    "manufacturer": "فونیکس",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لاماری",
+    "model": "ایما",
+    "manufacturer": "آرین پارس موتور",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "لاماری",
+    "model": "ایما پلاس",
+    "manufacturer": "آرین پارس موتور",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "بهمن",
+    "model": "فیدلیتی پرایم",
+    "manufacturer": "بهمن موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بهمن",
+    "model": "فیدلیتی پرستیژ",
+    "manufacturer": "بهمن موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بهمن",
+    "model": "فیدلیتی 5 نفره",
+    "manufacturer": "بهمن موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بهمن",
+    "model": "فیدلیتی 7 نفره",
+    "manufacturer": "بهمن موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بهمن",
+    "model": "دیگنیتی پرایم",
+    "manufacturer": "بهمن موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بهمن",
+    "model": "دیگنیتی پرستیژ",
+    "manufacturer": "بهمن موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بهمن",
+    "model": "ریسپکت",
+    "manufacturer": "بهمن موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بهمن",
+    "model": "کاپرا",
+    "manufacturer": "بهمن موتور",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بهمن",
+    "model": "کارا",
+    "manufacturer": "بهمن موتور",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "مزدا",
+    "model": "مزدا 3",
+    "manufacturer": "بهمن موتور",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "مزدا",
+    "model": "مزدا 3 نیو",
+    "manufacturer": "بهمن موتور",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "مزدا",
+    "model": "مزدا وانت دوکابین",
+    "manufacturer": "بهمن موتور",
+    "country": "ژاپن",
+    "type": "وانت"
+  },
+  {
+    "brand": "اف ام سی",
+    "model": "511",
+    "manufacturer": "فردا موتورز",
+    "country": "چین",
+    "type": "وانت"
+  },
+  {
+    "brand": "اف ام سی",
+    "model": "SX5",
+    "manufacturer": "فردا موتورز",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "اف ام سی",
+    "model": "T5",
+    "manufacturer": "فردا موتورز",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "اف ام سی",
+    "model": "T5 EVO",
+    "manufacturer": "فردا موتورز",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "راسا",
+    "model": "راسا ۲۰",
+    "manufacturer": "راسا موتور",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "فوتون",
+    "model": "تونلند S",
+    "manufacturer": "فوتون",
+    "country": "چین",
+    "type": "وانت"
+  },
+  {
+    "brand": "فوتون",
+    "model": "تونلند G7",
+    "manufacturer": "فوتون",
+    "country": "چین",
+    "type": "وانت"
+  },
+  {
+    "brand": "فوتون",
+    "model": "تونلند V",
+    "manufacturer": "فوتون",
+    "country": "چین",
+    "type": "وانت"
+  },
+  {
+    "brand": "جیلی",
+    "model": "GC6",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "جیلی",
+    "model": "امگرند 7",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "جیلی",
+    "model": "امگرند X7",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "جیلی",
+    "model": "آزکارا",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "جیلی",
+    "model": "آزکارا کراس",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لیفان",
+    "model": "520",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "لیفان",
+    "model": "620",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "لیفان",
+    "model": "820",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "لیفان",
+    "model": "X50",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لیفان",
+    "model": "X60",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لیفان",
+    "model": "X70",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "دانگ‌فنگ",
+    "model": "H30 Cross",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "کراس اوور"
+  },
+  {
+    "brand": "دانگ‌فنگ",
+    "model": "Shine Max",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "سدان"
+  },
+  {
+    "brand": "دانگ‌فنگ",
+    "model": "SX5",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "دانگ‌فنگ",
+    "model": "T5 EVO",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "دانگ‌فنگ",
+    "model": "T5 EVO 2025",
+    "manufacturer": "وارداتی",
+    "country": "چین",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "یاریس",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "کرولا",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "کرولا کراس",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "کمری",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "پریوس",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "C-HR",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "راوفور",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "هایلوکس",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "وانت"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "پرادو",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "لندکروزر 300",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "تویوتا",
+    "model": "اف‌جی کروزر",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "i10",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "i20",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "i30",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "اکسنت",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "النترا",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "النترا 2024",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "سوناتا",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "آزرا",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "کونا",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "کرتا",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "توسان",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "سانتافه",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هیوندای",
+    "model": "پالیسید",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "کیا",
+    "model": "پیکانتو",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "کیا",
+    "model": "ریو",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "کیا",
+    "model": "سراتو",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "کیا",
+    "model": "K3",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "کیا",
+    "model": "K5",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "کیا",
+    "model": "اپتیما",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "سدان"
+  },
+  {
+    "brand": "کیا",
+    "model": "اسپورتیج",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "کیا",
+    "model": "سورنتو",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "کیا",
+    "model": "موهاوی",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "کیا",
+    "model": "تلوراید",
+    "manufacturer": "وارداتی",
+    "country": "کره جنوبی",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "نیسان",
+    "model": "تیانا",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "نیسان",
+    "model": "جوک",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "نیسان",
+    "model": "ایکس‌تریل",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "نیسان",
+    "model": "قشقایی",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "نیسان",
+    "model": "مورانو",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "نیسان",
+    "model": "پاترول",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هوندا",
+    "model": "سیویک",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "هوندا",
+    "model": "سیویک تایپ R",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "هوندا",
+    "model": "آکورد",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "هوندا",
+    "model": "HR-V",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هوندا",
+    "model": "CR-V",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "هوندا",
+    "model": "پایلوت",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "مزدا",
+    "model": "مزدا 2",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "مزدا",
+    "model": "مزدا 6",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "مزدا",
+    "model": "CX-3",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "مزدا",
+    "model": "CX-5",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "مزدا",
+    "model": "CX-30",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "مزدا",
+    "model": "MX-5",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "کروکی"
+  },
+  {
+    "brand": "رنو",
+    "model": "مگان",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "رنو",
+    "model": "کولئوس",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "رنو",
+    "model": "کپچر",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "رنو",
+    "model": "داستر",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "رنو",
+    "model": "فلوئنس",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "رنو",
+    "model": "سیمبل",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "رنو",
+    "model": "آرکانا",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "کراس اوور"
+  },
+  {
+    "brand": "پژو",
+    "model": "2008",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "پژو",
+    "model": "3008",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "پژو",
+    "model": "5008",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "پژو",
+    "model": "508",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "سدان"
+  },
+  {
+    "brand": "سیتروئن",
+    "model": "C3",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "سیتروئن",
+    "model": "C3 Aircross",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "سیتروئن",
+    "model": "C5 Aircross",
+    "manufacturer": "وارداتی",
+    "country": "فرانسه",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فولکس‌واگن",
+    "model": "گلف",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "فولکس‌واگن",
+    "model": "جتا",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "فولکس‌واگن",
+    "model": "تیگوان",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فولکس‌واگن",
+    "model": "پاسات",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "A 200",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "C 200",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "C 300",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "E 200",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "E 250",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "E 300",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "S 500",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "CLS",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "GLA",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "GLB",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "GLC",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "GLE",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "مرسدس‌بنز",
+    "model": "G 63",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "116i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "118i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "120i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "218i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "318i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "320i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "325i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "328i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "330i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "420i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "520i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "530i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "540i",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "730Li",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "740Li",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "X1",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "X2",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "X3",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "X4",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "X5",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "X6",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "بی‌ام‌و",
+    "model": "X7",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لکسوس",
+    "model": "ES250",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "لکسوس",
+    "model": "ES350",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "لکسوس",
+    "model": "IS250",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "لکسوس",
+    "model": "NX200",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لکسوس",
+    "model": "NX300",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لکسوس",
+    "model": "RX350",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لکسوس",
+    "model": "LX570",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لکسوس",
+    "model": "UX200",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "ولوو",
+    "model": "S60",
+    "manufacturer": "وارداتی",
+    "country": "سوئد",
+    "type": "سدان"
+  },
+  {
+    "brand": "ولوو",
+    "model": "S90",
+    "manufacturer": "وارداتی",
+    "country": "سوئد",
+    "type": "سدان"
+  },
+  {
+    "brand": "ولوو",
+    "model": "XC40",
+    "manufacturer": "وارداتی",
+    "country": "سوئد",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "ولوو",
+    "model": "XC60",
+    "manufacturer": "وارداتی",
+    "country": "سوئد",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "ولوو",
+    "model": "XC90",
+    "manufacturer": "وارداتی",
+    "country": "سوئد",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "میتسوبیشی",
+    "model": "لنسر",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "میتسوبیشی",
+    "model": "ASX",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "میتسوبیشی",
+    "model": "اوتلندر",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "میتسوبیشی",
+    "model": "پاجرو",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "میتسوبیشی",
+    "model": "اکلیپس کراس",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "سوزوکی",
+    "model": "سوئیفت",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "سوزوکی",
+    "model": "سیاز",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "سوزوکی",
+    "model": "ویتارا",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "سوزوکی",
+    "model": "فرانکس",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "سوزوکی",
+    "model": "جیمنی",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "اسکودا",
+    "model": "اکتاویا",
+    "manufacturer": "وارداتی",
+    "country": "چک",
+    "type": "سدان"
+  },
+  {
+    "brand": "اسکودا",
+    "model": "سوپرب",
+    "manufacturer": "وارداتی",
+    "country": "چک",
+    "type": "سدان"
+  },
+  {
+    "brand": "اسکودا",
+    "model": "کامک",
+    "manufacturer": "وارداتی",
+    "country": "چک",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "جگوار",
+    "model": "XF",
+    "manufacturer": "وارداتی",
+    "country": "بریتانیا",
+    "type": "سدان"
+  },
+  {
+    "brand": "جگوار",
+    "model": "F-PACE",
+    "manufacturer": "وارداتی",
+    "country": "بریتانیا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لندرور",
+    "model": "دیسکاوری",
+    "manufacturer": "وارداتی",
+    "country": "بریتانیا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لندرور",
+    "model": "رنج‌روور اسپورت",
+    "manufacturer": "وارداتی",
+    "country": "بریتانیا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "لندرور",
+    "model": "ولار",
+    "manufacturer": "وارداتی",
+    "country": "بریتانیا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "پورشه",
+    "model": "کاین",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "پورشه",
+    "model": "ماکان",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "آئودی",
+    "model": "A3",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "آئودی",
+    "model": "A4",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "آئودی",
+    "model": "A5",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "آئودی",
+    "model": "A6",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "سدان"
+  },
+  {
+    "brand": "آئودی",
+    "model": "Q3",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "آئودی",
+    "model": "Q5",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "آئودی",
+    "model": "Q7",
+    "manufacturer": "وارداتی",
+    "country": "آلمان",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "شورولت",
+    "model": "کروز",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "سدان"
+  },
+  {
+    "brand": "شورولت",
+    "model": "ملیبو",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "سدان"
+  },
+  {
+    "brand": "شورولت",
+    "model": "تریل‌بلیزر",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فورد",
+    "model": "فوکوس",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "سدان"
+  },
+  {
+    "brand": "فورد",
+    "model": "موندئو",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "سدان"
+  },
+  {
+    "brand": "فورد",
+    "model": "اکسپلورر",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فورد",
+    "model": "موستانگ",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "کوپه"
+  },
+  {
+    "brand": "دوج",
+    "model": "چلنجر",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "کوپه"
+  },
+  {
+    "brand": "دوج",
+    "model": "چارجر",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "سدان"
+  },
+  {
+    "brand": "کادیلاک",
+    "model": "XT5",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "کادیلاک",
+    "model": "XT6",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "اینفینیتی",
+    "model": "Q50",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "اینفینیتی",
+    "model": "QX50",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "اینفینیتی",
+    "model": "QX60",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "اکورا",
+    "model": "MDX",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "اکورا",
+    "model": "RDX",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "جیپ",
+    "model": "رنگلر",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "جیپ",
+    "model": "چروکی",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "جیپ",
+    "model": "گرند چروکی",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "جیپ",
+    "model": "کمپس",
+    "manufacturer": "وارداتی",
+    "country": "آمریکا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "سوبارو",
+    "model": "ایمپرزا",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "سدان"
+  },
+  {
+    "brand": "سوبارو",
+    "model": "فارستر",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "سوبارو",
+    "model": "آوت‌بک",
+    "manufacturer": "وارداتی",
+    "country": "ژاپن",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فیات",
+    "model": "پاندا",
+    "manufacturer": "وارداتی",
+    "country": "ایتالیا",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "فیات",
+    "model": "500X",
+    "manufacturer": "وارداتی",
+    "country": "ایتالیا",
+    "type": "شاسی بلند"
+  },
+  {
+    "brand": "فیات",
+    "model": "تایپو",
+    "manufacturer": "وارداتی",
+    "country": "ایتالیا",
+    "type": "سدان"
+  },
+  {
+    "brand": "آلفارومئو",
+    "model": "جولیتا",
+    "manufacturer": "وارداتی",
+    "country": "ایتالیا",
+    "type": "هاچ بک"
+  },
+  {
+    "brand": "آلفارومئو",
+    "model": "جولیا",
+    "manufacturer": "وارداتی",
+    "country": "ایتالیا",
+    "type": "سدان"
+  },
+  {
+    "brand": "مازراتی",
+    "model": "گیبلی",
+    "manufacturer": "وارداتی",
+    "country": "ایتالیا",
+    "type": "سدان"
+  },
+  {
+    "brand": "مازراتی",
+    "model": "لوانته",
+    "manufacturer": "وارداتی",
+    "country": "ایتالیا",
+    "type": "شاسی بلند"
+  }
+]
