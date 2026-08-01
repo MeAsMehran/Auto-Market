@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from serializers.car_serializer import ListCarAdSerializer
+from ..serializers.car_serializer import ListCarAdSerializer
 
 ##########################################################
 
