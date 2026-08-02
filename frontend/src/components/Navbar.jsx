@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Bell, Plus, MessageCircle, ChevronDown, Menu, X, Car, LogOut, User, ClipboardList, Sun, Moon } from 'lucide-react';
+import { Search, Bell, Plus, MessageCircle, ChevronDown, Menu, X, Car, LogOut, User, ClipboardList, Sun, Moon, Heart } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -114,6 +114,9 @@ export default function Navbar() {
                         </Link>
                         <Link to="/my-listings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-tertiary transition-colors">
                           <ClipboardList className="w-4 h-4" /> آگهی‌های من
+                        </Link>
+                        <Link to="/liked-ads" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-tertiary transition-colors">
+                          <Heart className="w-4 h-4" /> خودروهای مورد علاقه
                         </Link>
                         <button onClick={() => { logout(); setShowUserMenu(false); navigate('/'); }} className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors w-full">
                           <LogOut className="w-4 h-4" /> خروج

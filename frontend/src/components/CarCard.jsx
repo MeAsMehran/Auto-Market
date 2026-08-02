@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Clock, Heart, Car } from 'lucide-react';
 import { useState } from 'react';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
+import useFavorite from '../hooks/useFavorite';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -68,9 +69,35 @@ function NoImagePlaceholder({ car, className }) {
   );
 }
 
-export function CarGridCard({ car, index }) {
-  const [liked, setLiked] = useState(false);
+function FavoriteButton({ car, size = 'md' }) {
+  const { liked, toggleLike } = useFavorite(car);
+  const sizeClasses = size === 'sm'
+    ? 'w-7 h-7'
+    : 'w-8 h-8';
+  const iconClasses = size === 'sm'
+    ? 'w-3.5 h-3.5'
+    : 'w-4 h-4';
+  const posClasses = size === 'sm'
+    ? 'top-2 left-2'
+    : 'top-3 left-3';
 
+  return (
+    <button
+      type="button"
+      onClick={toggleLike}
+      className={`absolute ${posClasses} ${sizeClasses} bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-surface transition-colors`}
+    >
+      <motion.div
+        animate={liked ? { scale: [1, 1.4, 1] } : {}}
+        transition={{ duration: 0.3 }}
+      >
+        <Heart className={`${iconClasses} transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-text-tertiary'}`} />
+      </motion.div>
+    </button>
+  );
+}
+
+export function CarGridCard({ car, index }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -105,18 +132,7 @@ export function CarGridCard({ car, index }) {
                 ویژه
               </motion.span>
             )}
-            <button
-              type="button"
-              onClick={(e) => { e.preventDefault(); setLiked(!liked); }}
-              className="absolute top-3 left-3 w-8 h-8 bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-surface transition-colors"
-            >
-              <motion.div
-                animate={liked ? { scale: [1, 1.4, 1] } : {}}
-                transition={{ duration: 0.3 }}
-              >
-                <Heart className={`w-4 h-4 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-text-tertiary'}`} />
-              </motion.div>
-            </button>
+            <FavoriteButton car={car} />
           </div>
           <div className="p-4">
             <h3 className="font-semibold text-text-primary text-sm leading-snug mb-1 line-clamp-2 group-hover:text-brand-500 transition-colors">
@@ -140,8 +156,6 @@ export function CarGridCard({ car, index }) {
 }
 
 export function CarListCard({ car, index }) {
-  const [liked, setLiked] = useState(false);
-
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -166,15 +180,7 @@ export function CarListCard({ car, index }) {
           {car.is_featured && (
             <span className="absolute top-2 right-2 bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg">ویژه</span>
           )}
-          <button
-            type="button"
-            onClick={(e) => { e.preventDefault(); setLiked(!liked); }}
-            className="absolute top-2 left-2 w-7 h-7 bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-surface transition-colors"
-          >
-            <motion.div animate={liked ? { scale: [1, 1.4, 1] } : {}} transition={{ duration: 0.3 }}>
-              <Heart className={`w-3.5 h-3.5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-text-tertiary'}`} />
-            </motion.div>
-          </button>
+          <FavoriteButton car={car} size="sm" />
         </div>
         <div className="flex-1 p-5 flex flex-col justify-between">
           <div>
