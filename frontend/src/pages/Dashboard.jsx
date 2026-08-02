@@ -39,7 +39,7 @@ export default function Dashboard() {
                 { label: 'پیشخوان', icon: User, href: '/dashboard', active: true },
                 { label: 'آگهی‌های من', icon: Car, href: '/my-listings', active: false },
                 { label: 'پیام‌ها', icon: MessageCircle, href: '/chat', active: false },
-                { label: 'علاقه‌مندی‌ها', icon: Heart, href: '#', active: false },
+                { label: 'علاقه‌مندی‌ها', icon: Heart, href: '/liked-ads', active: false },
                 { label: 'تنظیمات', icon: Settings, href: '/settings', active: false },
               ].map((item) => (
                 <Link

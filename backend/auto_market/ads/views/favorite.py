@@ -25,11 +25,11 @@ class AddFavoriteAdView(APIView):
     @extend_schema(
     responses={201: None, 200: None}
     )
-    def post(self, request, car_id):
+    def post(self, request, car_ad_id):
         current_user = request.user
-        car_ad       = get_object_or_404(Car, pk=car_id, is_active=True)  
+        car_ad       = get_object_or_404(Car, pk=car_ad_id, is_active=True)  
         favorite_ad, created  = Favorite.objects.get_or_create(user=current_user, car=car_ad)   # get_or_create returns a tupple: (instance, created) where created is True if a new row was inserted, False if it already existed.
-        return Response(status=201 if created else 200)
+        return Response(status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 class RemoveFavoriteAdView(APIView):
@@ -38,9 +38,9 @@ class RemoveFavoriteAdView(APIView):
     @extend_schema(
     responses={204: None, 404: None}
     )
-    def post(self, request, car_id):
+    def post(self, request, car_ad_id):
         current_user = request.user
-        favorite_ad = get_object_or_404(Favorite, user=current_user, car_id=car_id)     # queries by the FK column (Django auto-creates this)
+        favorite_ad = get_object_or_404(Favorite, user=current_user, car_id=car_ad_id)     # queries by the FK column (Django auto-creates this)
         favorite_ad.delete()
         return Response(status=204)
 
@@ -52,9 +52,9 @@ class ToggleFavoriteView(APIView):
     @extend_schema(
     responses={201: None, 204: None}
     )
-    def post(self, request, car_id):
+    def post(self, request, car_ad_id):
         current_user = request.user
-        car_ad = get_object_or_404(Car, pk=car_id, is_active=True)
+        car_ad = get_object_or_404(Car, pk=car_ad_id, is_active=True)
         favorite_ad, created = Favorite.objects.get_or_create(user=current_user, car=car_ad)
 
         if created:
@@ -72,12 +72,11 @@ class ListFavoriteView(APIView):
     )
     def get(self, request):
         # filter + select_related for performance
-        favorite_ads = Favorite.objects.filter(user=request.user).select_related('car')
+        favorite_ads = Favorite.objects.filter(user=request.user, car__is_active=True).select_related('car')
 
         # Actually serialize and return the data
         serializer = ListFavoriteAdSerializer(favorite_ads, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 
 
