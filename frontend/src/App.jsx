@@ -14,6 +14,7 @@ import MyListings from './pages/MyListings';
 import EditAd from './pages/EditAd';
 import Chat from './pages/Chat';
 import Settings from './pages/Settings';
+import LikedAds from './pages/LikedAds';
 
 export default function App() {
   return (
@@ -26,6 +27,10 @@ export default function App() {
           <Route element={<Layout />}>
             <Route path="/" element={<AnimatedPage><Home /></AnimatedPage>} />
             <Route path="/car/:id" element={<AnimatedPage><CarDetail /></AnimatedPage>} />
+            <Route
+              path="/liked-ads"
+              element={<ProtectedRoute><AnimatedPage><LikedAds /></AnimatedPage></ProtectedRoute>}
+            />
             <Route
               path="/post-ad"
               element={<ProtectedRoute><AnimatedPage><PostAd /></AnimatedPage></ProtectedRoute>}
