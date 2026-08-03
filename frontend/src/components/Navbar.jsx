@@ -7,7 +7,7 @@ import { useTheme } from '../context/ThemeContext';
 const cities = ['تهران', 'مشهد', 'کرج', 'اصفهان', 'شیراز', 'تبریز', 'اهواز', 'قم', 'کرمانشاه', 'رشت'];
 
 export default function Navbar() {
-  const { user, logout } = useAuth();
+  const { user, loading, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [city, setCity] = useState('تهران');
@@ -81,7 +81,9 @@ export default function Navbar() {
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
 
-            {user ? (
+            {loading ? (
+              <div className="w-32 h-8" />
+            ) : user ? (
               <>
                 <Link to="/chat" className="p-2 text-text-secondary hover:bg-surface-tertiary rounded-xl transition-colors relative">
                   <MessageCircle className="w-5 h-5" />
@@ -166,13 +168,13 @@ export default function Navbar() {
               />
             </div>
           </form>
-          {!user && (
+          {loading ? null : !user && (
             <div className="flex gap-2">
               <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="flex-1 text-center px-4 py-2.5 text-sm font-medium text-text-secondary border border-border rounded-xl hover:bg-surface-tertiary">ورود</Link>
               <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="flex-1 text-center px-4 py-2.5 text-sm font-medium bg-brand-500 text-white rounded-xl hover:bg-brand-600">ثبت‌نام</Link>
             </div>
           )}
-          {user && (
+          {loading ? null : user && (
             <Link to="/post-ad" onClick={() => setMobileMenuOpen(false)} className="flex items-center justify-center gap-2 w-full bg-brand-500 hover:bg-brand-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold">
               <Plus className="w-4 h-4" /> ثبت آگهی
             </Link>
