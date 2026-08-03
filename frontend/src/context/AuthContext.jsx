@@ -1,40 +1,51 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api, { setAuthToken } from '../lib/api';
+import { useNavigate } from 'react-router-dom';
+import api, { setAuthToken, onAuthError } from '../lib/api';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
+  const navigate = useNavigate();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [accessToken, setAccessToken] = useState(null); // In-memory only
 
   // Initialize auth on app load
   useEffect(() => {
+    let cancelled = false;
+
     const initAuth = async () => {
       const storedToken = localStorage.getItem('access_token');
       if (storedToken) {
-        setAccessToken(storedToken);
-        setAuthToken(storedToken);
+        if (!cancelled) {
+          setAccessToken(storedToken);
+          setAuthToken(storedToken);
+        }
         try {
           const res = await api.get('/auth/accounts/me/');
-          setUser(res.data);
+          if (!cancelled) setUser(res.data);
         } catch (err) {
-          // Token expired, try refresh
-          try {
-            const refreshRes = await api.post('/auth/accounts/refresh/');
-            const newToken = refreshRes.data.access;
-            setAccessToken(newToken);
-            setAuthToken(newToken);
-            const meRes = await api.get('/auth/accounts/me/');
-            setUser(meRes.data);
-          } catch (refreshErr) {
-            logout();
+          // Interceptor already attempted refresh and failed; clean up
+          if (!cancelled) {
+            await logout();
           }
         }
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
+
     initAuth();
+
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Wire up the global auth error handler from api.js
+  useEffect(() => {
+    onAuthError(() => {
+      logout();
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const login = useCallback(async (phone, password) => {
@@ -63,8 +74,9 @@ export function AuthProvider({ children }) {
       setUser(null);
       sessionStorage.removeItem('postAdDraft');
       sessionStorage.removeItem('myListings');
+      navigate('/login', { replace: true });
     }
-  }, []);
+  }, [navigate]);
 
   const updateUser = useCallback((userData) => {
     setUser(userData);

@@ -77,6 +77,9 @@ MIDDLEWARE = [
 # Ensure CORS allows credentials
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',')
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = False  # MUST be False when using credentials!. If True, ANY website could steal your user's cookies (security vulnerability)
+CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
+
 
 
 
@@ -201,7 +204,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES', 15))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES', 15))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME_DAYS', 7))),
 
     """
@@ -257,6 +260,7 @@ SIMPLE_JWT = {
     "AUTH_COOKIE_HTTP_ONLY": True,            # JavaScript cannot access
     "AUTH_COOKIE_PATH": "/",                  # Cookie path
     "AUTH_COOKIE_SAMESITE": "Lax",            # CSRF protection (Lax for cross-site nav)
+    # "AUTH_COOKIE_SAMESITE": None,  # for development
 
     # NEW: Read refresh token from cookie instead of body
     "AUTH_COOKIE_REFRESH_TOKEN": "refresh_token",
@@ -266,6 +270,7 @@ SIMPLE_JWT = {
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = "Lax"
+# CSRF_COOKIE_SAMESITE = None
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', 'http://localhost:5173').split(',')
 
 

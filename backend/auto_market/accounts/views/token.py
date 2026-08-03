@@ -5,18 +5,22 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import ValidationError
 
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
 
 from drf_spectacular.utils import extend_schema
 
 from .helper import set_refresh_cookie, delete_refresh_cookie
 
+
 ###########################################
 
 class CookieTokenRefreshView(APIView):
     """Refresh access token using refresh token from httpOnly cookie"""
+    authentication_classes = []
 
     @extend_schema(
         responses={200: {'access': 'string'}},
@@ -31,21 +35,23 @@ class CookieTokenRefreshView(APIView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
+        serializer = TokenRefreshSerializer(data={'refresh': refresh_token})
+
         try:
-            refresh = RefreshToken(refresh_token)
-            # Rotation happens automatically due to ROTATE_REFRESH_TOKENS=True
-            new_refresh = str(refresh)
-            new_access = str(refresh.access_token)
-
-            response = Response({'access': new_access}, status=status.HTTP_200_OK)
-            return set_refresh_cookie(response, new_refresh)
-
-        except TokenError as e:
+            serializer.is_valid(raise_exception=True)
+        except (TokenError, ValidationError):
             response = Response(
                 {'detail': 'Invalid or expired refresh token'},
                 status=status.HTTP_401_UNAUTHORIZED
             )
             return delete_refresh_cookie(response)
+
+        # When ROTATE_REFRESH_TOKENS=True, serializer returns both access and refresh
+        new_access = serializer.validated_data['access']
+        new_refresh = serializer.validated_data.get('refresh', refresh_token)
+
+        response = Response({'access': new_access}, status=status.HTTP_200_OK)
+        return set_refresh_cookie(response, new_refresh)
 
 
 
