@@ -215,7 +215,15 @@ export default function Home() {
   const [totalCount, setTotalCount] = useState(0);
   const [useMock, setUseMock] = useState(false);
 
+  const listingsRef = useRef(null);
   const pageSize = 20;
+
+  // Scroll to the listings section header when page changes
+  useEffect(() => {
+    if (listingsRef.current) {
+      listingsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [page]);
 
   const fetchCars = useCallback(async () => {
     setLoading(true);
@@ -410,7 +418,7 @@ export default function Home() {
       </section>
 
       {/* ── Listings ── */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* ── Filters Panel ── */}
         <AnimatePresence>
           {showFilters && (
