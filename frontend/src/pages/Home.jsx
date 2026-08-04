@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence, useInView } from 'framer-motion';
 import {
@@ -216,10 +216,22 @@ export default function Home() {
   const [useMock, setUseMock] = useState(false);
 
   const listingsRef = useRef(null);
+  const prevPageRef = useRef(page);
   const pageSize = 20;
 
-  // Scroll to the listings section header (with offset for fixed header) when page changes
+  // Scroll to top on initial mount (on refresh/navigation).
+  // Runs synchronously before paint and jumps instantly so it never
+  // visibly animates/fights the browser's own scroll handling.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
+  // Scroll to the listings section header (with offset for fixed header) when page changes.
+  // Compares against the previous page instead of a first-render flag: React StrictMode
+  // double-fires mount effects in dev, which made a boolean guard scroll down on refresh.
   useEffect(() => {
+    if (prevPageRef.current === page) return;
+    prevPageRef.current = page;
     if (listingsRef.current) {
       const offset = 80; // pixels above the section to keep visible (header height + breathing room)
       const top = listingsRef.current.getBoundingClientRect().top + window.scrollY - offset;

@@ -5,6 +5,7 @@ import { Heart, ArrowRight, MapPin } from 'lucide-react';
 import { CITY_LABELS, FUEL_LABELS } from '../lib/constants';
 import { getFavorites, removeFavorite } from '../lib/carApi';
 import { getFirstImage } from '../components/CarCard';
+import { updateGlobalSingleton } from '../context/FavoritesContext';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -64,7 +65,7 @@ export default function LikedAds() {
     fetchFavorites();
   }, []);
 
-  const removeLike = async (carId) => {
+  const removeLike = async (carId, car) => {
     const token = localStorage.getItem('access_token');
     if (token) {
       try {
@@ -72,6 +73,10 @@ export default function LikedAds() {
       } catch {
         // continue
       }
+    }
+    // Sync the FavoritesContext singleton so the like is removed on all pages
+    if (car) {
+      updateGlobalSingleton(car, false);
     }
     const updated = likedCars.filter((c) => c.id !== carId);
     setLikedCars(updated);
@@ -170,7 +175,7 @@ function LikedCarCard({ car, index, onRemove }) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onRemove();
+              onRemove(car);
             }}
             className="w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors shadow-lg"
           >
