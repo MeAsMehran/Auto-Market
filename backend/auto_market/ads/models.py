@@ -106,6 +106,25 @@ class Car(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+        indexes = [
+            # covers: browse active listings, sorted by newest
+            models.Index(fields=['is_active', '-created_at']),
+
+            # covers: search by brand + model (very common combo)
+            models.Index(fields=['brand', 'model_name']),
+
+            # covers: brand + price range filtering
+            models.Index(fields=['brand', 'price']),
+
+            # covers: city + price (local browsing, sorted/filtered by budget)
+            models.Index(fields=['city', 'price']),
+
+            # covers: featured listings on homepage, newest first
+            models.Index(fields=['is_featured', '-created_at']),
+
+            # covers: year range filtering
+            models.Index(fields=['year']),
+        ]
 
     def __str__(self):
         return self.title
