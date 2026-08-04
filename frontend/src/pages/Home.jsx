@@ -218,10 +218,12 @@ export default function Home() {
   const listingsRef = useRef(null);
   const pageSize = 20;
 
-  // Scroll to the listings section header when page changes
+  // Scroll to the listings section header (with offset for fixed header) when page changes
   useEffect(() => {
     if (listingsRef.current) {
-      listingsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const offset = 80; // pixels above the section to keep visible (header height + breathing room)
+      const top = listingsRef.current.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
     }
   }, [page]);
 
