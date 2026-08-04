@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapPin, Clock, Heart, Car } from 'lucide-react';
 import { useState } from 'react';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
-import useFavorite from '../hooks/useFavorite';
+import { useFavorites } from '../context/FavoritesContext';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -70,7 +70,8 @@ function NoImagePlaceholder({ car, className }) {
 }
 
 function FavoriteButton({ car, size = 'md' }) {
-  const { liked, toggleLike } = useFavorite(car);
+  const { isLiked, toggleLike } = useFavorites();
+  const liked = isLiked(car.id);
   const sizeClasses = size === 'sm'
     ? 'w-7 h-7'
     : 'w-8 h-8';
@@ -84,7 +85,7 @@ function FavoriteButton({ car, size = 'md' }) {
   return (
     <button
       type="button"
-      onClick={toggleLike}
+      onClick={(e) => toggleLike(car, e)}
       className={`absolute ${posClasses} ${sizeClasses} bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-surface transition-colors`}
     >
       <motion.div
