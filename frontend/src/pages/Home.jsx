@@ -215,7 +215,7 @@ export default function Home() {
   const [totalCount, setTotalCount] = useState(0);
   const [useMock, setUseMock] = useState(false);
 
-  const pageSize = 12;
+  const pageSize = 20;
 
   const fetchCars = useCallback(async () => {
     setLoading(true);

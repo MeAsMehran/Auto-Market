@@ -7,7 +7,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import NotFound
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
 from core.permissions.is_owner import IsCarOwner
 from core.pagination.pagination import SmallPageNumberPagination
@@ -83,6 +84,24 @@ class ListCarAdView(APIView):
 
     @extend_schema(
         responses={200: ListCarAdSerializer(many=True)},
+        parameters=[
+            OpenApiParameter(
+                name='page',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                default=1,
+                description='Page number for pagination (default: 1)',
+            ),
+            OpenApiParameter(
+                name='page_size',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                default=20,
+                description='Number of car ads per page (default: 20, max: 50)',
+            ),
+        ],
     )
     def get(self, request):
         # cars = Car.objects.filter(is_active=True).prefetch_related('images')
@@ -93,7 +112,7 @@ class ListCarAdView(APIView):
         filtered_qs = car_filter.qs
 
         # Paginate
-        paginator = SmallPageNumberPagination()     # 5 car ads per page
+        paginator = SmallPageNumberPagination()     # 20 car ads per page
         page = paginator.paginate_queryset(filtered_qs, request)
         serializer = ListCarAdSerializer(page, many=True, context={'request': request})
         return paginator.get_paginated_response(serializer.data)
