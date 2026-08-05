@@ -1,6 +1,7 @@
 
 import django_filters
 from django.db.models import Q  
+from django.contrib.postgres.search import SearchVector, SearchQuery, SearchRank  # ADD THIS IMPORT
 
 from .models import Car
 
@@ -16,15 +17,37 @@ class CarFilter(django_filters.FilterSet):
     min_year = django_filters.NumberFilter(field_name='year', lookup_expr='gte')
     max_year = django_filters.NumberFilter(field_name='year', lookup_expr='lte')
 
-
     def search_all_fields(self, queryset, name, value):
+        """
+        Fast full-text search using PostgreSQL.
+
+        How it works:
+        1. SearchQuery converts "bmw suv" → PostgreSQL search query
+        2. Filter checks if search_vector matches the query
+        3. SearchRank scores results by relevance
+        4. Order by rank = best matches first
+        """
         if value:
+            # Convert user input into searchable format
+            search_query = SearchQuery(value)
+
+            # Search using the pre-built search_vector + rank results
             return queryset.filter(
-                Q(title__icontains=value) |
-                Q(brand__icontains=value) |
-                Q(model_name__icontains=value)
-            )
-        return queryset
+                search_vector=search_query
+            ).annotate(
+                rank=SearchRank('search_vector', search_query)
+            ).order_by('-rank')
+
+    """
+        def search_all_fields(self, queryset, name, value):
+            if value:
+                return queryset.filter(
+                    Q(title__icontains=value) |
+                    Q(brand__icontains=value) |
+                    Q(model_name__icontains=value)
+                )
+            return queryset
+    """
 
     class Meta:
         model  = Car

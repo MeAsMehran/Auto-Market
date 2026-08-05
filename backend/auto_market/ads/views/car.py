@@ -144,8 +144,13 @@ class ListMyCarAdView(APIView):
         car_ads = Car.objects.filter(
             seller=current_user
         ).select_related('seller').prefetch_related('images')
+
+        # Apply search + other filters using CarFilter
+        car_filter = CarFilter(request.query_params, queryset=car_ads)
+        filtered_qs = car_filter.qs
+
         paginator = SmallPageNumberPagination()
-        page = paginator.paginate_queryset(car_ads, request)
+        page = paginator.paginate_queryset(filtered_qs, request)
         serializer = ListCarAdSerializer(page, many=True, context={'request' : request})
         return paginator.get_paginated_response(serializer.data) 
 
