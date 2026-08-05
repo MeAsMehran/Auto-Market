@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, ArrowRight, MapPin } from 'lucide-react';
+import { Heart, ArrowRight, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CITY_LABELS, FUEL_LABELS } from '../lib/constants';
 import { getFirstImage } from '../components/CarCard';
 import { useFavorites } from '../context/FavoritesContext';
+import { useLikedAds } from '../hooks/useLikedAds';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -23,10 +24,19 @@ function timeAgo(dateStr) {
 }
 
 export default function LikedAds() {
-  const { cars: likedCars, loading, toggleLike } = useFavorites();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+
+  const { cars, count, totalPages, loading, error, refetch } = useLikedAds(page);
+  const { toggleLike } = useFavorites();
+
+  const setPage = (p) => {
+    setSearchParams((prev) => { prev.set('page', String(p)); return prev; });
+  };
 
   const removeLike = async (car) => {
     await toggleLike(car);
+    refetch();
   };
 
   return (
@@ -57,7 +67,12 @@ export default function LikedAds() {
             <div className="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-text-secondary">در حال بارگذاری...</p>
           </div>
-        ) : likedCars.length === 0 ? (
+        ) : error ? (
+          <div className="text-center py-20">
+            <p className="text-red-500 mb-4">{error}</p>
+            <button onClick={refetch} className="px-4 py-2 bg-brand-500 text-white rounded-lg">تلاش دوباره</button>
+          </div>
+        ) : cars.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -81,11 +96,11 @@ export default function LikedAds() {
           <>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-text-primary">
-                {likedCars.length} خودرو ذخیره‌شده
+                {count} خودرو ذخیره‌شده
               </h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {likedCars.map((car, index) => (
+              {cars.map((car, index) => (
                 <LikedCarCard
                   key={car.id}
                   car={car}
@@ -94,6 +109,34 @@ export default function LikedAds() {
                 />
               ))}
             </div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <button
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="p-2 rounded-xl border border-border hover:bg-surface-tertiary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors ${page === p ? 'bg-brand-500 text-white' : 'border border-border hover:bg-surface-tertiary text-text-secondary'}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="p-2 rounded-xl border border-border hover:bg-surface-tertiary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
