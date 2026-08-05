@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { addFavorite, removeFavorite, getFavorites } from '../lib/carApi';
 
 const FavoritesContext = createContext(null);
@@ -18,17 +18,24 @@ async function fetchFavoritesOnce() {
   }
 
   globalFetchPromise = getFavorites()
-    .then((favorites) => {
-      const ids = new Set(favorites.map((f) => (typeof f === 'object' ? f.car?.id ?? f.id : f)));
+    .then((response) => {
+      const favorites = Array.isArray(response) ? response : response.results ?? [];
+      const ids = new Set(favorites.map((f) => f.car?.id ?? f.id));
       globalFavoritesData = { ids, cars: favorites };
       return globalFavoritesData;
     })
-    .catch(() => {
+    .catch((err) => {
+      console.error('Failed to fetch favorites:', err);
       globalFavoritesData = { ids: new Set(), cars: [] };
       return globalFavoritesData;
     });
 
   return globalFetchPromise;
+}
+
+export function clearFavoritesCache() {
+  globalFavoritesData = null;
+  globalFetchPromise = null;
 }
 
 function updateGlobalSingleton(car, liked) {
@@ -53,23 +60,30 @@ function syncLocalStorage(car, liked) {
 export function FavoritesProvider({ children }) {
   const [favoritesData, setFavoritesData] = useState(globalFavoritesData || { ids: new Set(), cars: [] });
   const [loading, setLoading] = useState(!globalFavoritesData);
+  const fetchPromiseRef = useRef(null);
 
   useEffect(() => {
-    // Always start from global singleton in case it was already fetched
-    setFavoritesData(globalFavoritesData || { ids: new Set(), cars: [] });
-    setLoading(!globalFavoritesData);
-
-    fetchFavoritesOnce().then((data) => {
-      setFavoritesData({ ...data, ids: new Set(data.ids) });
+    if (globalFavoritesData) {
+      setFavoritesData({ ...globalFavoritesData, ids: new Set(globalFavoritesData.ids) });
       setLoading(false);
-    });
+    } else {
+      if (!fetchPromiseRef.current) {
+        fetchPromiseRef.current = fetchFavoritesOnce();
+      }
+      fetchPromiseRef.current.then((data) => {
+        setFavoritesData({ ...data, ids: new Set(data.ids) });
+        setLoading(false);
+      });
+    }
 
     // Re-fetch when tab regains focus (e.g. after removing a like on another page)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         globalFavoritesData = null; // force re-fetch from server
         globalFetchPromise = null;
-        fetchFavoritesOnce().then((data) => {
+        fetchPromiseRef.current = null;
+        fetchPromiseRef.current = fetchFavoritesOnce();
+        fetchPromiseRef.current.then((data) => {
           setFavoritesData({ ...data, ids: new Set(data.ids) });
           setLoading(false);
         });

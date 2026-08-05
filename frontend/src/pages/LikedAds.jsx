@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Heart, ArrowRight, MapPin } from 'lucide-react';
 import { CITY_LABELS, FUEL_LABELS } from '../lib/constants';
-import { getFavorites, removeFavorite } from '../lib/carApi';
 import { getFirstImage } from '../components/CarCard';
-import { updateGlobalSingleton } from '../context/FavoritesContext';
+import { useFavorites } from '../context/FavoritesContext';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -25,64 +23,11 @@ function timeAgo(dateStr) {
 }
 
 export default function LikedAds() {
-  const [likedCars, setLikedCars] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { cars: favorites, loading, toggleLike } = useFavorites();
+  const likedCars = favorites.map((fav) => fav.car);
 
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        const stored = localStorage.getItem('likedCars');
-        if (stored) {
-          try {
-            setLikedCars(JSON.parse(stored));
-          } catch {
-            setLikedCars([]);
-          }
-        }
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await getFavorites();
-        const favorites = Array.isArray(response) ? response : response.results ?? [];
-        const cars = favorites.map((fav) => fav.car);
-        setLikedCars(cars);
-        localStorage.setItem('likedCars', JSON.stringify(cars));
-      } catch (err) {
-        console.error('Failed to fetch favorites:', err);
-        const stored = localStorage.getItem('likedCars');
-        if (stored) {
-          try {
-            setLikedCars(JSON.parse(stored));
-          } catch {
-            setLikedCars([]);
-          }
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFavorites();
-  }, []);
-
-  const removeLike = async (carId, car) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      try {
-        await removeFavorite(carId);
-      } catch {
-        // continue
-      }
-    }
-    // Sync the FavoritesContext singleton so the like is removed on all pages
-    if (car) {
-      updateGlobalSingleton(car, false);
-    }
-    const updated = likedCars.filter((c) => c.id !== carId);
-    setLikedCars(updated);
-    localStorage.setItem('likedCars', JSON.stringify(updated));
+  const removeLike = async (car) => {
+    await toggleLike(car);
   };
 
   return (
@@ -146,7 +91,7 @@ export default function LikedAds() {
                   key={car.id}
                   car={car}
                   index={index}
-                  onRemove={() => removeLike(car.id)}
+                  onRemove={() => removeLike(car)}
                 />
               ))}
             </div>

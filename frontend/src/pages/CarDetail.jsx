@@ -6,7 +6,7 @@ import {
   FUEL_LABELS, TRANSMISSION_LABELS, CONDITION_LABELS, COLOR_LABELS, CITY_LABELS, BODY_LABELS,
 } from '../lib/constants';
 import CarSpinner from '../components/CarSpinner';
-import useFavorite from '../hooks/useFavorite';
+import { useFavorites } from '../context/FavoritesContext';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -41,7 +41,8 @@ export default function CarDetail() {
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
-  const { liked, toggleLike } = useFavorite(car);
+  const { isLiked, toggleLike } = useFavorites();
+  const liked = car ? isLiked(car.id) : false;
 
   useEffect(() => {
     setLoading(true);
@@ -144,7 +145,7 @@ export default function CarDetail() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={toggleLike}
+                  onClick={(e) => toggleLike(car, e)}
                   className={`p-3 rounded-xl transition-colors ${liked ? 'text-red-500 bg-red-50 dark:bg-red-950' : 'text-text-secondary hover:bg-surface-tertiary'}`}
                 >
                   <Heart className={`w-5 h-5 ${liked ? 'fill-red-500' : ''}`} />

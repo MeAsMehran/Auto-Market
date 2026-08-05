@@ -1,6 +1,7 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api, { setAuthToken, onAuthError } from '../lib/api';
+import { clearFavoritesCache } from '../context/FavoritesContext';
 
 const AuthContext = createContext(null);
 
@@ -11,32 +12,27 @@ export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(null); // In-memory only
 
   // Initialize auth on app load
-  useEffect(() => {
-    let cancelled = false;
+  const initPromiseRef = useRef(null);
 
-    const initAuth = async () => {
-      const storedToken = localStorage.getItem('access_token');
-      if (storedToken) {
-        if (!cancelled) {
+  useEffect(() => {
+    if (!initPromiseRef.current) {
+      initPromiseRef.current = (async () => {
+        const storedToken = localStorage.getItem('access_token');
+        if (storedToken) {
+          clearFavoritesCache();
           setAccessToken(storedToken);
           setAuthToken(storedToken);
-        }
-        try {
-          const res = await api.get('/auth/accounts/me/');
-          if (!cancelled) setUser(res.data);
-        } catch (err) {
-          // Interceptor already attempted refresh and failed; clean up
-          if (!cancelled) {
+          try {
+            const res = await api.get('/auth/accounts/me/');
+            setUser(res.data);
+          } catch {
+            // Interceptor already attempted refresh and failed; clean up
             await logout();
           }
         }
-      }
-      if (!cancelled) setLoading(false);
-    };
-
-    initAuth();
-
-    return () => { cancelled = true; };
+        setLoading(false);
+      })();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -72,6 +68,7 @@ export function AuthProvider({ children }) {
       setAccessToken(null);
       setAuthToken(null);
       setUser(null);
+      clearFavoritesCache();
       sessionStorage.removeItem('postAdDraft');
       sessionStorage.removeItem('myListings');
       navigate('/login', { replace: true });
