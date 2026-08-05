@@ -239,12 +239,12 @@ export default function Home() {
     }
   }, [page]);
 
-  const fetchCars = useCallback(async () => {
+  const fetchCars = useCallback(async (searchFromUrl) => {
     setLoading(true);
     setError(null);
     try {
       const params = {
-        search: searchQuery || undefined,
+        search: searchFromUrl || undefined,
         brand: selectedBrand || undefined,
         body_type: selectedBody || undefined,
         min_price: priceRange.min || undefined,
@@ -268,9 +268,15 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  }, [searchQuery, selectedBrand, selectedBody, priceRange.min, priceRange.max, page]);
+  }, [selectedBrand, selectedBody, priceRange.min, priceRange.max, page]);
 
-  useEffect(() => { fetchCars(); }, [fetchCars]);
+  // Sync searchQuery and fetch when URL changes (e.g., when Navbar search updates URL)
+  useEffect(() => {
+    const urlSearch = searchParams.get('search') || '';
+    setSearchQuery(urlSearch);
+    fetchCars(urlSearch);
+  }, [searchParams]);
+
   useEffect(() => { setPage(1); }, [searchQuery, selectedBrand, selectedBody, priceRange.min, priceRange.max]);
 
   const handleSearchSubmit = (e) => {
@@ -362,8 +368,21 @@ export default function Home() {
                   placeholder="جستجو بر اساس برند، مدل یا مکان..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pr-12 pl-4 py-3.5 text-text-primary rounded-xl focus:outline-none"
+                  className="w-full pr-12 pl-10 py-3.5 text-text-primary rounded-xl focus:outline-none"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSearchParams({});
+                      fetchCars('');
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-text-tertiary hover:text-text-secondary rounded-full hover:bg-surface-tertiary transition-colors"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </motion.form>
           </motion.div>
