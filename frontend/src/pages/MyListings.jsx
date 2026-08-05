@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Eye, Edit3, Trash2, RotateCcw, Search, ChevronLeft, ChevronRight, Clock, MapPin, Loader2, AlertCircle, Car } from 'lucide-react';
 import { deleteCar, restoreCar } from '../lib/carApi';
-import { useMyListings } from '../hooks/useMyListings';
-import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { getFirstImage } from '../components/CarCard';
+import { useMyListings } from '../hooks/useMyListings';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -27,23 +27,13 @@ function timeAgo(dateStr) {
 export default function MyListings() {
   const [searchParams, setSearchParams] = useSearchParams();
 
+  const [error, setError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
-  const [actionError, setActionError] = useState(null);
 
   const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
   const filter = searchParams.get('filter') || 'all';
   const searchQuery = searchParams.get('search') || '';
-
-  const debouncedSearch = useDebouncedValue(searchQuery, 300);
-  const status = filter === 'active' ? 'active' : filter === 'deleted' ? 'deleted' : undefined;
-
-  const { cars, count, totalPages, loading, error, refetch } = useMyListings(page, {
-    search: debouncedSearch,
-    status,
-  });
-
-  const safePage = Math.min(page, totalPages || 1);
 
   const setFilter = (f) => {
     setSearchParams((prev) => { prev.set('filter', f); prev.set('page', '1'); return prev; });
@@ -55,15 +45,28 @@ export default function MyListings() {
     setSearchParams((prev) => { prev.set('search', q); prev.set('page', '1'); return prev; });
   };
 
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const status = filter === 'active' ? 'active' : filter === 'deleted' ? 'deleted' : undefined;
+
+  const { cars, count, totalPages, loading, error: fetchError, refetch } = useMyListings(page, {
+    search: debouncedSearch,
+    status,
+  });
+
+  useEffect(() => {
+    if (page > totalPages && totalPages > 0) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
+
   const handleDelete = async (id) => {
     setActionLoading(id);
-    setActionError(null);
     try {
       await deleteCar(id);
-      setDeleteConfirm(null);
       refetch();
+      setDeleteConfirm(null);
     } catch {
-      setActionError('خطا در حذف آگهی.');
+      setError('خطا در حذف آگهی.');
     } finally {
       setActionLoading(null);
     }
@@ -71,16 +74,18 @@ export default function MyListings() {
 
   const handleRestore = async (id) => {
     setActionLoading(id);
-    setActionError(null);
     try {
       await restoreCar(id);
       refetch();
     } catch (err) {
-      setActionError('خطا در بازیابی آگهی.');
+      console.error('Restore error:', err.response?.data || err.message);
+      setError('خطا در بازیابی آگهی.');
     } finally {
       setActionLoading(null);
     }
   };
+
+  const safePage = Math.min(page, totalPages || 1);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -125,10 +130,10 @@ export default function MyListings() {
         </div>
       </div>
 
-      {(error || actionError) && (
+      {(error || fetchError) && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700 dark:text-red-300">{error || actionError}</p>
+          <p className="text-sm text-red-700 dark:text-red-300">{error || fetchError}</p>
         </div>
       )}
 

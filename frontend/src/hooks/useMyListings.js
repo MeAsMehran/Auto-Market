@@ -20,7 +20,7 @@ export function useMyListings(page = 1, { search = '', status } = {}) {
       const results = res.results ?? [];
       const totalPages = Math.ceil((res.count ?? 0) / PAGE_SIZE);
       setData({ cars: results, count: res.count ?? 0, totalPages });
-    } catch (err) {
+    } catch {
       setError('خطا در دریافت آگهی‌ها.');
     } finally {
       setLoading(false);
