@@ -23,8 +23,7 @@ function timeAgo(dateStr) {
 }
 
 export default function LikedAds() {
-  const { cars: favorites, loading, toggleLike } = useFavorites();
-  const likedCars = favorites.map((fav) => fav.car);
+  const { cars: likedCars, loading, toggleLike } = useFavorites();
 
   const removeLike = async (car) => {
     await toggleLike(car);

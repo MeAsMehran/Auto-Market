@@ -26,8 +26,11 @@ export function AuthProvider({ children }) {
             const res = await api.get('/auth/accounts/me/');
             setUser(res.data);
           } catch {
-            // Interceptor already attempted refresh and failed; clean up
-            await logout();
+            // The interceptor already attempted a token refresh and failed, so
+            // just clear local state here (no extra logout request needed).
+            setAccessToken(null);
+            setAuthToken(null);
+            setUser(null);
           }
         }
         setLoading(false);
@@ -70,7 +73,6 @@ export function AuthProvider({ children }) {
       setUser(null);
       clearFavoritesCache();
       sessionStorage.removeItem('postAdDraft');
-      sessionStorage.removeItem('myListings');
       navigate('/login', { replace: true });
     }
   }, [navigate]);

@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Eye, Edit3, Trash2, RotateCcw, Search, ChevronLeft, ChevronRight, Clock, MapPin, Loader2, AlertCircle, Car } from 'lucide-react';
-import { getMyListings, deleteCar, restoreCar } from '../lib/carApi';
+import { deleteCar, restoreCar } from '../lib/carApi';
+import { getAllListings, invalidateListingsCache } from '../utils/listingsCache';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { getFirstImage } from '../components/CarCard';
 
@@ -48,52 +49,22 @@ export default function MyListings() {
   };
 
   useEffect(() => {
-    const cached = sessionStorage.getItem('myListings');
-    if (cached) {
-      try {
-        setAllListings(JSON.parse(cached));
-        setLoading(false);
-        return;
-      } catch {}
-    }
-    fetchAllListings();
-  }, []);
-
-  const fetchAllListings = async () => {
+    let cancelled = false;
     setLoading(true);
     setError(null);
-    try {
-      let allResults = [];
-      let currentPage = 1;
-      const pageSize = 50;
-
-      while (true) {
-        const data = await getMyListings(currentPage, pageSize);
-        const results = Array.isArray(data) ? data : (data.results || []);
-        allResults = allResults.concat(results);
-        if (Array.isArray(data) || !data.next || allResults.length >= (data.count || 0)) break;
-        currentPage++;
-        if (currentPage > 20) break;
-      }
-
-      sessionStorage.setItem('myListings', JSON.stringify(allResults));
-      setAllListings(allResults);
-    } catch {
-      setError('خطا در دریافت آگهی‌ها. لطفاً دوباره تلاش کنید.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    getAllListings()
+      .then((results) => { if (!cancelled) setAllListings(results); })
+      .catch(() => { if (!cancelled) setError('خطا در دریافت آگهی‌ها. لطفاً دوباره تلاش کنید.'); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
 
   const handleDelete = async (id) => {
     setActionLoading(id);
     try {
       await deleteCar(id);
-      setAllListings((prev) => {
-        const next = prev.map((l) => (l.id === id ? { ...l, is_active: false } : l));
-        sessionStorage.setItem('myListings', JSON.stringify(next));
-        return next;
-      });
+      invalidateListingsCache();
+      setAllListings((prev) => prev.map((l) => (l.id === id ? { ...l, is_active: false } : l)));
       setDeleteConfirm(null);
     } catch {
       setError('خطا در حذف آگهی.');
@@ -106,11 +77,8 @@ export default function MyListings() {
     setActionLoading(id);
     try {
       await restoreCar(id);
-      setAllListings((prev) => {
-        const next = prev.map((l) => (l.id === id ? { ...l, is_active: true } : l));
-        sessionStorage.setItem('myListings', JSON.stringify(next));
-        return next;
-      });
+      invalidateListingsCache();
+      setAllListings((prev) => prev.map((l) => (l.id === id ? { ...l, is_active: true } : l)));
     } catch (err) {
       console.error('Restore error:', err.response?.data || err.message);
       setError('خطا در بازیابی آگهی.');

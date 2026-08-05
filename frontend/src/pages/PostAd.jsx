@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Upload, X, ChevronRight, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus } from 'lucide-react';
 import { createCar, uploadCarImages } from '../lib/carApi';
+import { invalidateListingsCache } from '../utils/listingsCache';
 import {
   BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP, CITY_MAP,
 } from '../lib/constants';
@@ -190,7 +191,7 @@ export default function PostAd() {
       }
 
       sessionStorage.removeItem(STORAGE_KEY);
-      sessionStorage.removeItem('myListings');
+      invalidateListingsCache();
       navigate('/my-listings');
     } catch (err) {
       const data = err.response?.data;

@@ -7,6 +7,7 @@ import {
   Bus, Bike, Star, Shield, Users, TrendingUp
 } from 'lucide-react';
 import { getCars } from '../lib/carApi';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { CarGridCard, CarListCard } from '../components/CarCard';
 import CarSpinner from '../components/CarSpinner';
 import { CITY_LABELS } from '../lib/constants';
@@ -218,6 +219,12 @@ export default function Home() {
   const listingsRef = useRef(null);
   const prevPageRef = useRef(page);
   const pageSize = 20;
+  const inFlightRef = useRef(new Set());
+  const latestKeyRef = useRef('');
+
+  // Debounce price inputs so typing doesn't fire a request per keystroke.
+  const debouncedMinPrice = useDebouncedValue(priceRange.min, 400);
+  const debouncedMaxPrice = useDebouncedValue(priceRange.max, 400);
 
   // Scroll to top on initial mount (on refresh/navigation).
   // Runs synchronously before paint and jumps instantly so it never
@@ -239,20 +246,30 @@ export default function Home() {
     }
   }, [page]);
 
-  const fetchCars = useCallback(async (searchFromUrl) => {
+  const fetchCars = useCallback(async (overrides = {}) => {
+    const params = {
+      search: overrides.search ?? (searchQuery || undefined),
+      brand: selectedBrand || undefined,
+      body_type: selectedBody || undefined,
+      min_price: debouncedMinPrice || undefined,
+      max_price: debouncedMaxPrice || undefined,
+      page: overrides.page ?? page,
+      page_size: pageSize,
+    };
+
+    const key = JSON.stringify(params);
+
+    // Skip duplicate requests that are already in flight for the exact same
+    // params (StrictMode double-effects, filter+page reset overlap).
+    if (inFlightRef.current.has(key)) return;
+    inFlightRef.current.add(key);
+    latestKeyRef.current = key;
+
     setLoading(true);
     setError(null);
     try {
-      const params = {
-        search: searchFromUrl || undefined,
-        brand: selectedBrand || undefined,
-        body_type: selectedBody || undefined,
-        min_price: priceRange.min || undefined,
-        max_price: priceRange.max || undefined,
-        page,
-        page_size: pageSize,
-      };
       const data = await getCars(params);
+      if (latestKeyRef.current !== key) return; // superseded by a newer request
       if (data.results) {
         setCars(data.results);
         setTotalCount(data.count || 0);
@@ -262,22 +279,35 @@ export default function Home() {
       }
       setUseMock(false);
     } catch {
+      if (latestKeyRef.current !== key) return;
       setUseMock(true);
       setCars(MOCK_CARS);
       setTotalCount(MOCK_CARS.length);
     } finally {
-      setLoading(false);
+      inFlightRef.current.delete(key);
+      if (latestKeyRef.current === key) setLoading(false);
     }
-  }, [selectedBrand, selectedBody, priceRange.min, priceRange.max, page]);
+  }, [searchQuery, selectedBrand, selectedBody, debouncedMinPrice, debouncedMaxPrice, page]);
 
-  // Sync searchQuery and fetch when URL changes (e.g., when Navbar search updates URL)
+  // Keep the search box in sync with the URL (e.g. Navbar search).
   useEffect(() => {
-    const urlSearch = searchParams.get('search') || '';
-    setSearchQuery(urlSearch);
-    fetchCars(urlSearch);
+    setSearchQuery(searchParams.get('search') || '');
   }, [searchParams]);
 
-  useEffect(() => { setPage(1); }, [searchQuery, selectedBrand, selectedBody, priceRange.min, priceRange.max]);
+  // Any filter change resets to the first page and fetches it right away.
+  // Note: fetchCars is intentionally omitted — its identity changes alongside
+  // these deps, and including it would double-fire with the page effect below.
+  useEffect(() => {
+    setPage(1);
+    fetchCars({ page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBrand, selectedBody, debouncedMinPrice, debouncedMaxPrice, searchQuery]);
+
+  // Pagination (and re-fetch after filter-driven page resets).
+  useEffect(() => {
+    fetchCars({ page });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -376,7 +406,6 @@ export default function Home() {
                     onClick={() => {
                       setSearchQuery('');
                       setSearchParams({});
-                      fetchCars('');
                     }}
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-text-tertiary hover:text-text-secondary rounded-full hover:bg-surface-tertiary transition-colors"
                   >

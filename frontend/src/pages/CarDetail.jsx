@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Phone, MessageCircle, Share2, Heart, MapPin, Clock, Fuel, Gauge, Calendar, Settings, CheckCircle, ChevronLeft, ChevronRight, Shield, Flag, User } from 'lucide-react';
-import { getCar, getCarImages } from '../lib/carApi';
+import { getCar } from '../lib/carApi';
 import {
   FUEL_LABELS, TRANSMISSION_LABELS, CONDITION_LABELS, COLOR_LABELS, CITY_LABELS, BODY_LABELS,
 } from '../lib/constants';
@@ -47,10 +47,10 @@ export default function CarDetail() {
   useEffect(() => {
     setLoading(true);
     setError(null);
-    Promise.all([getCar(id), getCarImages(id)])
-      .then(([carData, imagesData]) => {
+    getCar(id)
+      .then((carData) => {
         setCar(carData);
-        const urls = imagesData.map((img) => fixImageUrl(img.image));
+        const urls = (carData.images || []).map((img) => fixImageUrl(img.image));
         setImages(urls);
       })
       .catch((err) => {
