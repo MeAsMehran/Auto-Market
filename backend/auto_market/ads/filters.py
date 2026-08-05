@@ -36,7 +36,7 @@ class CarFilter(django_filters.FilterSet):
                 search_vector=search_query
             ).annotate(
                 rank=SearchRank('search_vector', search_query)
-            ).order_by('-rank')
+            ).order_by('-created_at')
 
     """
         def search_all_fields(self, queryset, name, value):

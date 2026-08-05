@@ -90,7 +90,7 @@ class ListFavoriteView(APIView):
             'car', 'car__seller'
         ).prefetch_related(
             'car__images'
-        )
+        ).order_by('-created_at')
 
         # Apply search + other filters using CarFilter
         car_filter = CarFilter(request.query_params, queryset=favorites)

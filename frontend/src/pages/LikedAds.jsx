@@ -45,11 +45,13 @@ export default function LikedAds() {
       }
 
       try {
-        const favorites = await getFavorites();
+        const response = await getFavorites();
+        const favorites = Array.isArray(response) ? response : response.results ?? [];
         const cars = favorites.map((fav) => fav.car);
         setLikedCars(cars);
         localStorage.setItem('likedCars', JSON.stringify(cars));
-      } catch {
+      } catch (err) {
+        console.error('Failed to fetch favorites:', err);
         const stored = localStorage.getItem('likedCars');
         if (stored) {
           try {
