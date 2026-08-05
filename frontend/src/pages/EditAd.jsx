@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Upload, X, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { getCar, updateCar, uploadCarImages, deleteCarImage } from '../lib/carApi';
-import { invalidateListingsCache } from '../utils/listingsCache';
 import {
   BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP, CITY_MAP,
   FUEL_LABELS, TRANSMISSION_LABELS, CONDITION_LABELS, BODY_LABELS, COLOR_LABELS, CITY_LABELS,
@@ -204,7 +203,6 @@ export default function EditAd() {
         });
       await Promise.all(uploads);
 
-      invalidateListingsCache();
       navigate('/my-listings');
     } catch (err) {
       const data = err.response?.data;

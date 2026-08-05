@@ -139,15 +139,51 @@ class ListMyCarAdView(APIView):
     permission_classes = [IsAuthenticated]
     # pagination_class = SmallPageNumberPagination
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='status',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description='Filter by status: "active" for is_active=True, "deleted" for is_active=False. Omit to show all.',
+            ),
+            OpenApiParameter(
+                name='page',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                default=1,
+            ),
+            OpenApiParameter(
+                name='page_size',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+            ),
+            OpenApiParameter(
+                name='search',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description='Full-text search across title, brand, and model.',
+            ),
+        ],
+    )
     def get(self, request):
         current_user = request.user
-        car_ads = Car.objects.filter(
-            seller=current_user
-        ).select_related('seller').prefetch_related('images')
+        status_param = request.query_params.get('status')
+
+        car_ads = Car.objects.filter(seller=current_user).select_related('seller').prefetch_related('images')
+
+        if status_param == 'active':
+            car_ads = car_ads.filter(is_active=True)
+        elif status_param == 'deleted':
+            car_ads = car_ads.filter(is_active=False)
 
         # Apply search + other filters using CarFilter
         car_filter = CarFilter(request.query_params, queryset=car_ads)
-        filtered_qs = car_filter.qs
+        filtered_qs = car_filter.qs.order_by('-created_at')
 
         paginator = SmallPageNumberPagination()
         page = paginator.paginate_queryset(filtered_qs, request)

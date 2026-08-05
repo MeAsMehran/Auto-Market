@@ -1,12 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Eye, Edit3, Trash2, RotateCcw, Search, ChevronLeft, ChevronRight, Clock, MapPin, Loader2, AlertCircle, Car } from 'lucide-react';
 import { deleteCar, restoreCar } from '../lib/carApi';
-import { getAllListings, invalidateListingsCache } from '../utils/listingsCache';
+import { useMyListings } from '../hooks/useMyListings';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { getFirstImage } from '../components/CarCard';
-
-const PER_PAGE = 5;
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -28,15 +27,23 @@ function timeAgo(dateStr) {
 export default function MyListings() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [allListings, setAllListings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
+  const [actionError, setActionError] = useState(null);
 
   const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
   const filter = searchParams.get('filter') || 'all';
   const searchQuery = searchParams.get('search') || '';
+
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const status = filter === 'active' ? 'active' : filter === 'deleted' ? 'deleted' : undefined;
+
+  const { cars, count, totalPages, loading, error, refetch } = useMyListings(page, {
+    search: debouncedSearch,
+    status,
+  });
+
+  const safePage = Math.min(page, totalPages || 1);
 
   const setFilter = (f) => {
     setSearchParams((prev) => { prev.set('filter', f); prev.set('page', '1'); return prev; });
@@ -48,26 +55,15 @@ export default function MyListings() {
     setSearchParams((prev) => { prev.set('search', q); prev.set('page', '1'); return prev; });
   };
 
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-    getAllListings()
-      .then((results) => { if (!cancelled) setAllListings(results); })
-      .catch(() => { if (!cancelled) setError('خطا در دریافت آگهی‌ها. لطفاً دوباره تلاش کنید.'); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
   const handleDelete = async (id) => {
     setActionLoading(id);
+    setActionError(null);
     try {
       await deleteCar(id);
-      invalidateListingsCache();
-      setAllListings((prev) => prev.map((l) => (l.id === id ? { ...l, is_active: false } : l)));
       setDeleteConfirm(null);
+      refetch();
     } catch {
-      setError('خطا در حذف آگهی.');
+      setActionError('خطا در حذف آگهی.');
     } finally {
       setActionLoading(null);
     }
@@ -75,42 +71,16 @@ export default function MyListings() {
 
   const handleRestore = async (id) => {
     setActionLoading(id);
+    setActionError(null);
     try {
       await restoreCar(id);
-      invalidateListingsCache();
-      setAllListings((prev) => prev.map((l) => (l.id === id ? { ...l, is_active: true } : l)));
+      refetch();
     } catch (err) {
-      console.error('Restore error:', err.response?.data || err.message);
-      setError('خطا در بازیابی آگهی.');
+      setActionError('خطا در بازیابی آگهی.');
     } finally {
       setActionLoading(null);
     }
   };
-
-  const statusCounts = useMemo(() => ({
-    all: allListings.length,
-    active: allListings.filter((l) => l.is_active).length,
-    deleted: allListings.filter((l) => !l.is_active).length,
-  }), [allListings]);
-
-  const filtered = useMemo(() => {
-    return allListings.filter((l) => {
-      if (filter === 'active' && !l.is_active) return false;
-      if (filter === 'deleted' && l.is_active) return false;
-      if (searchQuery && !l.title?.includes(searchQuery) && !l.brand?.includes(searchQuery)) return false;
-      return true;
-    });
-  }, [allListings, filter, searchQuery]);
-
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const safePage = Math.min(page, totalPages || 1);
-  const paginated = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
-
-  useEffect(() => {
-    if (page > totalPages && totalPages > 0) {
-      setPage(totalPages);
-    }
-  }, [totalPages, page]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
@@ -137,7 +107,9 @@ export default function MyListings() {
               className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${filter === tab.key ? 'bg-surface text-text-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'}`}
             >
               {tab.label}
-              <span className="mr-1.5 text-xs opacity-60">({statusCounts[tab.key]})</span>
+              {tab.key === filter && count > 0 && (
+                <span className="mr-1.5 text-xs opacity-60">({count})</span>
+              )}
             </button>
           ))}
         </div>
@@ -153,10 +125,10 @@ export default function MyListings() {
         </div>
       </div>
 
-      {error && (
+      {(error || actionError) && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <p className="text-sm text-red-700 dark:text-red-300">{error || actionError}</p>
         </div>
       )}
 
@@ -165,7 +137,7 @@ export default function MyListings() {
           <Loader2 className="w-8 h-8 text-brand-500 animate-spin mb-3" />
           <p className="text-text-secondary text-sm">در حال بارگذاری آگهی‌ها...</p>
         </div>
-      ) : paginated.length === 0 ? (
+      ) : cars.length === 0 ? (
         <div className="text-center py-20 bg-surface rounded-2xl border border-border">
           <Car className="w-10 h-10 mx-auto text-text-tertiary mb-3" />
           <h3 className="font-semibold text-text-primary">آگهی‌ای یافت نشد</h3>
@@ -176,7 +148,7 @@ export default function MyListings() {
       ) : (
         <>
           <div className="space-y-4">
-            {paginated.map((listing) => {
+            {cars.map((listing) => {
               const isDeleted = listing.is_active === false;
               return (
                 <div key={listing.id} className={`bg-surface rounded-2xl border p-4 sm:p-5 transition-colors ${isDeleted ? 'border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/20' : 'border-border'}`}>
