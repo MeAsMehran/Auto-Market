@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Upload, X, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { getCar, updateCar, uploadCarImages, deleteCarImage } from '../lib/carApi';
@@ -46,14 +46,24 @@ export default function EditAd() {
     front: null, rear: null, left: null, right: null, other: null,
   });
 
+  // Guard against dev-mode StrictMode double-effects (dedupe in-flight
+  // requests for the same id) and stale responses when the id changes.
+  const inFlightRef = useRef(new Set());
+  const latestIdRef = useRef(null);
+
   useEffect(() => {
     fetchCar();
   }, [id]);
 
   const fetchCar = async () => {
     setLoading(true);
+    const key = `car-${id}`;
+    if (inFlightRef.current.has(key)) return;
+    inFlightRef.current.add(key);
+    latestIdRef.current = id;
     try {
       const car = await getCar(id);
+      if (latestIdRef.current !== id) return;
       setForm({
         brand: car.brand || '',
         model_name: car.model_name || '',
@@ -72,9 +82,11 @@ export default function EditAd() {
       setFeatures(car.features || []);
       setExistingImages(Array.isArray(car.images) ? car.images : car.images?.results || []);
     } catch {
+      if (latestIdRef.current !== id) return;
       setError('خطا در بارگذاری اطلاعات آگهی.');
     } finally {
-      setLoading(false);
+      inFlightRef.current.delete(key);
+      if (latestIdRef.current === id) setLoading(false);
     }
   };
 

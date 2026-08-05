@@ -3,17 +3,29 @@ import { getMyListings } from '../lib/carApi';
 // Shared cache for the current user's listings, with a short TTL so revisits
 // render instantly while still picking up server-side changes within a minute.
 let listingsCache = { data: null, at: 0 };
+let inFlightPromise = null;
 const TTL = 60_000;
 
 export function invalidateListingsCache() {
   listingsCache = { data: null, at: 0 };
 }
 
-export async function getAllListings() {
+export function getAllListings() {
   if (listingsCache.data && Date.now() - listingsCache.at < TTL) {
-    return listingsCache.data;
+    return Promise.resolve(listingsCache.data);
   }
 
+  // Share a single in-flight request across concurrent callers (e.g. React
+  // StrictMode double-effects) so only one network round-trip happens.
+  if (inFlightPromise) return inFlightPromise;
+
+  inFlightPromise = fetchAllListings().finally(() => {
+    inFlightPromise = null;
+  });
+  return inFlightPromise;
+}
+
+async function fetchAllListings() {
   let allResults = [];
   const pageSize = 50;
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Phone, MessageCircle, Share2, Heart, MapPin, Clock, Fuel, Gauge, Calendar, Settings, CheckCircle, ChevronLeft, ChevronRight, Shield, Flag, User } from 'lucide-react';
 import { getCar } from '../lib/carApi';
@@ -44,19 +44,33 @@ export default function CarDetail() {
   const { isLiked, toggleLike } = useFavorites();
   const liked = car ? isLiked(car.id) : false;
 
+  // Guard against dev-mode StrictMode double-effects (dedupe in-flight
+  // requests for the same id) and stale responses when the id changes.
+  const inFlightRef = useRef(new Set());
+  const latestIdRef = useRef(null);
+
   useEffect(() => {
     setLoading(true);
     setError(null);
+    const key = `car-${id}`;
+    if (inFlightRef.current.has(key)) return;
+    inFlightRef.current.add(key);
+    latestIdRef.current = id;
     getCar(id)
       .then((carData) => {
+        if (latestIdRef.current !== id) return;
         setCar(carData);
         const urls = (carData.images || []).map((img) => fixImageUrl(img.image));
         setImages(urls);
       })
       .catch((err) => {
+        if (latestIdRef.current !== id) return;
         setError(err.response?.status === 404 ? 'آگهی یافت نشد.' : 'خطا در دریافت اطلاعات آگهی.');
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        inFlightRef.current.delete(key);
+        if (latestIdRef.current === id) setLoading(false);
+      });
   }, [id]);
 
   if (loading) {
