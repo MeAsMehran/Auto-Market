@@ -235,11 +235,3 @@ class RestoreCarAdView(APIView):
 
 
 
-
-
-
-
-
-
-
-
