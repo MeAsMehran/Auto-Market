@@ -1,6 +1,6 @@
 import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { motion, AnimatePresence, useInView } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, SlidersHorizontal, Grid3X3, List, MapPin, Clock,
   ChevronLeft, ChevronRight, AlertCircle, Car, Truck,
@@ -37,47 +37,9 @@ const bodyTypes = [
   { key: 'coupe', label: 'کوپه', icon: Bike },
 ];
 
-const stats = [
-  { icon: Car, value: 10000, suffix: '+', label: 'آگهی فعال' },
-  { icon: Users, value: 50000, suffix: '+', label: 'کاربر راضی' },
-  { icon: Shield, value: 100, suffix: '%', label: 'تضمین امنیت' },
-  { icon: Star, value: 4.9, suffix: '★', label: 'امتیاز کاربران' },
-];
-
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
   return `${(price / 1000000).toLocaleString('fa-IR')} م.تومان`;
-}
-
-function AnimatedCounter({ target, suffix = '', duration = 2 }) {
-  const [count, setCount] = useState(0);
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
-
-  useEffect(() => {
-    if (!isInView) return;
-    let start = 0;
-    const end = target;
-    const stepTime = (duration * 1000) / end;
-    const isDecimal = !Number.isInteger(end);
-    const increment = isDecimal ? 0.1 : Math.max(1, Math.floor(end / (duration * 60)));
-    const timer = setInterval(() => {
-      start += increment;
-      if (start >= end) {
-        setCount(end);
-        clearInterval(timer);
-      } else {
-        setCount(isDecimal ? Math.round(start * 10) / 10 : Math.floor(start));
-      }
-    }, isDecimal ? stepTime * 10 : stepTime);
-    return () => clearInterval(timer);
-  }, [isInView, target, duration]);
-
-  const formatted = Number.isInteger(target)
-    ? count.toLocaleString('fa-IR')
-    : count.toFixed(1);
-
-  return <span ref={ref}>{formatted}{suffix}</span>;
 }
 
 function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 0 }) {
@@ -429,37 +391,6 @@ export default function Home() {
 
       {/* ── Featured Marquee ── */}
       <FeaturedMarquee cars={MOCK_CARS} />
-
-      {/* ── Stats Section ── */}
-      <section className="bg-surface-secondary border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            {stats.map(({ icon: Icon, value, suffix, label }, i) => (
-              <motion.div
-                key={label}
-                className="text-center p-5 bg-surface rounded-2xl border border-border"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: '-40px' }}
-                transition={{ delay: i * 0.1, duration: 0.45 }}
-              >
-                <motion.div
-                  whileHover={{ rotate: 10, scale: 1.15 }}
-                  transition={{ type: 'spring', stiffness: 400 }}
-                  className="w-12 h-12 mx-auto mb-3 bg-brand-50 dark:bg-brand-950 rounded-xl flex items-center justify-center"
-                >
-                  <Icon className="w-6 h-6 text-brand-500" />
-                </motion.div>
-                <p className="text-2xl font-bold text-text-primary">
-                  <AnimatedCounter target={value} suffix="" duration={2} />
-                  <span className="text-brand-500">{suffix}</span>
-                </p>
-                <p className="text-sm text-text-tertiary mt-1">{label}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* ── Listings ── */}
       <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
