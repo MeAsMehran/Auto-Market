@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, ArrowRight, MapPin } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
+import { Heart, ArrowRight, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CITY_LABELS, FUEL_LABELS } from '../lib/constants';
-import { getFavorites, removeFavorite } from '../lib/carApi';
 import { getFirstImage } from '../components/CarCard';
-import { updateGlobalSingleton } from '../context/FavoritesContext';
+import { useFavorites } from '../context/FavoritesContext';
+import { useLikedAds } from '../hooks/useLikedAds';
+import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -25,66 +26,40 @@ function timeAgo(dateStr) {
 }
 
 export default function LikedAds() {
-  const [likedCars, setLikedCars] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
 
-  useEffect(() => {
-    const fetchFavorites = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        const stored = localStorage.getItem('likedCars');
-        if (stored) {
-          try {
-            setLikedCars(JSON.parse(stored));
-          } catch {
-            setLikedCars([]);
-          }
-        }
-        setLoading(false);
-        return;
-      }
+  const { cars, count, totalPages, loading, error, refetch } = useLikedAds(page);
+  const { toggleLike } = useFavorites();
 
-      try {
-        const favorites = await getFavorites();
-        const cars = favorites.map((fav) => fav.car);
-        setLikedCars(cars);
-        localStorage.setItem('likedCars', JSON.stringify(cars));
-      } catch {
-        const stored = localStorage.getItem('likedCars');
-        if (stored) {
-          try {
-            setLikedCars(JSON.parse(stored));
-          } catch {
-            setLikedCars([]);
-          }
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFavorites();
-  }, []);
-
-  const removeLike = async (carId, car) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      try {
-        await removeFavorite(carId);
-      } catch {
-        // continue
-      }
-    }
-    // Sync the FavoritesContext singleton so the like is removed on all pages
-    if (car) {
-      updateGlobalSingleton(car, false);
-    }
-    const updated = likedCars.filter((c) => c.id !== carId);
-    setLikedCars(updated);
-    localStorage.setItem('likedCars', JSON.stringify(updated));
+  const setPage = (p) => {
+    setSearchParams((prev) => { prev.set('page', String(p)); return prev; });
   };
 
+  const removeLike = async (car) => {
+    await toggleLike(car);
+    refetch();
+  };
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
+  const listingsRef = useRef(null);
+  const prevPageRef = useRef(page);
+
+  useEffect(() => {
+    if (prevPageRef.current === page) return;
+    prevPageRef.current = page;
+    if (listingsRef.current) {
+      const offset = 80;
+      const top = listingsRef.current.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, [page]);
+
   return (
-    <div className="min-h-screen bg-surface-secondary">
+    <div ref={listingsRef} className="min-h-screen bg-surface-secondary">
       <section className="bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.div
@@ -111,7 +86,12 @@ export default function LikedAds() {
             <div className="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-text-secondary">در حال بارگذاری...</p>
           </div>
-        ) : likedCars.length === 0 ? (
+        ) : error ? (
+          <div className="text-center py-20">
+            <p className="text-red-500 mb-4">{error}</p>
+            <button onClick={refetch} className="px-4 py-2 bg-brand-500 text-white rounded-lg">تلاش دوباره</button>
+          </div>
+        ) : cars.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -135,19 +115,53 @@ export default function LikedAds() {
           <>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-text-primary">
-                {likedCars.length} خودرو ذخیره‌شده
+                {count} خودرو ذخیره‌شده
               </h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {likedCars.map((car, index) => (
+            <motion.div
+              key={`liked-${page}`}
+              variants={staggerContainer}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true, amount: 0.05 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+            >
+              {cars.map((car) => (
                 <LikedCarCard
                   key={car.id}
                   car={car}
-                  index={index}
-                  onRemove={() => removeLike(car.id)}
+                  onRemove={() => removeLike(car)}
                 />
               ))}
-            </div>
+            </motion.div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <button
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="p-2 rounded-xl border border-border hover:bg-surface-tertiary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors ${page === p ? 'bg-brand-500 text-white' : 'border border-border hover:bg-surface-tertiary text-text-secondary'}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="p-2 rounded-xl border border-border hover:bg-surface-tertiary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -155,16 +169,11 @@ export default function LikedAds() {
   );
 }
 
-function LikedCarCard({ car, index, onRemove }) {
+function LikedCarCard({ car, onRemove }) {
   const imgSrc = getFirstImage(car);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.4, delay: index * 0.05, ease: 'easeOut' }}
-    >
+    <motion.div variants={fadeUpItem} className="will-change-transform">
       <Link
         to={`/car/${car.id}`}
         className="group block bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300 relative"
@@ -184,7 +193,13 @@ function LikedCarCard({ car, index, onRemove }) {
         </div>
         <div className="relative aspect-[4/3] overflow-hidden bg-surface-tertiary">
           {imgSrc ? (
-            <img src={imgSrc} alt={car.title} className="w-full h-full object-cover" />
+            <img
+              src={imgSrc}
+              alt={car.title}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover"
+            />
           ) : null}
           {car.is_featured && (
             <motion.span

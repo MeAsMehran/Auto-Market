@@ -13,6 +13,33 @@
         window.history.scrollRestoration = 'manual';
       }
     </script>
+    <style>
+      /* Static splash shown instantly before the JS bundle parses, so there
+         is never a white flash on refresh. React's Splash component takes over
+         and fades out smoothly once mounted. */
+      #root:empty::before {
+        content: '';
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: #1a365d;
+        background: linear-gradient(135deg, #1a365d 0%, #1e4d8c 50%, #0a66c2 100%);
+      }
+      #root:empty::after {
+        content: 'آتو مارکت';
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.025em;
+      }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet" />

@@ -5,11 +5,15 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from rest_framework.pagination import PageNumberPagination
 
 from drf_spectacular.utils import extend_schema
 
 from ..models import Car, Favorite
 from ..serializers.favorite_serializer import ListFavoriteAdSerializer
+from ..filters import CarFilter
+
+from core.pagination.pagination import SmallPageNumberPagination
 
 ########################################
 
@@ -71,12 +75,32 @@ class ListFavoriteView(APIView):
         responses={200: ListFavoriteAdSerializer(many=True)}
     )
     def get(self, request):
+        # way 1:
         # filter + select_related for performance
-        favorite_ads = Favorite.objects.filter(user=request.user, car__is_active=True).select_related('car')
+        # favorite_ads = Favorite.objects.filter(user=request.user, car__is_active=True).select_related('car')
+        
+        # way 2: (buggy because we need to get favorite objects not car -> ListFavoriteAdSerializer)
+        # favorite_ids = Favorite.objects.filter(user=request.user).values_list('car_id', flat=True)
+        # cars = Car.objects.filter(id__in=favorite_ids,is_active=True).select_related('seller').prefetch_related('images')
 
-        # Actually serialize and return the data
-        serializer = ListFavoriteAdSerializer(favorite_ads, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        favorites = Favorite.objects.filter(
+            user=request.user,
+            car__is_active=True
+        ).select_related(
+            'car', 'car__seller'
+        ).prefetch_related(
+            'car__images'
+        ).order_by('-created_at')
+
+        # Apply search + other filters using CarFilter
+        car_filter = CarFilter(request.query_params, queryset=favorites)
+        filtered_qs = car_filter.qs
+
+        # Paginate
+        paginator = SmallPageNumberPagination()
+        page = paginator.paginate_queryset(filtered_qs, request)
+        serializer = ListFavoriteAdSerializer(page, many=True, context={'request': request})
+        return paginator.get_paginated_response(serializer.data)
 
 
 

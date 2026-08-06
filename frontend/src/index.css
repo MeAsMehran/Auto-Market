@@ -112,16 +112,34 @@ body {
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .animate-drive {
   animation: drive 12s linear infinite;
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 .animate-shimmer {
   background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.4) 50%, transparent 100%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
+  will-change: background-position;
+}
+
+/* Respect users who prefer reduced motion: snap animations to final state
+   so heavy infinite loops never start fighting the main thread. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ── Theme Transition Curtain ── */

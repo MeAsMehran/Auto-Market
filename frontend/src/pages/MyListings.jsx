@@ -1,11 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Plus, Eye, Edit3, Trash2, RotateCcw, Search, ChevronLeft, ChevronRight, Clock, MapPin, Loader2, AlertCircle, Car } from 'lucide-react';
-import { getMyListings, deleteCar, restoreCar } from '../lib/carApi';
+import { deleteCar, restoreCar } from '../lib/carApi';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { getFirstImage } from '../components/CarCard';
-
-const PER_PAGE = 5;
+import { useMyListings } from '../hooks/useMyListings';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -27,8 +29,6 @@ function timeAgo(dateStr) {
 export default function MyListings() {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [allListings, setAllListings] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
@@ -47,53 +47,25 @@ export default function MyListings() {
     setSearchParams((prev) => { prev.set('search', q); prev.set('page', '1'); return prev; });
   };
 
+  const debouncedSearch = useDebouncedValue(searchQuery, 300);
+  const status = filter === 'active' ? 'active' : filter === 'deleted' ? 'deleted' : undefined;
+
+  const { cars, count, totalPages, loading, error: fetchError, refetch } = useMyListings(page, {
+    search: debouncedSearch,
+    status,
+  });
+
   useEffect(() => {
-    const cached = sessionStorage.getItem('myListings');
-    if (cached) {
-      try {
-        setAllListings(JSON.parse(cached));
-        setLoading(false);
-        return;
-      } catch {}
+    if (page > totalPages && totalPages > 0) {
+      setPage(totalPages);
     }
-    fetchAllListings();
-  }, []);
-
-  const fetchAllListings = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      let allResults = [];
-      let currentPage = 1;
-      const pageSize = 50;
-
-      while (true) {
-        const data = await getMyListings(currentPage, pageSize);
-        const results = Array.isArray(data) ? data : (data.results || []);
-        allResults = allResults.concat(results);
-        if (Array.isArray(data) || !data.next || allResults.length >= (data.count || 0)) break;
-        currentPage++;
-        if (currentPage > 20) break;
-      }
-
-      sessionStorage.setItem('myListings', JSON.stringify(allResults));
-      setAllListings(allResults);
-    } catch {
-      setError('خطا در دریافت آگهی‌ها. لطفاً دوباره تلاش کنید.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [totalPages, page]);
 
   const handleDelete = async (id) => {
     setActionLoading(id);
     try {
       await deleteCar(id);
-      setAllListings((prev) => {
-        const next = prev.map((l) => (l.id === id ? { ...l, is_active: false } : l));
-        sessionStorage.setItem('myListings', JSON.stringify(next));
-        return next;
-      });
+      refetch();
       setDeleteConfirm(null);
     } catch {
       setError('خطا در حذف آگهی.');
@@ -106,11 +78,7 @@ export default function MyListings() {
     setActionLoading(id);
     try {
       await restoreCar(id);
-      setAllListings((prev) => {
-        const next = prev.map((l) => (l.id === id ? { ...l, is_active: true } : l));
-        sessionStorage.setItem('myListings', JSON.stringify(next));
-        return next;
-      });
+      refetch();
     } catch (err) {
       console.error('Restore error:', err.response?.data || err.message);
       setError('خطا در بازیابی آگهی.');
@@ -119,41 +87,59 @@ export default function MyListings() {
     }
   };
 
-  const statusCounts = useMemo(() => ({
-    all: allListings.length,
-    active: allListings.filter((l) => l.is_active).length,
-    deleted: allListings.filter((l) => !l.is_active).length,
-  }), [allListings]);
-
-  const filtered = useMemo(() => {
-    return allListings.filter((l) => {
-      if (filter === 'active' && !l.is_active) return false;
-      if (filter === 'deleted' && l.is_active) return false;
-      if (searchQuery && !l.title?.includes(searchQuery) && !l.brand?.includes(searchQuery)) return false;
-      return true;
-    });
-  }, [allListings, filter, searchQuery]);
-
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
   const safePage = Math.min(page, totalPages || 1);
-  const paginated = filtered.slice((safePage - 1) * PER_PAGE, safePage * PER_PAGE);
 
+  // On mount/refresh jump to the top instantly so the page never visibly
+  // animates from a stale scroll position.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
+  const listingsRef = useRef(null);
+  const prevPageRef = useRef(page);
+
+  // Smooth-scroll back to the listings header when the page number changes
+  // (1 -> 2, etc.) so the user sees the fresh cards animate in.
   useEffect(() => {
-    if (page > totalPages && totalPages > 0) {
-      setPage(totalPages);
+    if (prevPageRef.current === page) return;
+    prevPageRef.current = page;
+    if (listingsRef.current) {
+      const offset = 80;
+      const top = listingsRef.current.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
     }
-  }, [totalPages, page]);
+  }, [page]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">آگهی‌های من</h1>
-          <p className="text-text-tertiary text-sm">مدیریت آگهی‌های خودروی شما</p>
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+            className="text-2xl font-bold text-text-primary"
+          >
+            آگهی‌های من
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
+            className="text-text-tertiary text-sm"
+          >
+            مدیریت آگهی‌های خودروی شما
+          </motion.p>
         </div>
-        <Link to="/post-ad" className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
-          <Plus className="w-4 h-4" /> آگهی جدید
-        </Link>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.12, ease: 'easeOut' }}
+        >
+          <Link to="/post-ad" className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
+            <Plus className="w-4 h-4" /> آگهی جدید
+          </Link>
+        </motion.div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -169,7 +155,9 @@ export default function MyListings() {
               className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${filter === tab.key ? 'bg-surface text-text-primary shadow-sm' : 'text-text-tertiary hover:text-text-secondary'}`}
             >
               {tab.label}
-              <span className="mr-1.5 text-xs opacity-60">({statusCounts[tab.key]})</span>
+              {tab.key === filter && count > 0 && (
+                <span className="mr-1.5 text-xs opacity-60">({count})</span>
+              )}
             </button>
           ))}
         </div>
@@ -185,10 +173,10 @@ export default function MyListings() {
         </div>
       </div>
 
-      {error && (
+      {(error || fetchError) && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+          <p className="text-sm text-red-700 dark:text-red-300">{error || fetchError}</p>
         </div>
       )}
 
@@ -197,7 +185,7 @@ export default function MyListings() {
           <Loader2 className="w-8 h-8 text-brand-500 animate-spin mb-3" />
           <p className="text-text-secondary text-sm">در حال بارگذاری آگهی‌ها...</p>
         </div>
-      ) : paginated.length === 0 ? (
+      ) : cars.length === 0 ? (
         <div className="text-center py-20 bg-surface rounded-2xl border border-border">
           <Car className="w-10 h-10 mx-auto text-text-tertiary mb-3" />
           <h3 className="font-semibold text-text-primary">آگهی‌ای یافت نشد</h3>
@@ -207,15 +195,26 @@ export default function MyListings() {
         </div>
       ) : (
         <>
-          <div className="space-y-4">
-            {paginated.map((listing) => {
+          <motion.div
+            key={`my-listings-${page}-${filter}`}
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true, amount: 0.05 }}
+            className="space-y-4"
+          >
+            {cars.map((listing) => {
               const isDeleted = listing.is_active === false;
               return (
-                <div key={listing.id} className={`bg-surface rounded-2xl border p-4 sm:p-5 transition-colors ${isDeleted ? 'border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/20' : 'border-border'}`}>
+                <motion.div
+                  key={listing.id}
+                  variants={fadeUpItem}
+                  className={`bg-surface rounded-2xl border p-4 sm:p-5 transition-colors will-change-transform ${isDeleted ? 'border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/20' : 'border-border'}`}
+                >
                   <div className="flex flex-col sm:flex-row gap-4">
                     <div className={`sm:w-32 h-24 rounded-xl overflow-hidden shrink-0 ${isDeleted ? 'bg-red-100 dark:bg-red-950' : 'bg-surface-tertiary'}`}>
                       {getFirstImage(listing) ? (
-                        <img src={getFirstImage(listing)} alt="" loading="lazy" className={`w-full h-full object-cover ${isDeleted ? 'opacity-50 grayscale' : ''}`} />
+                        <img src={getFirstImage(listing)} alt="" loading="lazy" decoding="async" className={`w-full h-full object-cover ${isDeleted ? 'opacity-50 grayscale' : ''}`} />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Car className="w-8 h-8 text-text-tertiary/30" />
@@ -225,7 +224,7 @@ export default function MyListings() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <Link to={`/car/${listing.id}`} className={`font-semibold transition-colors line-clamp-1 ${isDeleted ? 'text-text-tertiary' : 'text-text-primary hover:text-brand-500'}`}>{listing.title}</Link>
+                          <Link to={`/car/${listing.id}${isDeleted ? '?deleted=1' : ''}`} className={`font-semibold transition-colors line-clamp-1 ${isDeleted ? 'text-text-tertiary' : 'text-text-primary hover:text-brand-500'}`}>{listing.title}</Link>
                           <p className={`font-bold text-lg mt-0.5 ${isDeleted ? 'text-text-tertiary' : 'text-brand-500'}`}>{formatPrice(listing.price)}</p>
                         </div>
                         <span className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-lg ${
@@ -282,10 +281,10 @@ export default function MyListings() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
 
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-8">
