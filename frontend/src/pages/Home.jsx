@@ -383,7 +383,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.15 }}
             >
-              خودروی ایده‌آلت را پیدا کن
+              خودرو مورد علاقت رو پیدا کن
             </motion.h1>
             <motion.p
               className="text-lg text-brand-200 mb-8"
@@ -424,33 +424,6 @@ export default function Home() {
               </div>
             </motion.form>
           </motion.div>
-        </div>
-      </section>
-
-      {/* ── Body Type Cards ── */}
-      <section className="bg-surface border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
-            {bodyTypes.map(({ key, label, icon: Icon }, i) => (
-              <motion.button
-                key={key}
-                onClick={() => handleBodyTypeClick(key)}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.05 }}
-                whileHover={{ scale: 1.06, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
-                  selectedBody === key
-                    ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/25'
-                    : 'bg-surface-secondary text-text-secondary border-border hover:border-brand-500/50 hover:text-brand-500'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-              </motion.button>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -553,7 +526,7 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div>
             {isFilterActive ? (
               <h2 className="text-xl font-bold text-text-primary">
@@ -594,6 +567,25 @@ export default function Home() {
               </motion.button>
             </div>
           </div>
+        </div>
+
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
+          {bodyTypes.map(({ key, label, icon: Icon }) => (
+            <motion.button
+              key={key}
+              onClick={() => handleBodyTypeClick(key)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
+                selectedBody === key
+                  ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/25'
+                  : 'bg-surface text-text-secondary border-border hover:border-brand-500/50 hover:text-brand-500'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </motion.button>
+          ))}
         </div>
 
         {loading && (
