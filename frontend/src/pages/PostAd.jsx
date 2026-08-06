@@ -190,7 +190,6 @@ export default function PostAd() {
       }
 
       sessionStorage.removeItem(STORAGE_KEY);
-      sessionStorage.removeItem('myListings');
       navigate('/my-listings');
     } catch (err) {
       const data = err.response?.data;

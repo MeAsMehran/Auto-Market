@@ -66,15 +66,37 @@ class DetailCarAdView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(
-    responses={200: DetailCarAdSerializer},
+        responses={200: DetailCarAdSerializer},
+        parameters=[
+            OpenApiParameter(
+                name='include_deleted',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                default='false',
+                description='Include soft-deleted cars (true/false)',
+            ),
+        ],
     )
     def get(self, request, car_id):
-        try:
-            car = Car.objects.select_related('seller').prefetch_related('images').get(
-                id=car_id, is_active=True
-            )
-        except Car.DoesNotExist:
-            raise NotFound("آگهی یافت نشد.")
+        include_deleted = request.query_params.get('include_deleted')
+
+        if include_deleted == 'true':
+            try:
+                car = Car.objects.select_related('seller').prefetch_related('images').get(id=car_id)
+                                    
+            except Car.DoesNotExist:
+                raise NotFound("آگهی یافت نشد.")
+
+            if not request.user.is_authenticated or car.seller != request.user:
+                raise NotFound("آگهی یافت نشد.")
+
+        else:
+            try:
+                car = Car.objects.select_related('seller').prefetch_related('images').get(id=car_id, is_active=True)
+            except Car.DoesNotExist:
+                raise NotFound("آگهی یافت نشد.")
+        
         serializer = DetailCarAdSerializer(car, context={'request': request})
         return Response(serializer.data)
 
@@ -139,13 +161,54 @@ class ListMyCarAdView(APIView):
     permission_classes = [IsAuthenticated]
     # pagination_class = SmallPageNumberPagination
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name='status',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description='Filter by status: "active" for is_active=True, "deleted" for is_active=False. Omit to show all.',
+            ),
+            OpenApiParameter(
+                name='page',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                default=1,
+            ),
+            OpenApiParameter(
+                name='page_size',
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+            ),
+            OpenApiParameter(
+                name='search',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description='Full-text search across title, brand, and model.',
+            ),
+        ],
+    )
     def get(self, request):
         current_user = request.user
-        car_ads = Car.objects.filter(
-            seller=current_user
-        ).select_related('seller').prefetch_related('images')
+        status_param = request.query_params.get('status')
+
+        car_ads = Car.objects.filter(seller=current_user).select_related('seller').prefetch_related('images')
+
+        if status_param == 'active':
+            car_ads = car_ads.filter(is_active=True)
+        elif status_param == 'deleted':
+            car_ads = car_ads.filter(is_active=False)
+
+        # Apply search + other filters using CarFilter
+        car_filter = CarFilter(request.query_params, queryset=car_ads)
+        filtered_qs = car_filter.qs.order_by('-created_at')
+
         paginator = SmallPageNumberPagination()
-        page = paginator.paginate_queryset(car_ads, request)
+        page = paginator.paginate_queryset(filtered_qs, request)
         serializer = ListCarAdSerializer(page, many=True, context={'request' : request})
         return paginator.get_paginated_response(serializer.data) 
 

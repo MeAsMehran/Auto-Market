@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, Bell, Plus, MessageCircle, ChevronDown, Menu, X, Car, LogOut, User, ClipboardList, Sun, Moon, Heart } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Bell, Plus, MessageCircle, ChevronDown, Menu, X, Car, LogOut, User, ClipboardList, Sun, Moon, Heart, Settings, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
@@ -67,8 +68,20 @@ export default function Navbar() {
                 placeholder="جستجوی خودرو، برند، مدل..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pr-10 pl-4 py-2 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
+                className="w-full pr-10 pl-10 py-2 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-colors"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    navigate('/');
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </form>
 
@@ -96,36 +109,141 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-text-secondary hover:bg-surface-tertiary rounded-xl transition-colors"
+                    className="flex items-center gap-2 px-2 py-1.5 text-sm font-medium text-text-secondary hover:bg-surface-tertiary rounded-xl transition-colors group"
                   >
-                    <div className="w-7 h-7 rounded-full bg-brand-500 text-white flex items-center justify-center text-xs font-bold">
-                      {user.name?.[0] || 'U'}
-                    </div>
-                    <ChevronDown className="w-4 h-4" />
+                    <motion.div
+                      whileHover={{ scale: 1.08 }}
+                      whileTap={{ scale: 0.94 }}
+                      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                      className="relative w-8 h-8 rounded-full bg-gradient-to-br from-brand-500 to-brand-700 text-white flex items-center justify-center text-sm font-bold shadow-sm ring-2 ring-surface"
+                    >
+                      {user?.avatar ? (
+                        <img src={user.avatar} alt={user.name} className="w-full h-full object-cover rounded-full" />
+                      ) : (
+                        user.name?.[0] || 'U'
+                      )}
+                    </motion.div>
+                    <motion.div
+                      animate={{ rotate: showUserMenu ? 180 : 0 }}
+                      transition={{ duration: 0.25, ease: 'easeOut' }}
+                      className="hidden sm:block"
+                    >
+                      <ChevronDown className="w-4 h-4 text-text-tertiary group-hover:text-text-secondary" />
+                    </motion.div>
                   </button>
-                  {showUserMenu && (
-                    <>
-                      <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
-                      <div className="absolute top-full mt-1 left-0 w-56 bg-surface rounded-xl shadow-lg border border-border py-2 z-20">
-                        <div className="px-4 py-2 border-b border-border">
-                          <p className="text-sm font-medium text-text-primary">{user.name || 'کاربر'}</p>
-                          <p className="text-xs text-text-tertiary">{user.phone}</p>
-                        </div>
-                        <Link to="/dashboard" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-tertiary transition-colors">
-                          <User className="w-4 h-4" /> پیشخوان
-                        </Link>
-                        <Link to="/my-listings" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-tertiary transition-colors">
-                          <ClipboardList className="w-4 h-4" /> آگهی‌های من
-                        </Link>
-                        <Link to="/liked-ads" onClick={() => setShowUserMenu(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-tertiary transition-colors">
-                          <Heart className="w-4 h-4" /> خودروهای مورد علاقه
-                        </Link>
-                        <button onClick={() => { logout(); setShowUserMenu(false); navigate('/'); }} className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 transition-colors w-full">
-                          <LogOut className="w-4 h-4" /> خروج
-                        </button>
-                      </div>
-                    </>
-                  )}
+
+                  <AnimatePresence>
+                    {showUserMenu && (
+                      <>
+                        <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)} />
+                        <motion.div
+                          initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                          style={{ transformOrigin: 'top left' }}
+                          className="absolute top-full mt-2 left-0 w-72 bg-surface rounded-2xl shadow-xl border border-border overflow-hidden z-20 will-change-transform"
+                        >
+                          {/* Gradient header banner */}
+                          <div className="relative h-20 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-400 overflow-hidden">
+                            <motion.div
+                              className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"
+                              animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+                              transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+                            />
+                            <div className="absolute top-2.5 right-3 flex items-center gap-1 px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-white text-[10px] font-medium">
+                              <Sparkles className="w-2.5 h-2.5" /> کاربر ویژه
+                            </div>
+                          </div>
+
+                          {/* Avatar + name overlapping the banner */}
+                          <div className="px-4 pb-3 -mt-10 text-center">
+                            <motion.div
+                              initial={{ scale: 0.7, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              transition={{ duration: 0.35, delay: 0.08, ease: 'easeOut' }}
+                              className="relative inline-block"
+                            >
+                              <div className="w-20 h-20 rounded-full bg-surface p-1 shadow-lg">
+                                <div className="w-full h-full rounded-full bg-gradient-to-br from-brand-100 to-brand-300 dark:from-brand-900 dark:to-brand-700 flex items-center justify-center overflow-hidden">
+                                  {user?.avatar ? (
+                                    <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span className="text-2xl font-bold text-brand-600 dark:text-brand-300">
+                                      {user.name?.[0] || 'U'}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                              <motion.div
+                                className="absolute inset-0 rounded-full border-2 border-brand-400/40"
+                                animate={{ scale: [1, 1.18, 1], opacity: [0.6, 0, 0.6] }}
+                                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
+                              />
+                            </motion.div>
+
+                            <p className="font-bold text-text-primary mt-2">{user.name || 'کاربر'}</p>
+                            <p className="text-xs text-text-tertiary">{user.phone || ''}</p>
+
+                            {/* Mini stats row */}
+                            <div className="grid grid-cols-3 gap-2 mt-3">
+                              <div className="bg-surface-secondary rounded-lg py-1.5">
+                                <p className="text-xs font-bold text-brand-500">۵</p>
+                                <p className="text-[10px] text-text-tertiary">آگهی</p>
+                              </div>
+                              <div className="bg-surface-secondary rounded-lg py-1.5">
+                                <p className="text-xs font-bold text-accent-500">۱۲</p>
+                                <p className="text-[10px] text-text-tertiary">پیام</p>
+                              </div>
+                              <div className="bg-surface-secondary rounded-lg py-1.5">
+                                <p className="text-xs font-bold text-red-500">۳</p>
+                                <p className="text-[10px] text-text-tertiary">علاقه</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Nav links */}
+                          <div className="border-t border-border py-2">
+                            {[
+                              { label: 'پیشخوان', icon: User, href: '/dashboard' },
+                              { label: 'آگهی‌های من', icon: ClipboardList, href: '/my-listings' },
+                              { label: 'خودروهای مورد علاقه', icon: Heart, href: '/liked-ads' },
+                              { label: 'تنظیمات', icon: Settings, href: '/settings' },
+                            ].map((item, i) => (
+                              <motion.div
+                                key={item.href}
+                                initial={{ opacity: 0, x: -8 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: 0.1 + i * 0.04, duration: 0.25, ease: 'easeOut' }}
+                              >
+                                <Link
+                                  to={item.href}
+                                  onClick={() => setShowUserMenu(false)}
+                                  className="flex items-center gap-3 px-4 py-2.5 text-sm text-text-secondary hover:bg-surface-tertiary hover:text-brand-500 transition-colors"
+                                >
+                                  <item.icon className="w-4 h-4" /> {item.label}
+                                </Link>
+                              </motion.div>
+                            ))}
+                          </div>
+
+                          {/* Logout */}
+                          <div className="border-t border-border p-2">
+                            <motion.button
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: 0.28, duration: 0.25, ease: 'easeOut' }}
+                              onClick={() => { logout(); setShowUserMenu(false); navigate('/'); }}
+                              whileTap={{ scale: 0.97 }}
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 rounded-xl transition-colors w-full"
+                            >
+                              <LogOut className="w-4 h-4" /> خروج از حساب
+                            </motion.button>
+                          </div>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 <Link
@@ -164,8 +282,20 @@ export default function Navbar() {
                 placeholder="جستجوی خودرو..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pr-10 pl-4 py-2.5 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                className="w-full pr-10 pl-10 py-2.5 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    navigate('/');
+                  }}
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-text-tertiary hover:text-text-secondary"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </form>
           {loading ? null : !user && (

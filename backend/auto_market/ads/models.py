@@ -1,6 +1,8 @@
 
 from django.db import models
 from django.conf import settings
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVector, SearchVectorField
 
 # Create your models here.
 
@@ -102,6 +104,9 @@ class Car(models.Model):
     is_active     = models.BooleanField(default=True)
     created_at    = models.DateTimeField(auto_now_add=True)
     updated_at    = models.DateTimeField(auto_now=True)
+
+    search_vector = SearchVectorField(null=True, blank=True)
+
     # vin = 
 
     class Meta:
@@ -124,7 +129,31 @@ class Car(models.Model):
 
             # covers: year range filtering
             models.Index(fields=['year']),
+
+            # NEW: Full-text search index (fastest search)
+            GinIndex(
+                fields=['search_vector'],
+                name='car_search_vector_gin'
+            ),
         ]
+
+    def save(self, *args, **kwargs):
+        """
+        Automatically populate search_vector when a car is saved.
+
+        How it works:
+        - SearchVector combines multiple fields into one searchable text
+        - Each field gets a weight (A=highest, B=medium, C=low)
+        - PostgreSQL uses these weights to rank results
+        """
+        self.search_vector = (
+            SearchVector('title', weight='A') +      # Title match = best result
+            SearchVector('brand', weight='B') +      # Brand match = good result
+            SearchVector('model_name', weight='B') + # Model match = good result
+            SearchVector('description', weight='C') + # Description match = partial
+            SearchVector('city', weight='D')         # City match = minor
+        )
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Upload, X, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus, Trash2 } from 'lucide-react';
-import { getCar, getCarImages, updateCar, uploadCarImages, deleteCarImage } from '../lib/carApi';
+import { getCar, updateCar, uploadCarImages, deleteCarImage } from '../lib/carApi';
 import {
   BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP, CITY_MAP,
   FUEL_LABELS, TRANSMISSION_LABELS, CONDITION_LABELS, BODY_LABELS, COLOR_LABELS, CITY_LABELS,
@@ -45,14 +45,24 @@ export default function EditAd() {
     front: null, rear: null, left: null, right: null, other: null,
   });
 
+  // Guard against dev-mode StrictMode double-effects (dedupe in-flight
+  // requests for the same id) and stale responses when the id changes.
+  const inFlightRef = useRef(new Set());
+  const latestIdRef = useRef(null);
+
   useEffect(() => {
     fetchCar();
   }, [id]);
 
   const fetchCar = async () => {
     setLoading(true);
+    const key = `car-${id}`;
+    if (inFlightRef.current.has(key)) return;
+    inFlightRef.current.add(key);
+    latestIdRef.current = id;
     try {
-      const [car, images] = await Promise.all([getCar(id), getCarImages(id)]);
+      const car = await getCar(id);
+      if (latestIdRef.current !== id) return;
       setForm({
         brand: car.brand || '',
         model_name: car.model_name || '',
@@ -69,11 +79,13 @@ export default function EditAd() {
         description: car.description || '',
       });
       setFeatures(car.features || []);
-      setExistingImages(Array.isArray(images) ? images : images.results || []);
+      setExistingImages(Array.isArray(car.images) ? car.images : car.images?.results || []);
     } catch {
+      if (latestIdRef.current !== id) return;
       setError('خطا در بارگذاری اطلاعات آگهی.');
     } finally {
-      setLoading(false);
+      inFlightRef.current.delete(key);
+      if (latestIdRef.current === id) setLoading(false);
     }
   };
 
@@ -179,21 +191,18 @@ export default function EditAd() {
 
       await updateCar(id, carData);
 
-      for (const imageId of removedImageIds) {
-        await deleteCarImage(id, imageId);
-      }
+      await Promise.all(removedImageIds.map((imageId) => deleteCarImage(id, imageId)));
 
-      for (const slot of SLOT_CONFIG) {
-        const imageData = newSlots[slot.key];
-        if (imageData) {
+      const uploads = SLOT_CONFIG
+        .filter((slot) => newSlots[slot.key])
+        .map((slot) => {
           const formData = new FormData();
-          formData.append('image', imageData.file);
+          formData.append('image', newSlots[slot.key].file);
           formData.append('order', slot.order);
-          await uploadCarImages(id, formData);
-        }
-      }
+          return uploadCarImages(id, formData);
+        });
+      await Promise.all(uploads);
 
-      sessionStorage.removeItem('myListings');
       navigate('/my-listings');
     } catch (err) {
       const data = err.response?.data;

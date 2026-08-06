@@ -4,6 +4,7 @@ import { MapPin, Clock, Heart, Car } from 'lucide-react';
 import { useState } from 'react';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { useFavorites } from '../context/FavoritesContext';
+import { fadeUpItem, fadeInLeftItem } from './AnimatedPage';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -46,6 +47,8 @@ function ImageWithLoader({ src, alt, className }) {
       <img
         src={src}
         alt={alt}
+        loading="lazy"
+        decoding="async"
         className={`w-full h-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setLoaded(true)}
       />
@@ -98,14 +101,9 @@ function FavoriteButton({ car, size = 'md' }) {
   );
 }
 
-export function CarGridCard({ car, index }) {
+export function CarGridCard({ car }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.4, delay: index * 0.05, ease: 'easeOut' }}
-    >
+    <motion.div variants={fadeUpItem} className="will-change-transform">
       <Link
         to={`/car/${car.id}`}
         className="group block bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300"
@@ -156,14 +154,9 @@ export function CarGridCard({ car, index }) {
   );
 }
 
-export function CarListCard({ car, index }) {
+export function CarListCard({ car }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.4, delay: index * 0.05, ease: 'easeOut' }}
-    >
+    <motion.div variants={fadeInLeftItem} className="will-change-transform">
       <Link
         to={`/car/${car.id}`}
         className="group flex bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300"

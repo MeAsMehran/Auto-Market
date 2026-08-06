@@ -7,8 +7,10 @@ import {
   Bus, Bike, Star, Shield, Users, TrendingUp
 } from 'lucide-react';
 import { getCars } from '../lib/carApi';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { CarGridCard, CarListCard } from '../components/CarCard';
 import CarSpinner from '../components/CarSpinner';
+import { staggerContainer } from '../components/AnimatedPage';
 import { CITY_LABELS } from '../lib/constants';
 
 const MOCK_CARS = [
@@ -134,17 +136,19 @@ function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 
 
 function RoadLines() {
   return (
-    <div className="absolute bottom-0 left-0 w-full pointer-events-none">
+    <div className="absolute bottom-0 left-0 w-full pointer-events-none overflow-hidden">
       <div className="h-3 bg-white/5" />
-      <motion.div
-        className="h-1 opacity-50"
-        style={{
-          background: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.8) 0px, rgba(255,255,255,0.8) 40px, transparent 40px, transparent 80px)',
-          backgroundSize: '80px 100%',
-        }}
-        animate={{ backgroundPosition: ['0px 0px', '-80px 0px'] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-      />
+      <div className="relative h-1 opacity-50">
+        <motion.div
+          className="absolute inset-0 w-[200%]"
+          style={{
+            background:
+              'repeating-linear-gradient(90deg, rgba(255,255,255,0.8) 0px, rgba(255,255,255,0.8) 40px, transparent 40px, transparent 80px)',
+          }}
+          animate={{ x: [0, -80] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+        />
+      </div>
     </div>
   );
 }
@@ -174,7 +178,13 @@ function FeaturedMarquee({ cars }) {
             >
               <div className="bg-surface rounded-xl border border-border overflow-hidden hover:shadow-md hover:border-brand-500/30 transition-all">
                 <div className="relative h-36 overflow-hidden">
-                  <img src={car.image || car.images?.[0]?.image || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop'} alt={car.title} className="w-full h-full object-cover" />
+                  <img
+                    src={car.image || car.images?.[0]?.image || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop'}
+                    alt={car.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
                   <span className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                     <Star className="w-2.5 h-2.5 fill-white" /> ویژه
                   </span>
@@ -218,6 +228,12 @@ export default function Home() {
   const listingsRef = useRef(null);
   const prevPageRef = useRef(page);
   const pageSize = 20;
+  const inFlightRef = useRef(new Set());
+  const latestKeyRef = useRef('');
+
+  // Debounce price inputs so typing doesn't fire a request per keystroke.
+  const debouncedMinPrice = useDebouncedValue(priceRange.min, 400);
+  const debouncedMaxPrice = useDebouncedValue(priceRange.max, 400);
 
   // Scroll to top on initial mount (on refresh/navigation).
   // Runs synchronously before paint and jumps instantly so it never
@@ -239,20 +255,30 @@ export default function Home() {
     }
   }, [page]);
 
-  const fetchCars = useCallback(async () => {
+  const fetchCars = useCallback(async (overrides = {}) => {
+    const params = {
+      search: overrides.search ?? (searchQuery || undefined),
+      brand: selectedBrand || undefined,
+      body_type: selectedBody || undefined,
+      min_price: debouncedMinPrice || undefined,
+      max_price: debouncedMaxPrice || undefined,
+      page: overrides.page ?? page,
+      page_size: pageSize,
+    };
+
+    const key = JSON.stringify(params);
+
+    // Skip duplicate requests that are already in flight for the exact same
+    // params (StrictMode double-effects, filter+page reset overlap).
+    if (inFlightRef.current.has(key)) return;
+    inFlightRef.current.add(key);
+    latestKeyRef.current = key;
+
     setLoading(true);
     setError(null);
     try {
-      const params = {
-        search: searchQuery || undefined,
-        brand: selectedBrand || undefined,
-        body_type: selectedBody || undefined,
-        min_price: priceRange.min || undefined,
-        max_price: priceRange.max || undefined,
-        page,
-        page_size: pageSize,
-      };
       const data = await getCars(params);
+      if (latestKeyRef.current !== key) return; // superseded by a newer request
       if (data.results) {
         setCars(data.results);
         setTotalCount(data.count || 0);
@@ -262,16 +288,35 @@ export default function Home() {
       }
       setUseMock(false);
     } catch {
+      if (latestKeyRef.current !== key) return;
       setUseMock(true);
       setCars(MOCK_CARS);
       setTotalCount(MOCK_CARS.length);
     } finally {
-      setLoading(false);
+      inFlightRef.current.delete(key);
+      if (latestKeyRef.current === key) setLoading(false);
     }
-  }, [searchQuery, selectedBrand, selectedBody, priceRange.min, priceRange.max, page]);
+  }, [searchQuery, selectedBrand, selectedBody, debouncedMinPrice, debouncedMaxPrice, page]);
 
-  useEffect(() => { fetchCars(); }, [fetchCars]);
-  useEffect(() => { setPage(1); }, [searchQuery, selectedBrand, selectedBody, priceRange.min, priceRange.max]);
+  // Keep the search box in sync with the URL (e.g. Navbar search).
+  useEffect(() => {
+    setSearchQuery(searchParams.get('search') || '');
+  }, [searchParams]);
+
+  // Any filter change resets to the first page and fetches it right away.
+  // Note: fetchCars is intentionally omitted — its identity changes alongside
+  // these deps, and including it would double-fire with the page effect below.
+  useEffect(() => {
+    setPage(1);
+    fetchCars({ page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBrand, selectedBody, debouncedMinPrice, debouncedMaxPrice, searchQuery]);
+
+  // Pagination (and re-fetch after filter-driven page resets).
+  useEffect(() => {
+    fetchCars({ page });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -338,7 +383,7 @@ export default function Home() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.15 }}
             >
-              خودروی ایده‌آلت را پیدا کن
+              خودرو مورد علاقت رو پیدا کن
             </motion.h1>
             <motion.p
               className="text-lg text-brand-200 mb-8"
@@ -362,38 +407,23 @@ export default function Home() {
                   placeholder="جستجو بر اساس برند، مدل یا مکان..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pr-12 pl-4 py-3.5 text-text-primary rounded-xl focus:outline-none"
+                  className="w-full pr-12 pl-10 py-3.5 text-text-primary rounded-xl focus:outline-none"
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSearchParams({});
+                    }}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center text-text-tertiary hover:text-text-secondary rounded-full hover:bg-surface-tertiary transition-colors"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </motion.form>
           </motion.div>
-        </div>
-      </section>
-
-      {/* ── Body Type Cards ── */}
-      <section className="bg-surface border-b border-border">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5">
-          <div className="flex items-center gap-3 overflow-x-auto scrollbar-hide">
-            {bodyTypes.map(({ key, label, icon: Icon }, i) => (
-              <motion.button
-                key={key}
-                onClick={() => handleBodyTypeClick(key)}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 + i * 0.05 }}
-                whileHover={{ scale: 1.06, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
-                  selectedBody === key
-                    ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/25'
-                    : 'bg-surface-secondary text-text-secondary border-border hover:border-brand-500/50 hover:text-brand-500'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {label}
-              </motion.button>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -496,7 +526,7 @@ export default function Home() {
           )}
         </AnimatePresence>
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
           <div>
             {isFilterActive ? (
               <h2 className="text-xl font-bold text-text-primary">
@@ -539,6 +569,25 @@ export default function Home() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
+          {bodyTypes.map(({ key, label, icon: Icon }) => (
+            <motion.button
+              key={key}
+              onClick={() => handleBodyTypeClick(key)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition-all ${
+                selectedBody === key
+                  ? 'bg-brand-500 text-white border-brand-500 shadow-md shadow-brand-500/25'
+                  : 'bg-surface text-text-secondary border-border hover:border-brand-500/50 hover:text-brand-500'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </motion.button>
+          ))}
+        </div>
+
         {loading && (
           <div className="py-20 flex justify-center">
             <CarSpinner />
@@ -564,19 +613,33 @@ export default function Home() {
         )}
 
         {!loading && filteredCars.length > 0 && viewMode === 'grid' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {filteredCars.map((car, i) => (
-              <CarGridCard key={car.id} car={car} index={i} />
+          <motion.div
+            key={`grid-${page}`}
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true, amount: 0.05 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+          >
+            {filteredCars.map((car) => (
+              <CarGridCard key={car.id} car={car} />
             ))}
-          </div>
+          </motion.div>
         )}
 
         {!loading && filteredCars.length > 0 && viewMode === 'list' && (
-          <div className="space-y-4">
-            {filteredCars.map((car, i) => (
-              <CarListCard key={car.id} car={car} index={i} />
+          <motion.div
+            key={`list-${page}`}
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true, amount: 0.05 }}
+            className="space-y-4"
+          >
+            {filteredCars.map((car) => (
+              <CarListCard key={car.id} car={car} />
             ))}
-          </div>
+          </motion.div>
         )}
 
         {!loading && !useMock && totalPages > 1 && (

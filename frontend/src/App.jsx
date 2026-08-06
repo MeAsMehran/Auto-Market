@@ -5,6 +5,7 @@ import ScrollToTop from './components/ScrollToTop';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AnimatedPage from './components/AnimatedPage';
+import Splash from './components/Splash';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -20,6 +21,7 @@ import LikedAds from './pages/LikedAds';
 export default function App() {
   return (
     <BrowserRouter>
+      <Splash />
       <ScrollToTop />
       <AuthProvider>
         <FavoritesProvider>

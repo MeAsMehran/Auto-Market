@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Phone, MessageCircle, Share2, Heart, MapPin, Clock, Fuel, Gauge, Calendar, Settings, CheckCircle, ChevronLeft, ChevronRight, Shield, Flag, User } from 'lucide-react';
-import { getCar, getCarImages } from '../lib/carApi';
+import { getCar } from '../lib/carApi';
 import {
   FUEL_LABELS, TRANSMISSION_LABELS, CONDITION_LABELS, COLOR_LABELS, CITY_LABELS, BODY_LABELS,
 } from '../lib/constants';
 import CarSpinner from '../components/CarSpinner';
-import useFavorite from '../hooks/useFavorite';
+import { useFavorites } from '../context/FavoritesContext';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -35,27 +35,50 @@ function timeAgo(dateStr) {
 
 export default function CarDetail() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [car, setCar] = useState(null);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [showPhone, setShowPhone] = useState(false);
-  const { liked, toggleLike } = useFavorite(car);
+  const { isLiked, toggleLike } = useFavorites();
+  const liked = car ? isLiked(car.id) : false;
+
+  // Guard against dev-mode StrictMode double-effects (dedupe in-flight
+  // requests for the same id) and stale responses when the id changes.
+  const inFlightRef = useRef(new Set());
+  const latestIdRef = useRef(null);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    Promise.all([getCar(id), getCarImages(id)])
-      .then(([carData, imagesData]) => {
+    const key = `car-${id}`;
+    if (inFlightRef.current.has(key)) return;
+    inFlightRef.current.add(key);
+    latestIdRef.current = id;
+    const includeDeleted = searchParams.get('deleted') === '1';
+    getCar(id, { includeDeleted })
+      .then((carData) => {
+        if (latestIdRef.current !== id) return;
         setCar(carData);
-        const urls = imagesData.map((img) => fixImageUrl(img.image));
+        const urls = (carData.images || []).map((img) => fixImageUrl(img.image));
         setImages(urls);
       })
       .catch((err) => {
-        setError(err.response?.status === 404 ? 'آگهی یافت نشد.' : 'خطا در دریافت اطلاعات آگهی.');
+        if (latestIdRef.current !== id) return;
+        if (err.response?.status === 404) {
+          setError('آگهی یافت نشد.');
+        } else if (err.response?.status === 403) {
+          setError(err.response?.data?.detail || 'غير مجاز');
+        } else {
+          setError('خطا در دریافت اطلاعات آگهی.');
+        }
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        inFlightRef.current.delete(key);
+        if (latestIdRef.current === id) setLoading(false);
+      });
   }, [id]);
 
   if (loading) {
@@ -144,7 +167,7 @@ export default function CarDetail() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={toggleLike}
+                  onClick={(e) => toggleLike(car, e)}
                   className={`p-3 rounded-xl transition-colors ${liked ? 'text-red-500 bg-red-50 dark:bg-red-950' : 'text-text-secondary hover:bg-surface-tertiary'}`}
                 >
                   <Heart className={`w-5 h-5 ${liked ? 'fill-red-500' : ''}`} />
