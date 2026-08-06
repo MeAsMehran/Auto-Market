@@ -65,7 +65,7 @@ export default function LikedAds() {
         <ProfileSidebar activeHref="/liked-ads" />
 
         <div className="flex-1 min-w-0">
-          <section className="bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white py-8 rounded-2xl mb-8">
+          <section className="bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white py-8 px-6 rounded-2xl mb-8">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
