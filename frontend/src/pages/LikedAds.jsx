@@ -1,5 +1,6 @@
 import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Heart, ArrowRight, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CITY_LABELS, FUEL_LABELS } from '../lib/constants';
 import { getFirstImage } from '../components/CarCard';
@@ -40,8 +41,25 @@ export default function LikedAds() {
     refetch();
   };
 
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
+  const listingsRef = useRef(null);
+  const prevPageRef = useRef(page);
+
+  useEffect(() => {
+    if (prevPageRef.current === page) return;
+    prevPageRef.current = page;
+    if (listingsRef.current) {
+      const offset = 80;
+      const top = listingsRef.current.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, [page]);
+
   return (
-    <div className="min-h-screen bg-surface-secondary">
+    <div ref={listingsRef} className="min-h-screen bg-surface-secondary">
       <section className="bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <motion.div
