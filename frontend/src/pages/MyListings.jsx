@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Plus, Eye, Edit3, Trash2, RotateCcw, Search, ChevronLeft, ChevronRight, Clock, MapPin, Loader2, AlertCircle, Car } from 'lucide-react';
 import { deleteCar, restoreCar } from '../lib/carApi';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { getFirstImage } from '../components/CarCard';
 import { useMyListings } from '../hooks/useMyListings';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
+import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -87,16 +89,57 @@ export default function MyListings() {
 
   const safePage = Math.min(page, totalPages || 1);
 
+  // On mount/refresh jump to the top instantly so the page never visibly
+  // animates from a stale scroll position.
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
+  const listingsRef = useRef(null);
+  const prevPageRef = useRef(page);
+
+  // Smooth-scroll back to the listings header when the page number changes
+  // (1 -> 2, etc.) so the user sees the fresh cards animate in.
+  useEffect(() => {
+    if (prevPageRef.current === page) return;
+    prevPageRef.current = page;
+    if (listingsRef.current) {
+      const offset = 80;
+      const top = listingsRef.current.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, [page]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary">آگهی‌های من</h1>
-          <p className="text-text-tertiary text-sm">مدیریت آگهی‌های خودروی شما</p>
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: 'easeOut' }}
+            className="text-2xl font-bold text-text-primary"
+          >
+            آگهی‌های من
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
+            className="text-text-tertiary text-sm"
+          >
+            مدیریت آگهی‌های خودروی شما
+          </motion.p>
         </div>
-        <Link to="/post-ad" className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
-          <Plus className="w-4 h-4" /> آگهی جدید
-        </Link>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.12, ease: 'easeOut' }}
+        >
+          <Link to="/post-ad" className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
+            <Plus className="w-4 h-4" /> آگهی جدید
+          </Link>
+        </motion.div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
@@ -152,15 +195,27 @@ export default function MyListings() {
         </div>
       ) : (
         <>
-          <div className="space-y-4">
+          <div ref={listingsRef} />
+          <motion.div
+            key={`my-listings-${page}-${filter}`}
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true, amount: 0.05 }}
+            className="space-y-4"
+          >
             {cars.map((listing) => {
               const isDeleted = listing.is_active === false;
               return (
-                <div key={listing.id} className={`bg-surface rounded-2xl border p-4 sm:p-5 transition-colors ${isDeleted ? 'border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/20' : 'border-border'}`}>
+                <motion.div
+                  key={listing.id}
+                  variants={fadeUpItem}
+                  className={`bg-surface rounded-2xl border p-4 sm:p-5 transition-colors will-change-transform ${isDeleted ? 'border-red-200 dark:border-red-900 bg-red-50/30 dark:bg-red-950/20' : 'border-border'}`}
+                >
                   <div className="flex flex-col sm:flex-row gap-4">
                     <div className={`sm:w-32 h-24 rounded-xl overflow-hidden shrink-0 ${isDeleted ? 'bg-red-100 dark:bg-red-950' : 'bg-surface-tertiary'}`}>
                       {getFirstImage(listing) ? (
-                        <img src={getFirstImage(listing)} alt="" loading="lazy" className={`w-full h-full object-cover ${isDeleted ? 'opacity-50 grayscale' : ''}`} />
+                        <img src={getFirstImage(listing)} alt="" loading="lazy" decoding="async" className={`w-full h-full object-cover ${isDeleted ? 'opacity-50 grayscale' : ''}`} />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Car className="w-8 h-8 text-text-tertiary/30" />
@@ -227,10 +282,10 @@ export default function MyListings() {
                       </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
 
           {totalPages > 1 && (
             <div className="flex items-center justify-center gap-2 mt-8">

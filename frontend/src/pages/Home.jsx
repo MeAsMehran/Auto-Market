@@ -10,6 +10,7 @@ import { getCars } from '../lib/carApi';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { CarGridCard, CarListCard } from '../components/CarCard';
 import CarSpinner from '../components/CarSpinner';
+import { staggerContainer } from '../components/AnimatedPage';
 import { CITY_LABELS } from '../lib/constants';
 
 const MOCK_CARS = [
@@ -135,17 +136,19 @@ function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 
 
 function RoadLines() {
   return (
-    <div className="absolute bottom-0 left-0 w-full pointer-events-none">
+    <div className="absolute bottom-0 left-0 w-full pointer-events-none overflow-hidden">
       <div className="h-3 bg-white/5" />
-      <motion.div
-        className="h-1 opacity-50"
-        style={{
-          background: 'repeating-linear-gradient(90deg, rgba(255,255,255,0.8) 0px, rgba(255,255,255,0.8) 40px, transparent 40px, transparent 80px)',
-          backgroundSize: '80px 100%',
-        }}
-        animate={{ backgroundPosition: ['0px 0px', '-80px 0px'] }}
-        transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
-      />
+      <div className="relative h-1 opacity-50">
+        <motion.div
+          className="absolute inset-0 w-[200%]"
+          style={{
+            background:
+              'repeating-linear-gradient(90deg, rgba(255,255,255,0.8) 0px, rgba(255,255,255,0.8) 40px, transparent 40px, transparent 80px)',
+          }}
+          animate={{ x: [0, -80] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+        />
+      </div>
     </div>
   );
 }
@@ -175,7 +178,13 @@ function FeaturedMarquee({ cars }) {
             >
               <div className="bg-surface rounded-xl border border-border overflow-hidden hover:shadow-md hover:border-brand-500/30 transition-all">
                 <div className="relative h-36 overflow-hidden">
-                  <img src={car.image || car.images?.[0]?.image || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop'} alt={car.title} className="w-full h-full object-cover" />
+                  <img
+                    src={car.image || car.images?.[0]?.image || 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&h=300&fit=crop'}
+                    alt={car.title}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
                   <span className="absolute top-2 right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1">
                     <Star className="w-2.5 h-2.5 fill-white" /> ویژه
                   </span>
@@ -612,19 +621,33 @@ export default function Home() {
         )}
 
         {!loading && filteredCars.length > 0 && viewMode === 'grid' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {filteredCars.map((car, i) => (
-              <CarGridCard key={car.id} car={car} index={i} />
+          <motion.div
+            key={`grid-${page}`}
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true, amount: 0.05 }}
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+          >
+            {filteredCars.map((car) => (
+              <CarGridCard key={car.id} car={car} />
             ))}
-          </div>
+          </motion.div>
         )}
 
         {!loading && filteredCars.length > 0 && viewMode === 'list' && (
-          <div className="space-y-4">
-            {filteredCars.map((car, i) => (
-              <CarListCard key={car.id} car={car} index={i} />
+          <motion.div
+            key={`list-${page}`}
+            variants={staggerContainer}
+            initial="initial"
+            whileInView="animate"
+            viewport={{ once: true, amount: 0.05 }}
+            className="space-y-4"
+          >
+            {filteredCars.map((car) => (
+              <CarListCard key={car.id} car={car} />
             ))}
-          </div>
+          </motion.div>
         )}
 
         {!loading && !useMock && totalPages > 1 && (

@@ -5,6 +5,7 @@ import { CITY_LABELS, FUEL_LABELS } from '../lib/constants';
 import { getFirstImage } from '../components/CarCard';
 import { useFavorites } from '../context/FavoritesContext';
 import { useLikedAds } from '../hooks/useLikedAds';
+import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -99,16 +100,22 @@ export default function LikedAds() {
                 {count} خودرو ذخیره‌شده
               </h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {cars.map((car, index) => (
+            <motion.div
+              key={`liked-${page}`}
+              variants={staggerContainer}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true, amount: 0.05 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+            >
+              {cars.map((car) => (
                 <LikedCarCard
                   key={car.id}
                   car={car}
-                  index={index}
                   onRemove={() => removeLike(car)}
                 />
               ))}
-            </div>
+            </motion.div>
 
             {totalPages > 1 && (
               <div className="flex items-center justify-center gap-2 mt-8">
@@ -144,16 +151,11 @@ export default function LikedAds() {
   );
 }
 
-function LikedCarCard({ car, index, onRemove }) {
+function LikedCarCard({ car, onRemove }) {
   const imgSrc = getFirstImage(car);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.4, delay: index * 0.05, ease: 'easeOut' }}
-    >
+    <motion.div variants={fadeUpItem} className="will-change-transform">
       <Link
         to={`/car/${car.id}`}
         className="group block bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300 relative"
@@ -173,7 +175,13 @@ function LikedCarCard({ car, index, onRemove }) {
         </div>
         <div className="relative aspect-[4/3] overflow-hidden bg-surface-tertiary">
           {imgSrc ? (
-            <img src={imgSrc} alt={car.title} className="w-full h-full object-cover" />
+            <img
+              src={imgSrc}
+              alt={car.title}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover"
+            />
           ) : null}
           {car.is_featured && (
             <motion.span
