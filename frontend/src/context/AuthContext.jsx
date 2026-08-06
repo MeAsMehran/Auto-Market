@@ -19,7 +19,6 @@ export function AuthProvider({ children }) {
       initPromiseRef.current = (async () => {
         const storedToken = localStorage.getItem('access_token');
         if (storedToken) {
-          clearFavoritesCache();
           setAccessToken(storedToken);
           setAuthToken(storedToken);
           try {
@@ -28,6 +27,7 @@ export function AuthProvider({ children }) {
           } catch {
             // The interceptor already attempted a token refresh and failed, so
             // just clear local state here (no extra logout request needed).
+            clearFavoritesCache();
             setAccessToken(null);
             setAuthToken(null);
             setUser(null);

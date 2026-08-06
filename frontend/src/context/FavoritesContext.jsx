@@ -5,23 +5,28 @@ import { useAuth } from './AuthContext';
 const FavoritesContext = createContext(null);
 
 const STORAGE_KEY = 'likedCars';
-const FAVORITES_PAGE_SIZE = 50;
+const FAVORITES_PAGE_SIZE = 100;
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes — refreshes within this window skip the server fetch
 
 // Module-level singleton so the favorites list is fetched at most once per
 // session and is shared across every route in the app.
 let globalData = null;
 
-const emptyData = () => ({ ids: new Set(), cars: [] });
+const emptyData = () => ({ ids: new Set(), cars: [], ts: 0 });
 
 function readLocalCache() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const cars = JSON.parse(raw);
-    if (!Array.isArray(cars)) return null;
+    const parsed = JSON.parse(raw);
+    // Support both legacy format (bare array) and new format ({ cars, ts }).
+    const cars = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.cars) ? parsed.cars : null);
+    if (!cars) return null;
+    const ts = Array.isArray(parsed) ? 0 : (parsed.ts || 0);
     return {
       ids: new Set(cars.map((c) => c.id).filter(Boolean)),
       cars,
+      ts,
     };
   } catch {
     return null;
@@ -30,7 +35,7 @@ function readLocalCache() {
 
 function writeLocalCache(cars) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(cars));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ cars, ts: Date.now() }));
   } catch {
     /* storage unavailable (private mode / quota) — ignore */
   }
@@ -50,7 +55,7 @@ async function fetchFromServer() {
   }
 
   const cars = all.map((f) => f.car ?? f).filter((c) => c && c.id);
-  globalData = { ids: new Set(cars.map((c) => c.id)), cars };
+  globalData = { ids: new Set(cars.map((c) => c.id)), cars, ts: Date.now() };
   writeLocalCache(cars);
   return globalData;
 }
@@ -66,7 +71,7 @@ function updateSingleton(car, liked) {
     ids.delete(car.id);
     cars = cars.filter((c) => c.id !== car.id);
   }
-  globalData = { ids, cars };
+  globalData = { ids, cars, ts: Date.now() };
   writeLocalCache(cars);
 }
 
@@ -80,7 +85,7 @@ export function clearFavoritesCache() {
 }
 
 export function FavoritesProvider({ children }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const isAuthenticated = !!user;
 
   // Seed state instantly from the in-memory singleton or the localStorage
@@ -96,8 +101,11 @@ export function FavoritesProvider({ children }) {
   }, []);
 
   // Load / clear favorites whenever the auth state changes (login, logout,
-  // first boot). This replaces the old "refetch on tab focus" hack.
+  // first boot). Wait for auth to resolve first — clearing the cache while
+  // auth is still loading would wipe a valid cache on every refresh.
   useEffect(() => {
+    if (authLoading) return; // still checking the token — don't touch the cache yet
+
     if (!isAuthenticated) {
       clearFavoritesCache();
       globalData = emptyData();
@@ -109,7 +117,16 @@ export function FavoritesProvider({ children }) {
     const cached = readLocalCache();
     if (cached && !globalData) {
       globalData = cached;
-      sync(cached);
+      sync(cached); // hearts render immediately from cache
+    }
+
+    // Skip the server revalidation if the cache is fresh (within TTL).
+    // Hearts are already showing from the cache, so there is no visual
+    // change — we just avoid redundant network round-trips on rapid
+    // refreshes. Cross-tab changes are still caught by the storage event.
+    if (cached && cached.ts && Date.now() - cached.ts < CACHE_TTL) {
+      setLoading(false);
+      return;
     }
 
     let cancelled = false;
@@ -121,7 +138,7 @@ export function FavoritesProvider({ children }) {
       });
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
+  }, [isAuthenticated, authLoading]);
 
   // Cross-tab sync: when another tab likes/unlikes a car it writes to
   // localStorage; reflect that here without an extra network request.
