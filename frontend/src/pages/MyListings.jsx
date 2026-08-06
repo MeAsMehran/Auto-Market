@@ -224,7 +224,7 @@ export default function MyListings() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <Link to={`/car/${listing.id}`} className={`font-semibold transition-colors line-clamp-1 ${isDeleted ? 'text-text-tertiary' : 'text-text-primary hover:text-brand-500'}`}>{listing.title}</Link>
+                          <Link to={`/car/${listing.id}${isDeleted ? '?deleted=1' : ''}`} className={`font-semibold transition-colors line-clamp-1 ${isDeleted ? 'text-text-tertiary' : 'text-text-primary hover:text-brand-500'}`}>{listing.title}</Link>
                           <p className={`font-bold text-lg mt-0.5 ${isDeleted ? 'text-text-tertiary' : 'text-brand-500'}`}>{formatPrice(listing.price)}</p>
                         </div>
                         <span className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-lg ${

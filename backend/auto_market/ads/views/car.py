@@ -66,15 +66,37 @@ class DetailCarAdView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(
-    responses={200: DetailCarAdSerializer},
+        responses={200: DetailCarAdSerializer},
+        parameters=[
+            OpenApiParameter(
+                name='include_deleted',
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                default='false',
+                description='Include soft-deleted cars (true/false)',
+            ),
+        ],
     )
     def get(self, request, car_id):
-        try:
-            car = Car.objects.select_related('seller').prefetch_related('images').get(
-                id=car_id, is_active=True
-            )
-        except Car.DoesNotExist:
-            raise NotFound("آگهی یافت نشد.")
+        include_deleted = request.query_params.get('include_deleted')
+
+        if include_deleted == 'true':
+            try:
+                car = Car.objects.select_related('seller').prefetch_related('images').get(id=car_id)
+                                    
+            except Car.DoesNotExist:
+                raise NotFound("آگهی یافت نشد.")
+
+            if not request.user.is_authenticated or car.seller != request.user:
+                raise NotFound("آگهی یافت نشد.")
+
+        else:
+            try:
+                car = Car.objects.select_related('seller').prefetch_related('images').get(id=car_id, is_active=True)
+            except Car.DoesNotExist:
+                raise NotFound("آگهی یافت نشد.")
+        
         serializer = DetailCarAdSerializer(car, context={'request': request})
         return Response(serializer.data)
 

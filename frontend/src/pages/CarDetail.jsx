@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useSearchParams, Link } from 'react-router-dom';
 import { Phone, MessageCircle, Share2, Heart, MapPin, Clock, Fuel, Gauge, Calendar, Settings, CheckCircle, ChevronLeft, ChevronRight, Shield, Flag, User } from 'lucide-react';
 import { getCar } from '../lib/carApi';
 import {
@@ -35,6 +35,7 @@ function timeAgo(dateStr) {
 
 export default function CarDetail() {
   const { id } = useParams();
+  const [searchParams] = useSearchParams();
   const [car, setCar] = useState(null);
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +57,8 @@ export default function CarDetail() {
     if (inFlightRef.current.has(key)) return;
     inFlightRef.current.add(key);
     latestIdRef.current = id;
-    getCar(id)
+    const includeDeleted = searchParams.get('deleted') === '1';
+    getCar(id, { includeDeleted })
       .then((carData) => {
         if (latestIdRef.current !== id) return;
         setCar(carData);
@@ -65,7 +67,13 @@ export default function CarDetail() {
       })
       .catch((err) => {
         if (latestIdRef.current !== id) return;
-        setError(err.response?.status === 404 ? 'آگهی یافت نشد.' : 'خطا در دریافت اطلاعات آگهی.');
+        if (err.response?.status === 404) {
+          setError('آگهی یافت نشد.');
+        } else if (err.response?.status === 403) {
+          setError(err.response?.data?.detail || 'غير مجاز');
+        } else {
+          setError('خطا در دریافت اطلاعات آگهی.');
+        }
       })
       .finally(() => {
         inFlightRef.current.delete(key);
