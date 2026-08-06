@@ -8,6 +8,7 @@ import { getFirstImage } from '../components/CarCard';
 import { useMyListings } from '../hooks/useMyListings';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
+import ProfileSidebar from '../components/ProfileSidebar';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -112,37 +113,41 @@ export default function MyListings() {
 
   return (
     <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: 'easeOut' }}
-            className="text-2xl font-bold text-text-primary"
-          >
-            آگهی‌های من
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
-            className="text-text-tertiary text-sm"
-          >
-            مدیریت آگهی‌های خودروی شما
-          </motion.p>
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.12, ease: 'easeOut' }}
-        >
-          <Link to="/post-ad" className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
-            <Plus className="w-4 h-4" /> آگهی جدید
-          </Link>
-        </motion.div>
-      </div>
+      <div className="flex flex-col lg:flex-row gap-8">
+        <ProfileSidebar activeHref="/my-listings" />
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <motion.h1
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+                className="text-2xl font-bold text-text-primary"
+              >
+                آگهی‌های من
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
+                className="text-text-tertiary text-sm"
+              >
+                مدیریت آگهی‌های خودروی شما
+              </motion.p>
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.12, ease: 'easeOut' }}
+            >
+              <Link to="/post-ad" className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
+                <Plus className="w-4 h-4" /> آگهی جدید
+              </Link>
+            </motion.div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex gap-1 bg-surface-tertiary rounded-xl p-1 overflow-x-auto scrollbar-hide">
           {[
             { key: 'all', label: 'همه' },
@@ -315,6 +320,8 @@ export default function MyListings() {
           )}
         </>
       )}
+      </div>
+      </div>
     </div>
   );
 }
