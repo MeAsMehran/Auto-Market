@@ -3,6 +3,7 @@ from django.db import models
 from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVector, SearchVectorField
+from django.db.models import F
 
 # Create your models here.
 
@@ -146,14 +147,17 @@ class Car(models.Model):
         - Each field gets a weight (A=highest, B=medium, C=low)
         - PostgreSQL uses these weights to rank results
         """
-        self.search_vector = (
-            SearchVector('title', weight='A') +      # Title match = best result
-            SearchVector('brand', weight='B') +      # Brand match = good result
-            SearchVector('model_name', weight='B') + # Model match = good result
-            SearchVector('description', weight='C') + # Description match = partial
-            SearchVector('city', weight='D')         # City match = minor
-        )
+        # Save without search_vector first
+        self.search_vector = None
         super().save(*args, **kwargs)
+        self.search_vector = (
+            SearchVector(F('title'), weight='A') +
+            SearchVector(F('brand'), weight='B') +
+            SearchVector(F('model_name'), weight='B') +
+            SearchVector(F('description'), weight='C') +
+            SearchVector(F('city'), weight='D')
+        )
+        super().save(update_fields=['search_vector'])
 
     def __str__(self):
         return self.title

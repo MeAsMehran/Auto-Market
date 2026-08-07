@@ -1,13 +1,13 @@
-import { useState, useEffect, useLayoutEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Clock, Eye, TrendingUp, Edit2, CheckCircle, Activity, ChevronLeft, Car, MessageCircle, Heart, AlertCircle } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 import ProfileSidebar from '../components/ProfileSidebar';
-import api from '../lib/api';
+import { useStats } from '../context/StatsContext';
 import { formatPrice } from '../utils/format';
 
-function AnimatedStat({ stat, index }) {
+function AnimatedStat({ stat }) {
   return (
     <motion.div
       variants={fadeUpItem}
@@ -25,49 +25,21 @@ function AnimatedStat({ stat, index }) {
 }
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({
-    active_ads_number: 0,
-    total_views: 0,
-    unread_messages: 0,
-    liked_ads_number: 0,
-  });
-  const [latestAds, setLatestAds] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { stats, loading, error, fetchStats } = useStats();
 
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
 
-  useEffect(() => {
-    const fetchDashboard = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await api.get('/dashboard/');
-        setStats({
-          active_ads_number: response.data.active_ads_number || 0,
-          total_views: response.data.total_views || 0,
-          unread_messages: response.data.unread_messages || 0,
-          liked_ads_number: response.data.liked_ads_number || 0,
-        });
-        setLatestAds(response.data.latest_ads || []);
-      } catch (err) {
-        console.error('Dashboard fetch error:', err);
-        setError('خطا در بارگذاری داده‌ها. لطفاً دوباره تلاش کنید.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchDashboard();
-  }, []);
+  useLayoutEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const statsList = [
-    { label: 'آگهی‌های فعال', value: stats.active_ads_number, icon: Car, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950', ring: 'ring-brand-500/20' },
-    { label: 'تعداد بازدید', value: stats.total_views, icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950', ring: 'ring-blue-500/20' },
-    { label: 'پیام‌ها', value: stats.unread_messages, icon: MessageCircle, color: 'text-accent-500 dark:text-accent-400', bg: 'bg-accent-50 dark:bg-accent-950', ring: 'ring-accent-500/20' },
-    { label: 'آگهی‌های پسندیده', value: stats.liked_ads_number, icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950', ring: 'ring-red-500/20' },
+    { label: 'آگهی‌های فعال', value: stats.ads, icon: Car, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950', ring: 'ring-brand-500/20' },
+    { label: 'تعداد بازدید', value: stats.totalViews, icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950', ring: 'ring-blue-500/20' },
+    { label: 'پیام‌ها', value: stats.messages, icon: MessageCircle, color: 'text-accent-500 dark:text-accent-400', bg: 'bg-accent-50 dark:bg-accent-950', ring: 'ring-accent-500/20' },
+    { label: 'آگهی‌های پسندیده', value: stats.likes, icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950', ring: 'ring-red-500/20' },
   ];
 
   const getStatusLabel = (isActive, isSold) => {
@@ -148,9 +120,9 @@ export default function Dashboard() {
         <ProfileSidebar
           activeHref="/dashboard"
           stats={{
-            ads: stats.active_ads_number,
-            messages: stats.unread_messages,
-            likes: stats.liked_ads_number,
+            ads: stats.ads,
+            messages: stats.messages,
+            likes: stats.likes,
           }}
         />
 
@@ -202,7 +174,7 @@ export default function Dashboard() {
               </Link>
             </div>
 
-            {latestAds.length === 0 ? (
+            {stats.latestAds.length === 0 ? (
               <div className="text-center py-8">
                 <Car className="w-12 h-12 text-text-tertiary mx-auto mb-3" />
                 <p className="text-text-tertiary">هنوز آگهی فعالی ندارید</p>
@@ -220,7 +192,7 @@ export default function Dashboard() {
                 animate="animate"
                 className="space-y-3"
               >
-                {latestAds.map((listing) => {
+                {stats.latestAds.map((listing) => {
                   const statusInfo = getStatusLabel(listing.is_active, listing.is_sold);
                   return (
                     <motion.div
@@ -291,9 +263,9 @@ export default function Dashboard() {
               className="space-y-4"
             >
               {[
-                { action: 'آگهی‌های فعال', detail: `شما ${stats.active_ads_number} آگهی فعال دارید`, time: 'امروز', icon: CheckCircle, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950' },
-                { action: 'بازدید کل', detail: `آگهی‌های شما ${stats.total_views} بازدید داشته`, time: 'این ماه', icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950' },
-                { action: 'آگهی‌های پسندیده', detail: `شما ${stats.liked_ads_number} آگهی را پسندیده‌اید`, time: 'تاکنون', icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950' },
+                { action: 'آگهی‌های فعال', detail: `شما ${stats.ads} آگهی فعال دارید`, time: 'امروز', icon: CheckCircle, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950' },
+                { action: 'بازدید کل', detail: `آگهی‌های شما ${stats.totalViews} بازدید داشته`, time: 'این ماه', icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950' },
+                { action: 'آگهی‌های پسندیده', detail: `شما ${stats.likes} آگهی را پسندیده‌اید`, time: 'تاکنون', icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950' },
               ].map((activity, i) => (
                 <motion.div
                   key={i}

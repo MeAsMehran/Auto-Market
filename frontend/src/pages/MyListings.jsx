@@ -9,6 +9,7 @@ import { useMyListings } from '../hooks/useMyListings';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 import ProfileSidebar from '../components/ProfileSidebar';
+import { useStats } from '../context/StatsContext';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -29,6 +30,7 @@ function timeAgo(dateStr) {
 
 export default function MyListings() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { stats, fetchStats } = useStats();
 
   const [error, setError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -37,6 +39,10 @@ export default function MyListings() {
   const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
   const filter = searchParams.get('filter') || 'all';
   const searchQuery = searchParams.get('search') || '';
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const setFilter = (f) => {
     setSearchParams((prev) => { prev.set('filter', f); prev.set('page', '1'); return prev; });
@@ -114,7 +120,7 @@ export default function MyListings() {
   return (
     <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        <ProfileSidebar activeHref="/my-listings" />
+        <ProfileSidebar activeHref="/my-listings" stats={stats} />
 
         <div className="flex-1 min-w-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

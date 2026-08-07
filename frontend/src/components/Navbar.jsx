@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Bell, Plus, MessageCircle, ChevronDown, Menu, X, Car, LogOut, User, ClipboardList, Sun, Moon, Heart, Settings, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useStats } from '../context/StatsContext';
 
 const cities = ['تهران', 'مشهد', 'کرج', 'اصفهان', 'شیراز', 'تبریز', 'اهواز', 'قم', 'کرمانشاه', 'رشت'];
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { stats, fetchStats } = useStats();
   const navigate = useNavigate();
   const [city, setCity] = useState('تهران');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
@@ -21,6 +23,10 @@ export default function Navbar() {
     e.preventDefault();
     if (searchQuery.trim()) navigate(`/?search=${searchQuery}`);
   };
+
+  useEffect(() => {
+    if (user) fetchStats();
+  }, [user, fetchStats]);
 
   return (
     <header className="sticky top-0 z-50 bg-surface border-b border-border shadow-sm">
@@ -188,15 +194,15 @@ export default function Navbar() {
                             {/* Mini stats row */}
                             <div className="grid grid-cols-3 gap-2 mt-3">
                               <div className="bg-surface-secondary rounded-lg py-1.5">
-                                <p className="text-xs font-bold text-brand-500">۵</p>
+                                <p className="text-xs font-bold text-brand-500">{stats.ads}</p>
                                 <p className="text-[10px] text-text-tertiary">آگهی</p>
                               </div>
                               <div className="bg-surface-secondary rounded-lg py-1.5">
-                                <p className="text-xs font-bold text-accent-500">۱۲</p>
+                                <p className="text-xs font-bold text-accent-500">{stats.messages}</p>
                                 <p className="text-[10px] text-text-tertiary">پیام</p>
                               </div>
                               <div className="bg-surface-secondary rounded-lg py-1.5">
-                                <p className="text-xs font-bold text-red-500">۳</p>
+                                <p className="text-xs font-bold text-red-500">{stats.likes}</p>
                                 <p className="text-[10px] text-text-tertiary">علاقه</p>
                               </div>
                             </div>

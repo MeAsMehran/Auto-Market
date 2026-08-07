@@ -8,6 +8,7 @@ import { useFavorites } from '../context/FavoritesContext';
 import { useLikedAds } from '../hooks/useLikedAds';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 import ProfileSidebar from '../components/ProfileSidebar';
+import { useStats } from '../context/StatsContext';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -28,10 +29,15 @@ function timeAgo(dateStr) {
 
 export default function LikedAds() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { stats, fetchStats } = useStats();
   const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
 
   const { cars, count, totalPages, loading, error, refetch } = useLikedAds(page);
   const { toggleLike } = useFavorites();
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const setPage = (p) => {
     setSearchParams((prev) => { prev.set('page', String(p)); return prev; });
@@ -62,7 +68,7 @@ export default function LikedAds() {
   return (
     <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        <ProfileSidebar activeHref="/liked-ads" />
+        <ProfileSidebar activeHref="/liked-ads" stats={stats} />
 
         <div className="flex-1 min-w-0">
           <section className="bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white py-8 px-6 rounded-2xl mb-8">
