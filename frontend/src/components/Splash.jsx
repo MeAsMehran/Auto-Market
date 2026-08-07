@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Car } from 'lucide-react';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 const MIN_DURATION = 700; // ms — keep it visible long enough to read the brand
 
@@ -11,6 +12,7 @@ const MIN_DURATION = 700; // ms — keep it visible long enough to read the bran
  */
 export default function Splash() {
   const [visible, setVisible] = useState(true);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(false), MIN_DURATION);
@@ -33,7 +35,7 @@ export default function Splash() {
             className="flex flex-col items-center gap-4"
           >
             <motion.div
-              animate={{ y: [0, -6, 0] }}
+              animate={reducedMotion ? {} : { y: [0, -6, 0] }}
               transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
               className="w-20 h-20 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center shadow-2xl ring-1 ring-white/20"
             >
@@ -71,7 +73,7 @@ export default function Splash() {
               <motion.span
                 key={i}
                 className="w-2 h-2 rounded-full bg-white/60"
-                animate={{ opacity: [0.3, 1, 0.3], scale: [0.8, 1, 0.8] }}
+                animate={reducedMotion ? {} : { opacity: [0.3, 1, 0.3], scale: [0.8, 1, 0.8] }}
                 transition={{
                   duration: 1.2,
                   repeat: Infinity,

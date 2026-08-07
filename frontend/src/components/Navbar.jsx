@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useStats } from '../context/StatsContext';
 import { toPersianNumber } from '../utils/format';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 const cities = ['تهران', 'مشهد', 'کرج', 'اصفهان', 'شیراز', 'تبریز', 'اهواز', 'قم', 'کرمانشاه', 'رشت'];
 
@@ -19,6 +20,7 @@ export default function Navbar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const reducedMotion = useReducedMotion();
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -155,7 +157,7 @@ export default function Navbar() {
                           <div className="relative h-20 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-400 overflow-hidden">
                             <motion.div
                               className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"
-                              animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+                              animate={reducedMotion ? {} : { scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
                               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                             />
                             <div className="absolute top-2.5 right-3 flex items-center gap-1 px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-white text-[10px] font-medium">
@@ -184,7 +186,7 @@ export default function Navbar() {
                               </div>
                               <motion.div
                                 className="absolute inset-0 rounded-full border-2 border-brand-400/40"
-                                animate={{ scale: [1, 1.18, 1], opacity: [0.6, 0, 0.6] }}
+                                animate={reducedMotion ? {} : { scale: [1, 1.18, 1], opacity: [0.6, 0, 0.6] }}
                                 transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
                               />
                             </motion.div>

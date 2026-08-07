@@ -13,6 +13,7 @@ import CarSpinner from '../components/CarSpinner';
 import { staggerContainer } from '../components/AnimatedPage';
 import { CITY_LABELS } from '../lib/constants';
 import { formatPrice, toPersianNumber } from '../utils/format';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 const MOCK_CARS = [
   { id: 1, title: '۲۰۲۲ تسلا مدل ۳ لانگ رنج', price: 4500000000, year: 2022, mileage: 12000, fuel_type: 'electric', transmission: 'automatic', city: 'تهران', created_at: '2026-07-27T10:00:00Z', image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop', color: 'سفید', is_featured: true, brand: 'تسلا', model: 'مدل ۳' },
@@ -38,12 +39,12 @@ const bodyTypes = [
   { key: 'coupe', label: 'کوپه', icon: Bike },
 ];
 
-function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 0 }) {
+function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 0, reducedMotion = false }) {
   return (
     <motion.div
       className={`absolute pointer-events-none ${className}`}
       style={{ bottom: `${y}px` }}
-      animate={{ x: ['-20%', '110%'] }}
+      animate={reducedMotion ? {} : { x: ['-20%', '110%'] }}
       transition={{ duration: speed, repeat: Infinity, ease: 'linear', delay }}
     >
       <svg width={size} height={size * 0.4} viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg"
@@ -92,7 +93,7 @@ function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 
   );
 }
 
-function RoadLines() {
+function RoadLines({ reducedMotion = false }) {
   return (
     <div className="absolute bottom-0 left-0 w-full pointer-events-none overflow-hidden">
       <div className="h-3 bg-white/5" />
@@ -103,7 +104,7 @@ function RoadLines() {
             background:
               'repeating-linear-gradient(90deg, rgba(255,255,255,0.8) 0px, rgba(255,255,255,0.8) 40px, transparent 40px, transparent 80px)',
           }}
-          animate={{ x: [0, -80] }}
+          animate={reducedMotion ? {} : { x: [0, -80] }}
           transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
         />
       </div>
@@ -111,7 +112,7 @@ function RoadLines() {
   );
 }
 
-function FeaturedMarquee({ cars }) {
+function FeaturedMarquee({ cars, reducedMotion = false }) {
   const featured = cars.filter((c) => c.is_featured);
   const items = [...featured, ...featured];
   return (
@@ -125,7 +126,7 @@ function FeaturedMarquee({ cars }) {
       <div className="relative">
         <motion.div
           className="flex gap-5 w-max"
-          animate={{ x: ['0%', '-50%'] }}
+          animate={reducedMotion ? {} : { x: ['0%', '-50%'] }}
           transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
         >
           {items.map((car, i) => (
@@ -166,6 +167,7 @@ function FeaturedMarquee({ cars }) {
 }
 
 export default function Home() {
+  const reducedMotion = useReducedMotion();
   const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState('grid');
   const [selectedBrand, setSelectedBrand] = useState(searchParams.get('brand') || '');
@@ -311,20 +313,20 @@ export default function Home() {
       {/* ── Hero Section ── */}
       <section className="relative bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white overflow-hidden">
         <div className="absolute bottom-0 left-0 w-full h-24 pointer-events-none">
-          <CarSilhouette speed={18} delay={0} size={220} y={0} />
-          <CarSilhouette speed={13} delay={5} size={160} y={32} />
-          <CarSilhouette speed={24} delay={10} size={190} y={14} />
-          <RoadLines />
+          <CarSilhouette speed={18} delay={0} size={220} y={0} reducedMotion={reducedMotion} />
+          <CarSilhouette speed={13} delay={5} size={160} y={32} reducedMotion={reducedMotion} />
+          <CarSilhouette speed={24} delay={10} size={190} y={14} reducedMotion={reducedMotion} />
+          <RoadLines reducedMotion={reducedMotion} />
         </div>
 
         <motion.div
           className="absolute -top-32 -right-32 w-96 h-96 bg-white/5 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
+          animate={reducedMotion ? {} : { scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
           transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
         />
         <motion.div
           className="absolute -bottom-24 -left-24 w-72 h-72 bg-white/5 rounded-full blur-3xl"
-          animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
+          animate={reducedMotion ? {} : { scale: [1, 1.2, 1], opacity: [0.2, 0.4, 0.2] }}
           transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
         />
 
@@ -386,7 +388,7 @@ export default function Home() {
       </section>
 
       {/* ── Featured Marquee ── */}
-      <FeaturedMarquee cars={MOCK_CARS} />
+      <FeaturedMarquee cars={MOCK_CARS} reducedMotion={reducedMotion} />
 
       {/* ── Listings ── */}
       <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">

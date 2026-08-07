@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Car, MessageCircle, Heart, Settings, LogOut, Sparkles, Plus, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { toPersianNumber } from '../utils/format';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 const navItems = [
   { label: 'پیشخوان', icon: User, href: '/dashboard', active: false },
@@ -23,8 +24,8 @@ const sideVariants = {
 
 export default function ProfileSidebar({ activeHref, stats }) {
   const { user, logout } = useAuth();
+  const reducedMotion = useReducedMotion();
 
-  // Use provided stats or defaults
   const adsCount = stats?.ads ?? 0;
   const messagesCount = stats?.messages ?? 0;
   const likesCount = stats?.likes ?? 0;
@@ -41,12 +42,12 @@ export default function ProfileSidebar({ activeHref, stats }) {
         <div className="relative h-28 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-400 overflow-hidden">
           <motion.div
             className="absolute -top-8 -right-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"
-            animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
+            animate={reducedMotion ? {} : { scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3] }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           />
           <motion.div
             className="absolute -bottom-4 -left-4 w-24 h-24 bg-white/10 rounded-full blur-xl"
-            animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+            animate={reducedMotion ? {} : { scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
             transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
           />
           <div className="absolute top-3 right-3 flex items-center gap-1 px-2.5 py-1 bg-white/15 backdrop-blur-sm rounded-full text-white text-[10px] font-medium">
@@ -65,7 +66,7 @@ export default function ProfileSidebar({ activeHref, stats }) {
           >
             <div className="w-24 h-24 rounded-full bg-surface p-1.5 shadow-lg">
               <motion.div
-                animate={{ y: [0, -4, 0] }}
+                animate={reducedMotion ? {} : { y: [0, -4, 0] }}
                 transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                 className="w-full h-full rounded-full bg-gradient-to-br from-brand-100 to-brand-300 dark:from-brand-900 dark:to-brand-700 flex items-center justify-center overflow-hidden"
               >
@@ -81,7 +82,7 @@ export default function ProfileSidebar({ activeHref, stats }) {
             {/* Animated ring around avatar */}
             <motion.div
               className="absolute inset-0 rounded-full border-2 border-brand-400/40"
-              animate={{ scale: [1, 1.15, 1], opacity: [0.6, 0, 0.6] }}
+              animate={reducedMotion ? {} : { scale: [1, 1.15, 1], opacity: [0.6, 0, 0.6] }}
               transition={{ duration: 2.5, repeat: Infinity, ease: 'easeOut' }}
             />
           </motion.div>
