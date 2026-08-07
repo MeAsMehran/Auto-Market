@@ -46,8 +46,13 @@ export function StatsProvider({ children }) {
 
   const refreshStats = useCallback(() => {
     setFetched(false);
-    fetchStats();
-  }, [fetchStats]);
+  }, []);
+
+  useEffect(() => {
+    if (fetched === false && user) {
+      fetchStats();
+    }
+  }, [fetched, user, fetchStats]);
 
   useEffect(() => {
     if (!user) {
