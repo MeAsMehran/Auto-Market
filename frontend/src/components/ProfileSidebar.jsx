@@ -20,8 +20,13 @@ const sideVariants = {
   }),
 };
 
-export default function ProfileSidebar({ activeHref }) {
+export default function ProfileSidebar({ activeHref, stats }) {
   const { user, logout } = useAuth();
+
+  // Use provided stats or defaults
+  const adsCount = stats?.ads ?? 0;
+  const messagesCount = stats?.messages ?? 0;
+  const likesCount = stats?.likes ?? 0;
 
   return (
     <div className="lg:w-72 shrink-0">
@@ -104,15 +109,15 @@ export default function ProfileSidebar({ activeHref }) {
             className="grid grid-cols-3 gap-2 mt-4 mb-4"
           >
             <div className="bg-surface-secondary rounded-xl py-2 px-1">
-              <p className="text-sm font-bold text-brand-500">۵</p>
+              <p className="text-sm font-bold text-brand-500">{adsCount}</p>
               <p className="text-[10px] text-text-tertiary">آگهی</p>
             </div>
             <div className="bg-surface-secondary rounded-xl py-2 px-1">
-              <p className="text-sm font-bold text-accent-500">۱۲</p>
+              <p className="text-sm font-bold text-accent-500">{messagesCount}</p>
               <p className="text-[10px] text-text-tertiary">پیام</p>
             </div>
             <div className="bg-surface-secondary rounded-xl py-2 px-1">
-              <p className="text-sm font-bold text-red-500">۳</p>
+              <p className="text-sm font-bold text-red-500">{likesCount}</p>
               <p className="text-[10px] text-text-tertiary">علاقه</p>
             </div>
           </motion.div>

@@ -1,22 +1,11 @@
-import { useLayoutEffect } from 'react';
+import { useState, useEffect, useLayoutEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, Eye, TrendingUp, Edit2, CheckCircle, Activity, ChevronLeft, Car, MessageCircle, Heart, Plus } from 'lucide-react';
+import { Clock, Eye, TrendingUp, Edit2, CheckCircle, Activity, ChevronLeft, Car, MessageCircle, Heart, AlertCircle } from 'lucide-react';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 import ProfileSidebar from '../components/ProfileSidebar';
-
-const MOCK_STATS = [
-  { label: 'آگهی‌های فعال', value: 5, icon: Car, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950', ring: 'ring-brand-500/20' },
-  { label: 'تعداد بازدید', value: 1247, icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950', ring: 'ring-blue-500/20' },
-  { label: 'پیام‌ها', value: 12, icon: MessageCircle, color: 'text-accent-500 dark:text-accent-400', bg: 'bg-accent-50 dark:bg-accent-950', ring: 'ring-accent-500/20' },
-  { label: 'جستجوهای ذخیره شده', value: 3, icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950', ring: 'ring-red-500/20' },
-];
-
-const MOCK_LISTINGS = [
-  { id: 1, title: '۲۰۲۲ تسلا مدل ۳ لانگ رنج', price: '$۴۵,۰۰۰', views: 342, status: 'active', date: '۲ روز پیش', image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=200&h=150&fit=crop' },
-  { id: 2, title: '۲۰۲۱ بامو X5 xDrive40i', price: '$۳۸,۵۰۰', views: 156, status: 'active', date: '۱ هفته پیش', image: 'https://images.unsplash.com/photo-1555215695-3004980ad54e?w=200&h=150&fit=crop' },
-  { id: 3, title: '۲۰۲۰ مرسدس بنز C300', price: '$۳۲,۰۰۰', views: 89, status: 'pending', date: '۲ هفته پیش', image: 'https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=200&h=150&fit=crop' },
-];
+import api from '../lib/api';
+import { formatPrice } from '../utils/format';
 
 function AnimatedStat({ stat, index }) {
   return (
@@ -36,14 +25,134 @@ function AnimatedStat({ stat, index }) {
 }
 
 export default function Dashboard() {
+  const [stats, setStats] = useState({
+    active_ads_number: 0,
+    total_views: 0,
+    unread_messages: 0,
+    liked_ads_number: 0,
+  });
+  const [latestAds, setLatestAds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   useLayoutEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
 
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await api.get('/dashboard/');
+        setStats({
+          active_ads_number: response.data.active_ads_number || 0,
+          total_views: response.data.total_views || 0,
+          unread_messages: response.data.unread_messages || 0,
+          liked_ads_number: response.data.liked_ads_number || 0,
+        });
+        setLatestAds(response.data.latest_ads || []);
+      } catch (err) {
+        console.error('Dashboard fetch error:', err);
+        setError('خطا در بارگذاری داده‌ها. لطفاً دوباره تلاش کنید.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  const statsList = [
+    { label: 'آگهی‌های فعال', value: stats.active_ads_number, icon: Car, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950', ring: 'ring-brand-500/20' },
+    { label: 'تعداد بازدید', value: stats.total_views, icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950', ring: 'ring-blue-500/20' },
+    { label: 'پیام‌ها', value: stats.unread_messages, icon: MessageCircle, color: 'text-accent-500 dark:text-accent-400', bg: 'bg-accent-50 dark:bg-accent-950', ring: 'ring-accent-500/20' },
+    { label: 'آگهی‌های پسندیده', value: stats.liked_ads_number, icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950', ring: 'ring-red-500/20' },
+  ];
+
+  const getStatusLabel = (isActive, isSold) => {
+    if (isSold) return { label: 'فروخته شده', class: 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400' };
+    if (isActive) return { label: 'فعال', class: 'bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400' };
+    return { label: 'در انتظار', class: 'bg-yellow-50 dark:bg-yellow-950 text-yellow-600 dark:text-yellow-400' };
+  };
+
+  const formatTimeAgo = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return 'الان';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} دقیقه پیش`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ساعت پیش`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} روز پیش`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)} هفته پیش`;
+    return `${Math.floor(diffInSeconds / 2592000)} ماه پیش`;
+  };
+
+  const getImageUrl = (car) => {
+    if (car.images && car.images.length > 0) {
+      return car.images[0].image;
+    }
+    if (car.first_image) {
+      return car.first_image;
+    }
+    return 'https://via.placeholder.com/200x150?text=No+Image';
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <ProfileSidebar activeHref="/dashboard" />
+          <div className="flex-1 min-w-0">
+            <div className="animate-pulse space-y-6">
+              <div className="h-20 bg-surface rounded-2xl" />
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-32 bg-surface rounded-2xl" />
+                ))}
+              </div>
+              <div className="h-64 bg-surface rounded-2xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <ProfileSidebar activeHref="/dashboard" />
+          <div className="flex-1 min-w-0">
+            <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-2xl p-6 text-center">
+              <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+              <p className="text-red-600 dark:text-red-400">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
+              >
+                تلاش مجدد
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex flex-col lg:flex-row gap-8">
-        <ProfileSidebar activeHref="/dashboard" />
+        <ProfileSidebar
+          activeHref="/dashboard"
+          stats={{
+            ads: stats.active_ads_number,
+            messages: stats.unread_messages,
+            likes: stats.liked_ads_number,
+          }}
+        />
 
         {/* ── Main Content ── */}
         <div className="flex-1 min-w-0">
@@ -70,8 +179,8 @@ export default function Dashboard() {
             animate="animate"
             className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
           >
-            {MOCK_STATS.map((stat) => (
-              <AnimatedStat key={stat.label} stat={stat} index={0} />
+            {statsList.map((stat, index) => (
+              <AnimatedStat key={stat.label} stat={stat} index={index} />
             ))}
           </motion.div>
 
@@ -92,52 +201,76 @@ export default function Dashboard() {
                 <ChevronLeft className="w-4 h-4" />
               </Link>
             </div>
-            <motion.div
-              variants={staggerContainer}
-              initial="initial"
-              animate="animate"
-              className="space-y-3"
-            >
-              {MOCK_LISTINGS.map((listing) => (
-                <motion.div
-                  key={listing.id}
-                  variants={fadeUpItem}
-                  whileHover={{ x: -4 }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                  className="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-secondary transition-colors will-change-transform"
+
+            {latestAds.length === 0 ? (
+              <div className="text-center py-8">
+                <Car className="w-12 h-12 text-text-tertiary mx-auto mb-3" />
+                <p className="text-text-tertiary">هنوز آگهی فعالی ندارید</p>
+                <Link
+                  to="/post-ad"
+                  className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors"
                 >
-                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-surface-tertiary shrink-0">
-                    <img
-                      src={listing.image}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-text-primary text-sm truncate">{listing.title}</h3>
-                    <p className="text-brand-500 font-semibold text-sm">{listing.price}</p>
-                    <div className="flex items-center gap-3 text-xs text-text-tertiary mt-0.5">
-                      <span className="flex items-center gap-1"><Eye className="w-3 h-3" /> {listing.views} بازدید</span>
-                      <span>{listing.date}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-lg ${
-                      listing.status === 'active' ? 'bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400' :
-                      listing.status === 'pending' ? 'bg-yellow-50 dark:bg-yellow-950 text-yellow-600 dark:text-yellow-400' :
-                      'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400'
-                    }`}>
-                      {listing.status === 'active' ? 'فعال' : listing.status === 'pending' ? 'در انتظار' : 'فروخته شده'}
-                    </span>
-                    <Link to={`/car/${listing.id}`} className="p-2 text-text-tertiary hover:text-text-secondary hover:bg-surface-tertiary rounded-lg transition-colors">
-                      <Edit2 className="w-4 h-4" />
-                    </Link>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+                  <span>ثبت آگهی جدید</span>
+                </Link>
+              </div>
+            ) : (
+              <motion.div
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                className="space-y-3"
+              >
+                {latestAds.map((listing) => {
+                  const statusInfo = getStatusLabel(listing.is_active, listing.is_sold);
+                  return (
+                    <motion.div
+                      key={listing.id}
+                      variants={fadeUpItem}
+                      whileHover={{ x: -4 }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                      className="flex items-center gap-4 p-3 rounded-xl hover:bg-surface-secondary transition-colors will-change-transform"
+                    >
+                      <div className="w-16 h-16 rounded-xl overflow-hidden bg-surface-tertiary shrink-0">
+                        <img
+                          src={getImageUrl(listing)}
+                          alt=""
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.src = 'https://via.placeholder.com/200x150?text=No+Image';
+                          }}
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-text-primary text-sm truncate">{listing.title}</h3>
+                        <p className="text-brand-500 font-semibold text-sm">
+                          {listing.price ? formatPrice(listing.price) : 'توافقی'}
+                        </p>
+                        <div className="flex items-center gap-3 text-xs text-text-tertiary mt-0.5">
+                          <span className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            {listing.view_count || 0} بازدید
+                          </span>
+                          <span>{formatTimeAgo(listing.created_at)}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-1 text-xs font-medium rounded-lg ${statusInfo.class}`}>
+                          {statusInfo.label}
+                        </span>
+                        <Link
+                          to={`/car/${listing.id}`}
+                          className="p-2 text-text-tertiary hover:text-text-secondary hover:bg-surface-tertiary rounded-lg transition-colors"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Link>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            )}
           </motion.div>
 
           {/* Recent Activity */}
@@ -158,9 +291,9 @@ export default function Dashboard() {
               className="space-y-4"
             >
               {[
-                { action: 'پیام جدید دریافت شد', detail: 'کسی درباره تسلا مدل ۳ شما پرسیده', time: '۳۰ دقیقه پیش', icon: MessageCircle, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950' },
-                { action: 'بازدید آگهی', detail: 'بامو X5 شما ۱۵ بازدید جدید داشته', time: '۲ ساعت پیش', icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950' },
-                { action: 'تایید آگهی', detail: 'مرسدس بنز C300 منتشر شد', time: '۱ روز پیش', icon: CheckCircle, color: 'text-accent-500 dark:text-accent-400', bg: 'bg-accent-50 dark:bg-accent-950' },
+                { action: 'آگهی‌های فعال', detail: `شما ${stats.active_ads_number} آگهی فعال دارید`, time: 'امروز', icon: CheckCircle, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950' },
+                { action: 'بازدید کل', detail: `آگهی‌های شما ${stats.total_views} بازدید داشته`, time: 'این ماه', icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950' },
+                { action: 'آگهی‌های پسندیده', detail: `شما ${stats.liked_ads_number} آگهی را پسندیده‌اید`, time: 'تاکنون', icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950' },
               ].map((activity, i) => (
                 <motion.div
                   key={i}
