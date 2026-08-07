@@ -5,6 +5,7 @@ import { createCar, uploadCarImages } from '../lib/carApi';
 import {
   BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP, CITY_MAP,
 } from '../lib/constants';
+import { useStats } from '../context/StatsContext';
 
 const FUEL_OPTIONS = Object.keys(FUEL_MAP);
 const TRANSMISSION_OPTIONS = Object.keys(TRANSMISSION_MAP);
@@ -44,6 +45,7 @@ function saveDraft(step, form, features) {
 
 export default function PostAd() {
   const navigate = useNavigate();
+  const { refreshStats } = useStats();
   const draft = loadDraft();
   const [step, setStep] = useState(draft.step);
   const [loading, setLoading] = useState(false);
@@ -190,6 +192,7 @@ export default function PostAd() {
       }
 
       sessionStorage.removeItem(STORAGE_KEY);
+      refreshStats();
       navigate('/my-listings');
     } catch (err) {
       const data = err.response?.data;

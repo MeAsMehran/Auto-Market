@@ -3,6 +3,7 @@ from django.urls import path
 from .views.car import CreateCarAdView, DetailCarAdView, ListCarAdView, DeleteCarAdView, UpdateCarAdView, ListMyCarAdView, RestoreCarAdView
 from .views.image import CarImageUploadView, CarImageDeleteView, CarImageListView
 from .views.favorite import AddFavoriteAdView, RemoveFavoriteAdView, ListFavoriteView
+from .views.dashboard import DashboardView
 
 
 urlpatterns = [
@@ -25,6 +26,9 @@ urlpatterns = [
     path('cars/add-favorite-ad/<int:car_ad_id>/', AddFavoriteAdView.as_view(), name='add-favorite-ad'),
     path('cars/remove-favorite-ad/<int:car_ad_id>/', RemoveFavoriteAdView.as_view(), name='remove-favorite-ad'),
     path('cars/list-favorite-ads/', ListFavoriteView.as_view(), name='list-favorite-ads'),
+
+    # Dashboard View:
+    path('dashboard/', DashboardView.as_view(), name='dashboard'),
 
 ]
 

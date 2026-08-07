@@ -8,26 +8,13 @@ import { getFirstImage } from '../components/CarCard';
 import { useMyListings } from '../hooks/useMyListings';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
-
-function formatPrice(price) {
-  if (!price) return 'قیمت توافقی';
-  return `${(price / 1000000).toLocaleString('fa-IR')} م.تومان`;
-}
-
-function timeAgo(dateStr) {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} دقیقه پیش`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} ساعت پیش`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} روز پیش`;
-  return `${Math.floor(days / 30)} ماه پیش`;
-}
+import ProfileSidebar from '../components/ProfileSidebar';
+import { useStats } from '../context/StatsContext';
+import { formatPrice, toPersianNumber, formatTimeAgo } from '../utils/format';
 
 export default function MyListings() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { stats, fetchStats } = useStats();
 
   const [error, setError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -36,6 +23,10 @@ export default function MyListings() {
   const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
   const filter = searchParams.get('filter') || 'all';
   const searchQuery = searchParams.get('search') || '';
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const setFilter = (f) => {
     setSearchParams((prev) => { prev.set('filter', f); prev.set('page', '1'); return prev; });
@@ -112,37 +103,41 @@ export default function MyListings() {
 
   return (
     <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <motion.h1
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: 'easeOut' }}
-            className="text-2xl font-bold text-text-primary"
-          >
-            آگهی‌های من
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
-            className="text-text-tertiary text-sm"
-          >
-            مدیریت آگهی‌های خودروی شما
-          </motion.p>
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.12, ease: 'easeOut' }}
-        >
-          <Link to="/post-ad" className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
-            <Plus className="w-4 h-4" /> آگهی جدید
-          </Link>
-        </motion.div>
-      </div>
+      <div className="flex flex-col lg:flex-row gap-8">
+        <ProfileSidebar activeHref="/my-listings" stats={stats} />
 
-      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <div className="flex-1 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+            <div>
+              <motion.h1
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+                className="text-2xl font-bold text-text-primary"
+              >
+                آگهی‌های من
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.08, ease: 'easeOut' }}
+                className="text-text-tertiary text-sm"
+              >
+                مدیریت آگهی‌های خودروی شما
+              </motion.p>
+            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 0.12, ease: 'easeOut' }}
+            >
+              <Link to="/post-ad" className="flex items-center justify-center gap-2 px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
+                <Plus className="w-4 h-4" /> آگهی جدید
+              </Link>
+            </motion.div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="flex gap-1 bg-surface-tertiary rounded-xl p-1 overflow-x-auto scrollbar-hide">
           {[
             { key: 'all', label: 'همه' },
@@ -156,7 +151,7 @@ export default function MyListings() {
             >
               {tab.label}
               {tab.key === filter && count > 0 && (
-                <span className="mr-1.5 text-xs opacity-60">({count})</span>
+                <span className="mr-1.5 text-xs opacity-60">({toPersianNumber(count)})</span>
               )}
             </button>
           ))}
@@ -237,7 +232,7 @@ export default function MyListings() {
                       </div>
                       <div className="flex flex-wrap items-center gap-3 text-xs text-text-tertiary mt-2">
                         <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {CITY_LABELS[listing.city] || listing.city}</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {timeAgo(listing.created_at)}</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTimeAgo(listing.created_at)}</span>
                         <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{FUEL_LABELS[listing.fuel_type] || listing.fuel_type}</span>
                         <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{COLOR_LABELS[listing.color] || listing.color}</span>
                       </div>
@@ -301,7 +296,7 @@ export default function MyListings() {
                   onClick={() => setPage(p)}
                   className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors ${safePage === p ? 'bg-brand-500 text-white' : 'border border-border hover:bg-surface-tertiary text-text-secondary'}`}
                 >
-                  {p}
+                  {toPersianNumber(p)}
                 </button>
               ))}
               <button
@@ -315,6 +310,8 @@ export default function MyListings() {
           )}
         </>
       )}
+      </div>
+      </div>
     </div>
   );
 }

@@ -5,23 +5,7 @@ import { useState } from 'react';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { useFavorites } from '../context/FavoritesContext';
 import { fadeUpItem, fadeInLeftItem } from './AnimatedPage';
-
-function formatPrice(price) {
-  if (!price) return 'قیمت توافقی';
-  return `${(price / 1000000).toLocaleString('fa-IR')} م.تومان`;
-}
-
-function timeAgo(dateStr) {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} دقیقه پیش`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} ساعت پیش`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} روز پیش`;
-  return `${Math.floor(days / 30)} ماه پیش`;
-}
+import { formatPrice, toPersianNumber, formatTimeAgo } from '../utils/format';
 
 const BACKEND_URL = 'http://localhost:8000';
 
@@ -139,13 +123,13 @@ export function CarGridCard({ car }) {
             </h3>
             <p className="text-lg font-bold text-brand-500 mb-2">{formatPrice(car.price)}</p>
             <div className="flex flex-wrap gap-1.5 mb-3">
-              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.year}</span>
-              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.mileage?.toLocaleString('fa-IR')} ک.م</span>
+              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.year)}</span>
+              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.mileage?.toLocaleString('fa-IR'))} ک.م</span>
               <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{FUEL_LABELS[car.fuel_type] || car.fuel_type}</span>
             </div>
             <div className="flex items-center justify-between text-xs text-text-tertiary">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {CITY_LABELS[car.city] || car.city}</span>
-              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {timeAgo(car.created_at)}</span>
+              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTimeAgo(car.created_at)}</span>
             </div>
           </div>
         </motion.div>
@@ -180,7 +164,7 @@ export function CarListCard({ car }) {
           <div>
             <h3 className="font-semibold text-text-primary group-hover:text-brand-500 transition-colors">{car.title}</h3>
             <div className="flex flex-wrap gap-2 mt-2">
-              <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.year}</span>
+              <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.year)}</span>
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.mileage?.toLocaleString('fa-IR')} ک.م</span>
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{FUEL_LABELS[car.fuel_type] || car.fuel_type}</span>
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{COLOR_LABELS[car.color] || car.color}</span>
@@ -191,7 +175,7 @@ export function CarListCard({ car }) {
               <p className="text-lg font-bold text-brand-500">{formatPrice(car.price)}</p>
               <div className="flex items-center gap-3 text-xs text-text-tertiary mt-0.5">
                 <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {CITY_LABELS[car.city] || car.city}</span>
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {timeAgo(car.created_at)}</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTimeAgo(car.created_at)}</span>
               </div>
             </div>
           </div>

@@ -7,6 +7,8 @@ import { getFirstImage } from '../components/CarCard';
 import { useFavorites } from '../context/FavoritesContext';
 import { useLikedAds } from '../hooks/useLikedAds';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
+import ProfileSidebar from '../components/ProfileSidebar';
+import { useStats } from '../context/StatsContext';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -27,10 +29,15 @@ function timeAgo(dateStr) {
 
 export default function LikedAds() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { stats, fetchStats } = useStats();
   const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
 
   const { cars, count, totalPages, loading, error, refetch } = useLikedAds(page);
   const { toggleLike } = useFavorites();
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
 
   const setPage = (p) => {
     setSearchParams((prev) => { prev.set('page', String(p)); return prev; });
@@ -59,28 +66,27 @@ export default function LikedAds() {
   }, [page]);
 
   return (
-    <div ref={listingsRef} className="min-h-screen bg-surface-secondary">
-      <section className="bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="flex items-center gap-3 mb-4">
+    <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex flex-col lg:flex-row gap-8">
+        <ProfileSidebar activeHref="/liked-ads" stats={stats} />
+
+        <div className="flex-1 min-w-0">
+          <section className="bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white py-8 px-6 rounded-2xl mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex items-center gap-3 mb-3"
+            >
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
                 <Heart className="w-6 h-6 fill-white" />
               </div>
               <h1 className="text-2xl font-bold">خودروهای مورد علاقه</h1>
-            </div>
-            <p className="text-brand-100 max-w-2xl">
+            </motion.div>
+            <p className="text-brand-100 max-w-2xl text-sm">
               خودروهای ذخیره‌شده شما در اینجا نمایش داده می‌شوند. می‌توانید به راحتی آن‌ها را مقایسه کرده و با فروشندگان تماس بگیرید.
             </p>
-          </motion.div>
-        </div>
-      </section>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          </section>
         {loading ? (
           <div className="text-center py-20">
             <div className="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
@@ -164,6 +170,7 @@ export default function LikedAds() {
             )}
           </>
         )}
+        </div>
       </div>
     </div>
   );

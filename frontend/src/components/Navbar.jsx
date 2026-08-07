@@ -1,26 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Bell, Plus, MessageCircle, ChevronDown, Menu, X, Car, LogOut, User, ClipboardList, Sun, Moon, Heart, Settings, Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import { useStats } from '../context/StatsContext';
+import { toPersianNumber } from '../utils/format';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 const cities = ['تهران', 'مشهد', 'کرج', 'اصفهان', 'شیراز', 'تبریز', 'اهواز', 'قم', 'کرمانشاه', 'رشت'];
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const { stats, fetchStats } = useStats();
   const navigate = useNavigate();
   const [city, setCity] = useState('تهران');
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const reducedMotion = useReducedMotion();
 
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) navigate(`/?search=${searchQuery}`);
   };
+
+  useEffect(() => {
+    if (user) fetchStats();
+  }, [user, fetchStats]);
 
   return (
     <header className="sticky top-0 z-50 bg-surface border-b border-border shadow-sm">
@@ -148,7 +157,7 @@ export default function Navbar() {
                           <div className="relative h-20 bg-gradient-to-br from-brand-600 via-brand-500 to-brand-400 overflow-hidden">
                             <motion.div
                               className="absolute -top-4 -right-4 w-24 h-24 bg-white/10 rounded-full blur-xl"
-                              animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
+                              animate={reducedMotion ? {} : { scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2] }}
                               transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                             />
                             <div className="absolute top-2.5 right-3 flex items-center gap-1 px-2 py-0.5 bg-white/15 backdrop-blur-sm rounded-full text-white text-[10px] font-medium">
@@ -177,7 +186,7 @@ export default function Navbar() {
                               </div>
                               <motion.div
                                 className="absolute inset-0 rounded-full border-2 border-brand-400/40"
-                                animate={{ scale: [1, 1.18, 1], opacity: [0.6, 0, 0.6] }}
+                                animate={reducedMotion ? {} : { scale: [1, 1.18, 1], opacity: [0.6, 0, 0.6] }}
                                 transition={{ duration: 2.4, repeat: Infinity, ease: 'easeOut' }}
                               />
                             </motion.div>
@@ -188,15 +197,15 @@ export default function Navbar() {
                             {/* Mini stats row */}
                             <div className="grid grid-cols-3 gap-2 mt-3">
                               <div className="bg-surface-secondary rounded-lg py-1.5">
-                                <p className="text-xs font-bold text-brand-500">۵</p>
+                                <p className="text-xs font-bold text-brand-500">{toPersianNumber(stats.ads)}</p>
                                 <p className="text-[10px] text-text-tertiary">آگهی</p>
                               </div>
                               <div className="bg-surface-secondary rounded-lg py-1.5">
-                                <p className="text-xs font-bold text-accent-500">۱۲</p>
+                                <p className="text-xs font-bold text-accent-500">{toPersianNumber(stats.messages)}</p>
                                 <p className="text-[10px] text-text-tertiary">پیام</p>
                               </div>
                               <div className="bg-surface-secondary rounded-lg py-1.5">
-                                <p className="text-xs font-bold text-red-500">۳</p>
+                                <p className="text-xs font-bold text-red-500">{toPersianNumber(stats.likes)}</p>
                                 <p className="text-[10px] text-text-tertiary">علاقه</p>
                               </div>
                             </div>
