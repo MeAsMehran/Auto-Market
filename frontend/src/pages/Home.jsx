@@ -12,6 +12,7 @@ import { CarGridCard, CarListCard } from '../components/CarCard';
 import CarSpinner from '../components/CarSpinner';
 import { staggerContainer } from '../components/AnimatedPage';
 import { CITY_LABELS } from '../lib/constants';
+import { formatPrice, toPersianNumber } from '../utils/format';
 
 const MOCK_CARS = [
   { id: 1, title: '۲۰۲۲ تسلا مدل ۳ لانگ رنج', price: 4500000000, year: 2022, mileage: 12000, fuel_type: 'electric', transmission: 'automatic', city: 'تهران', created_at: '2026-07-27T10:00:00Z', image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop', color: 'سفید', is_featured: true, brand: 'تسلا', model: 'مدل ۳' },
@@ -36,11 +37,6 @@ const bodyTypes = [
   { key: 'pickup', label: 'وانت', icon: Truck },
   { key: 'coupe', label: 'کوپه', icon: Bike },
 ];
-
-function formatPrice(price) {
-  if (!price) return 'قیمت توافقی';
-  return `${(price / 1000000).toLocaleString('fa-IR')} م.تومان`;
-}
 
 function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 0 }) {
   return (
@@ -461,7 +457,7 @@ export default function Home() {
           <div>
             {isFilterActive ? (
               <h2 className="text-xl font-bold text-text-primary">
-                {filteredCars.length > 0 ? `همه آگهی‌ها (${useMock ? filteredCars.length : totalCount})` : 'آگهی‌ای یافت نشد'}
+                {filteredCars.length > 0 ? `همه آگهی‌ها (${useMock ? toPersianNumber(filteredCars.length) : toPersianNumber(totalCount)})` : 'آگهی‌ای یافت نشد'}
               </h2>
             ) : (
               <h2 className="text-xl font-bold text-text-primary">همه آگهی‌ها</h2>
@@ -600,7 +596,7 @@ export default function Home() {
                       : 'border border-border text-text-secondary hover:bg-surface-tertiary'
                   }`}
                 >
-                  {pageNum}
+{toPersianNumber(pageNum)}
                 </motion.button>
               );
             })}

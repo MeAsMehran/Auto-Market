@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Car, MessageCircle, Heart, Settings, LogOut, Sparkles, Plus, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { toPersianNumber } from '../utils/format';
 
 const navItems = [
   { label: 'پیشخوان', icon: User, href: '/dashboard', active: false },
@@ -109,15 +110,15 @@ export default function ProfileSidebar({ activeHref, stats }) {
             className="grid grid-cols-3 gap-2 mt-4 mb-4"
           >
             <div className="bg-surface-secondary rounded-xl py-2 px-1">
-              <p className="text-sm font-bold text-brand-500">{adsCount}</p>
+              <p className="text-sm font-bold text-brand-500">{toPersianNumber(adsCount)}</p>
               <p className="text-[10px] text-text-tertiary">آگهی</p>
             </div>
             <div className="bg-surface-secondary rounded-xl py-2 px-1">
-              <p className="text-sm font-bold text-accent-500">{messagesCount}</p>
+              <p className="text-sm font-bold text-accent-500">{toPersianNumber(messagesCount)}</p>
               <p className="text-[10px] text-text-tertiary">پیام</p>
             </div>
             <div className="bg-surface-secondary rounded-xl py-2 px-1">
-              <p className="text-sm font-bold text-red-500">{likesCount}</p>
+              <p className="text-sm font-bold text-red-500">{toPersianNumber(likesCount)}</p>
               <p className="text-[10px] text-text-tertiary">علاقه</p>
             </div>
           </motion.div>

@@ -7,11 +7,7 @@ import {
 } from '../lib/constants';
 import CarSpinner from '../components/CarSpinner';
 import { useFavorites } from '../context/FavoritesContext';
-
-function formatPrice(price) {
-  if (!price) return 'قیمت توافقی';
-  return `${(price / 1000000).toLocaleString('fa-IR')} م.تومان`;
-}
+import { formatPrice, toPersianNumber, formatTimeAgo } from '../utils/format';
 
 const BACKEND_URL = 'http://localhost:8000';
 
@@ -19,18 +15,6 @@ function fixImageUrl(url) {
   if (!url) return '';
   if (url.startsWith('http')) return url;
   return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-}
-
-function timeAgo(dateStr) {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} دقیقه پیش`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} ساعت پیش`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} روز پیش`;
-  return `${Math.floor(days / 30)} ماه پیش`;
 }
 
 export default function CarDetail() {
@@ -102,7 +86,7 @@ export default function CarDetail() {
 
   const nextImage = () => setCurrentImageIndex((prev) => (prev + 1) % images.length);
   const prevImage = () => setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
-  const memberYear = car.seller?.date_joined ? new Date(car.seller.date_joined).getFullYear() : '';
+  const memberYear = car.seller?.date_joined ? toPersianNumber(new Date(car.seller.date_joined).getFullYear()) : '';
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
@@ -136,7 +120,7 @@ export default function CarDetail() {
               )}
               {images.length > 0 && (
                 <div className="absolute bottom-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-lg">
-                  {currentImageIndex + 1} / {images.length}
+                  {toPersianNumber(currentImageIndex + 1)} / {toPersianNumber(images.length)}
                 </div>
               )}
             </div>
@@ -162,7 +146,7 @@ export default function CarDetail() {
                 <p className="text-text-tertiary text-sm mt-2 flex items-center gap-2">
                   <MapPin className="w-4 h-4" /> {CITY_LABELS[car.city] || car.city}
                   <span className="w-1 h-1 bg-text-tertiary rounded-full" />
-                  <Clock className="w-4 h-4" /> {timeAgo(car.created_at)}
+                  <Clock className="w-4 h-4" /> {formatTimeAgo(car.created_at)}
                 </p>
               </div>
               <div className="flex gap-2">
@@ -182,8 +166,8 @@ export default function CarDetail() {
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-5 bg-surface-secondary rounded-xl mb-6">
               {[
-                { icon: Calendar, label: 'سال', value: car.year },
-                { icon: Gauge, label: 'کارکرد', value: `${car.mileage?.toLocaleString('fa-IR')} ک.م` },
+                { icon: Calendar, label: 'سال', value: toPersianNumber(car.year) },
+                { icon: Gauge, label: 'کارکرد', value: `${toPersianNumber(car.mileage?.toLocaleString('fa-IR'))} ک.م` },
                 { icon: Fuel, label: 'سوخت', value: FUEL_LABELS[car.fuel_type] || car.fuel_type },
                 { icon: Settings, label: 'گیربکس', value: TRANSMISSION_LABELS[car.transmission] || car.transmission },
               ].map((item) => (

@@ -5,7 +5,7 @@ import { Clock, Eye, TrendingUp, Edit2, CheckCircle, Activity, ChevronLeft, Car,
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 import ProfileSidebar from '../components/ProfileSidebar';
 import { useStats } from '../context/StatsContext';
-import { formatPrice } from '../utils/format';
+import { formatPrice, toPersianNumber, formatTimeAgo } from '../utils/format';
 
 function AnimatedStat({ stat }) {
   return (
@@ -18,7 +18,7 @@ function AnimatedStat({ stat }) {
       <div className={`w-12 h-12 ${stat.bg} rounded-xl flex items-center justify-center mb-3`}>
         <stat.icon className={`w-6 h-6 ${stat.color}`} />
       </div>
-      <p className="text-2xl font-bold text-text-primary">{stat.value.toLocaleString('fa-IR')}</p>
+      <p className="text-2xl font-bold text-text-primary">{toPersianNumber(stat.value)}</p>
       <p className="text-sm text-text-tertiary">{stat.label}</p>
     </motion.div>
   );
@@ -46,19 +46,6 @@ export default function Dashboard() {
     if (isSold) return { label: 'فروخته شده', class: 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400' };
     if (isActive) return { label: 'فعال', class: 'bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400' };
     return { label: 'در انتظار', class: 'bg-yellow-50 dark:bg-yellow-950 text-yellow-600 dark:text-yellow-400' };
-  };
-
-  const formatTimeAgo = (dateString) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now - date) / 1000);
-
-    if (diffInSeconds < 60) return 'الان';
-    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} دقیقه پیش`;
-    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} ساعت پیش`;
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} روز پیش`;
-    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 604800)} هفته پیش`;
-    return `${Math.floor(diffInSeconds / 2592000)} ماه پیش`;
   };
 
   const getImageUrl = (car) => {
@@ -222,7 +209,7 @@ export default function Dashboard() {
                         <div className="flex items-center gap-3 text-xs text-text-tertiary mt-0.5">
                           <span className="flex items-center gap-1">
                             <Eye className="w-3 h-3" />
-                            {listing.view_count || 0} بازدید
+                            {toPersianNumber(listing.view_count || 0)} بازدید
                           </span>
                           <span>{formatTimeAgo(listing.created_at)}</span>
                         </div>
@@ -263,9 +250,9 @@ export default function Dashboard() {
               className="space-y-4"
             >
               {[
-                { action: 'آگهی‌های فعال', detail: `شما ${stats.ads} آگهی فعال دارید`, time: 'امروز', icon: CheckCircle, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950' },
-                { action: 'بازدید کل', detail: `آگهی‌های شما ${stats.totalViews} بازدید داشته`, time: 'این ماه', icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950' },
-                { action: 'آگهی‌های پسندیده', detail: `شما ${stats.likes} آگهی را پسندیده‌اید`, time: 'تاکنون', icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950' },
+                { action: 'آگهی‌های فعال', detail: `شما ${toPersianNumber(stats.ads)} آگهی فعال دارید`, time: 'امروز', icon: CheckCircle, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950' },
+                { action: 'بازدید کل', detail: `آگهی‌های شما ${toPersianNumber(stats.totalViews)} بازدید داشته`, time: 'این ماه', icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950' },
+                { action: 'آگهی‌های پسندیده', detail: `شما ${toPersianNumber(stats.likes)} آگهی را پسندیده‌اید`, time: 'تاکنون', icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950' },
               ].map((activity, i) => (
                 <motion.div
                   key={i}
