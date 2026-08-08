@@ -219,13 +219,25 @@ export default function MyListings() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            {listing.brand && (
+                              <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 text-xs font-medium rounded-lg">
+                                {listing.brand}
+                              </span>
+                            )}
+                            {listing.model_name && (
+                              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                                {listing.model_name}
+                              </span>
+                            )}
+                          </div>
                           <Link to={`/car/${listing.id}${isDeleted ? '?deleted=1' : ''}`} className={`font-semibold transition-colors line-clamp-1 ${isDeleted ? 'text-text-tertiary' : 'text-text-primary hover:text-brand-500'}`}>{listing.title}</Link>
                           <p className={`font-bold text-lg mt-0.5 ${isDeleted ? 'text-text-tertiary' : 'text-brand-500'}`}>{formatPrice(listing.price)}</p>
                         </div>
                         <span className={`shrink-0 px-2.5 py-1 text-xs font-medium rounded-lg ${
                           isDeleted
                             ? 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400'
-                            : 'bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400'
+                            : 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-800'
                         }`}>
                           {isDeleted ? 'حذف شده' : 'فعال'}
                         </span>

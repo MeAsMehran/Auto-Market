@@ -38,13 +38,13 @@ export default function Dashboard() {
   const statsList = [
     { label: 'آگهی‌های فعال', value: stats.ads, icon: Car, color: 'text-brand-500', bg: 'bg-brand-50 dark:bg-brand-950', ring: 'ring-brand-500/20' },
     { label: 'تعداد بازدید', value: stats.totalViews, icon: Eye, color: 'text-blue-500 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950', ring: 'ring-blue-500/20' },
-    { label: 'پیام‌ها', value: stats.messages, icon: MessageCircle, color: 'text-accent-500 dark:text-accent-400', bg: 'bg-accent-50 dark:bg-accent-950', ring: 'ring-accent-500/20' },
+    { label: 'پیام‌ها', value: stats.messages, icon: MessageCircle, color: 'text-green-700 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-950', ring: 'ring-green-500/20' },
     { label: 'آگهی‌های پسندیده', value: stats.likes, icon: Heart, color: 'text-red-500 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-950', ring: 'ring-red-500/20' },
   ];
 
   const getStatusLabel = (isActive, isSold) => {
     if (isSold) return { label: 'فروخته شده', class: 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400' };
-    if (isActive) return { label: 'فعال', class: 'bg-accent-50 dark:bg-accent-950 text-accent-600 dark:text-accent-400' };
+    if (isActive) return { label: 'فعال', class: 'bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-400 border border-green-300 dark:border-green-800' };
     return { label: 'در انتظار', class: 'bg-yellow-50 dark:bg-yellow-950 text-yellow-600 dark:text-yellow-400' };
   };
 
@@ -202,6 +202,18 @@ export default function Dashboard() {
                         />
                       </div>
                       <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          {listing.brand && (
+                            <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 text-xs font-medium rounded-lg">
+                              {listing.brand}
+                            </span>
+                          )}
+                          {listing.model_name && (
+                            <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                              {listing.model_name}
+                            </span>
+                          )}
+                        </div>
                         <h3 className="font-medium text-text-primary text-sm truncate">{listing.title}</h3>
                         <p className="text-brand-500 font-semibold text-sm">
                           {listing.price ? formatPrice(listing.price) : 'توافقی'}

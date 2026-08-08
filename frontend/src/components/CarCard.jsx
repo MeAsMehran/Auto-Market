@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Heart, Car } from 'lucide-react';
+import { MapPin, Clock, Heart, Car, Camera } from 'lucide-react';
 import { useState } from 'react';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { useFavorites } from '../context/FavoritesContext';
@@ -115,9 +115,27 @@ export function CarGridCard({ car }) {
                 ویژه
               </motion.span>
             )}
+            {car.images?.length > 0 && (
+              <span className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-md flex items-center gap-1">
+                <Camera className="w-3 h-3" />
+                {toPersianNumber(car.images.length)}
+              </span>
+            )}
             <FavoriteButton car={car} />
           </div>
           <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              {car.brand && (
+                <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 text-xs font-medium rounded-lg">
+                  {car.brand}
+                </span>
+              )}
+              {car.model_name && (
+                <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                  {car.model_name}
+                </span>
+              )}
+            </div>
             <h3 className="font-semibold text-text-primary text-sm leading-snug mb-1 line-clamp-2 group-hover:text-brand-500 transition-colors">
               {car.title}
             </h3>
@@ -158,10 +176,28 @@ export function CarListCard({ car }) {
           {car.is_featured && (
             <span className="absolute top-2 right-2 bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg">ویژه</span>
           )}
+          {car.images?.length > 0 && (
+            <span className="absolute top-2 left-2 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-md flex items-center gap-1">
+              <Camera className="w-3 h-3" />
+              {toPersianNumber(car.images.length)}
+            </span>
+          )}
           <FavoriteButton car={car} size="sm" />
         </div>
         <div className="flex-1 p-5 flex flex-col justify-between">
           <div>
+            <div className="flex items-center gap-2 mb-1">
+              {car.brand && (
+                <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 text-xs font-medium rounded-lg">
+                  {car.brand}
+                </span>
+              )}
+              {car.model_name && (
+                <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                  {car.model_name}
+                </span>
+              )}
+            </div>
             <h3 className="font-semibold text-text-primary group-hover:text-brand-500 transition-colors">{car.title}</h3>
             <div className="flex flex-wrap gap-2 mt-2">
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.year)}</span>

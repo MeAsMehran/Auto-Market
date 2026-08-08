@@ -9,6 +9,7 @@ import { useLikedAds } from '../hooks/useLikedAds';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 import ProfileSidebar from '../components/ProfileSidebar';
 import { useStats } from '../context/StatsContext';
+import { toPersianNumber } from '../utils/format';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -219,13 +220,25 @@ function LikedCarCard({ car, onRemove }) {
           )}
         </div>
         <div className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            {car.brand && (
+              <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 text-xs font-medium rounded-lg">
+                {car.brand}
+              </span>
+            )}
+            {car.model_name && (
+              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                {car.model_name}
+              </span>
+            )}
+          </div>
           <h3 className="font-semibold text-text-primary text-sm leading-snug mb-1 line-clamp-2 group-hover:text-brand-500 transition-colors">
             {car.title}
           </h3>
           <p className="text-lg font-bold text-brand-500 mb-2">{formatPrice(car.price)}</p>
           <div className="flex flex-wrap gap-1.5 mb-3">
-            <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.year}</span>
-            <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.mileage?.toLocaleString('fa-IR')} ک.م</span>
+            <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.year)}</span>
+            <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.mileage?.toLocaleString('fa-IR'))} ک.م</span>
             <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{FUEL_LABELS[car.fuel_type] || car.fuel_type}</span>
           </div>
           <div className="flex items-center justify-between text-xs text-text-tertiary">
