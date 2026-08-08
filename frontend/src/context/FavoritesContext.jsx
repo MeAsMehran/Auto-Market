@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { addFavorite, removeFavorite, getFavorites } from '../lib/carApi';
 import { useAuth } from './AuthContext';
+import { useStats } from './StatsContext';
 
 const FavoritesContext = createContext(null);
 
@@ -86,6 +87,7 @@ export function clearFavoritesCache() {
 
 export function FavoritesProvider({ children }) {
   const { user, loading: authLoading } = useAuth();
+  const { updateLikes } = useStats();
   const isAuthenticated = !!user;
 
   // Seed state instantly from the in-memory singleton or the localStorage
@@ -176,16 +178,20 @@ export function FavoritesProvider({ children }) {
       sync(globalData);
 
       try {
-        if (nextLiked) await addFavorite(car.id);
-        else await removeFavorite(car.id);
-        window.dispatchEvent(new Event('stats-refresh'));
+        if (nextLiked) {
+          await addFavorite(car.id);
+          updateLikes(1);
+        } else {
+          await removeFavorite(car.id);
+          updateLikes(-1);
+        }
       } catch {
         // Roll back on failure.
         updateSingleton(car, wasLiked);
         sync(globalData);
       }
     },
-    [state.ids, sync]
+    [state.ids, sync, updateLikes]
   );
 
   const isLiked = useCallback((carId) => state.ids.has(carId), [state.ids]);

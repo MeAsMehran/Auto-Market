@@ -64,16 +64,12 @@ export function StatsProvider({ children }) {
     }
   }, [user]);
 
-  useEffect(() => {
-    const handleStatsRefresh = () => {
-      setFetched(false);
-    };
-    window.addEventListener('stats-refresh', handleStatsRefresh);
-    return () => window.removeEventListener('stats-refresh', handleStatsRefresh);
+  const updateLikes = useCallback((delta) => {
+    setStats((prev) => ({ ...prev, likes: Math.max(0, prev.likes + delta) }));
   }, []);
 
   return (
-    <StatsContext.Provider value={{ stats, loading, error, fetchStats, refreshStats }}>
+    <StatsContext.Provider value={{ stats, loading, error, fetchStats, refreshStats, updateLikes }}>
       {children}
     </StatsContext.Provider>
   );
