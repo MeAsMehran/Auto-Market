@@ -12,6 +12,7 @@ from drf_spectacular.utils import extend_schema
 from ..models import Car, Favorite
 from ..serializers.favorite_serializer import ListFavoriteAdSerializer
 from ..filters import CarFilter
+from core.permissions.not_car_ad_owner import NotCarAdOwner
 
 from core.pagination.pagination import SmallPageNumberPagination
 
@@ -24,7 +25,7 @@ from core.pagination.pagination import SmallPageNumberPagination
 '''
 
 class AddFavoriteAdView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , NotCarAdOwner]
     
     @extend_schema(
     responses={201: None, 200: None}
@@ -32,12 +33,12 @@ class AddFavoriteAdView(APIView):
     def post(self, request, car_ad_id):
         current_user = request.user
         car_ad       = get_object_or_404(Car, pk=car_ad_id, is_active=True)  
-        favorite_ad, created  = Favorite.objects.get_or_create(user=current_user, car=car_ad)   # get_or_create returns a tupple: (instance, created) where created is True if a new row was inserted, False if it already existed.
+        favorite_ad, created = Favorite.objects.get_or_create(user=current_user, car=car_ad)   # get_or_create returns a tupple: (instance, created) where created is True if a new row was inserted, False if it already existed.
         return Response(status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
 class RemoveFavoriteAdView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated , NotCarAdOwner]
     
     @extend_schema(
     responses={204: None, 404: None}

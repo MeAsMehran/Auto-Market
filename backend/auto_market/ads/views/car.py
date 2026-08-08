@@ -55,8 +55,8 @@ class DeleteCarAdView(APIView):
     responses={204: None},
     description="Soft-delete a car ad. Sets is_active=False. Only the car owner can delete their ad.",
     )
-    def delete(self, request, car_id):
-        car = get_object_or_404(Car, pk=car_id, is_active=True)
+    def delete(self, request, car_ad_id):
+        car = get_object_or_404(Car, pk=car_ad_id, is_active=True, seller=request.user)
         car.is_active = False
         car.save(update_fields=['is_active'])
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -78,12 +78,12 @@ class DetailCarAdView(APIView):
             ),
         ],
     )
-    def get(self, request, car_id):
+    def get(self, request, car_ad_id):
         include_deleted = request.query_params.get('include_deleted')
 
         if include_deleted == 'true':
             try:
-                car = Car.objects.select_related('seller').prefetch_related('images').get(id=car_id)
+                car = Car.objects.select_related('seller').prefetch_related('images').get(id=car_ad_id)
                                     
             except Car.DoesNotExist:
                 raise NotFound("آگهی یافت نشد.")
@@ -93,7 +93,7 @@ class DetailCarAdView(APIView):
 
         else:
             try:
-                car = Car.objects.select_related('seller').prefetch_related('images').get(id=car_id, is_active=True)
+                car = Car.objects.select_related('seller').prefetch_related('images').get(id=car_ad_id, is_active=True)
             except Car.DoesNotExist:
                 raise NotFound("آگهی یافت نشد.")
         
@@ -147,8 +147,8 @@ class UpdateCarAdView(APIView):
         request=UpdateCarAdSerializer,
         responses={200: UpdateCarAdSerializer},
     )
-    def patch(self, request, car_id):
-        car_ad = get_object_or_404(Car, pk=car_id, seller=request.user)
+    def patch(self, request, car_ad_id):
+        car_ad = get_object_or_404(Car, pk=car_ad_id, seller=request.user)
         serializer = UpdateCarAdSerializer(car_ad, data=request.data, partial=True)
 
         if serializer.is_valid():
@@ -220,8 +220,8 @@ class RestoreCarAdView(APIView):
     responses={200: None},
     description="Restore a soft-deleted car ad. Sets is_active=True. Only the car owner can restore.",
     )
-    def post(self, request, car_id):
-        car_ad = get_object_or_404(Car, pk=car_id, is_active=False)
+    def post(self, request, car_ad_id):
+        car_ad = get_object_or_404(Car, pk=car_ad_id, is_active=False, seller=request.user)
         car_ad.is_active = True
         car_ad.save(update_fields=['is_active'])
         return Response(status=status.HTTP_200_OK)

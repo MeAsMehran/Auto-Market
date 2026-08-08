@@ -39,8 +39,8 @@ class CarImageUploadView(APIView):
     },
     responses={201: CreateCarImageSerializer},
     )
-    def post(self, request, car_id):
-        car = get_object_or_404(Car, id=car_id) 
+    def post(self, request, car_ad_id):
+        car = get_object_or_404(Car, id=car_ad_id) 
         serializer = CreateCarImageSerializer(data=request.data, context={'car': car})
         if serializer.is_valid():
             serializer.save()
@@ -57,7 +57,7 @@ class CarImageDeleteView(APIView):
     description="Delete an image belonging to a car. Only the owner of the car can perform this action.",
     parameters=[
         OpenApiParameter(
-            name="car_id",
+            name="car_ad_id",
             type=int,
             location=OpenApiParameter.PATH,
             description="ID of the car.",
@@ -76,8 +76,8 @@ class CarImageDeleteView(APIView):
         404: OpenApiResponse(description="Car or image not found."),
     },
     )
-    def delete(self, request, car_id, image_id):
-        car = get_object_or_404(Car, id=car_id, seller=request.user)
+    def delete(self, request, car_ad_id, image_id):
+        car = get_object_or_404(Car, id=car_ad_id, seller=request.user)
         image = get_object_or_404(CarImage, id=image_id, car=car)
         image.image.delete(save=False)      # delete the actual file from storage
         image.delete()                      # delete the DB record
@@ -91,9 +91,9 @@ class CarImageListView(APIView):
         responses={200: DetailCarImageSerializer(many=True)},
         description="List all images for a specific car.",
     )
-    def get(self, request, car_id):
+    def get(self, request, car_ad_id):
         try:
-            car = Car.objects.get(id=car_id, is_active=True)
+            car = Car.objects.get(id=car_ad_id, is_active=True)
         except Car.DoesNotExist:
             raise NotFound("آگهی یافت نشد.")
 
