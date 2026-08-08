@@ -3,8 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Upload, X, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { getCar, updateCar, uploadCarImages, deleteCarImage } from '../lib/carApi';
 import {
-  BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP, CITY_MAP,
-  FUEL_LABELS, TRANSMISSION_LABELS, CONDITION_LABELS, BODY_LABELS, COLOR_LABELS, CITY_LABELS,
+  BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP,
+  PROVINCES, getCitiesForProvince, getProvinceForCity,
+  FUEL_LABELS, TRANSMISSION_LABELS, CONDITION_LABELS, BODY_LABELS, COLOR_LABELS,
 } from '../lib/constants';
 import { fixImageUrl } from '../components/CarCard';
 
@@ -13,7 +14,6 @@ const TRANSMISSION_OPTIONS = Object.keys(TRANSMISSION_MAP);
 const CONDITION_OPTIONS = Object.keys(CONDITION_MAP);
 const BODY_OPTIONS = Object.keys(BODY_MAP);
 const COLOR_OPTIONS = Object.keys(COLOR_MAP);
-const CITY_OPTIONS = Object.keys(CITY_MAP);
 
 const SLOT_CONFIG = [
   { key: 'front',  label: 'جلو',      desc: 'نمای جلوی خودرو',  order: 0 },
@@ -33,11 +33,12 @@ export default function EditAd() {
   const [form, setForm] = useState({
     brand: '', model_name: '', year: '', price: '', mileage: '',
     fuel_type: '', transmission: '', condition: '', body_type: '',
-    color: '', city: '', title: '', description: '',
+    color: '', province: '', city: '', title: '', description: '',
   });
   const [features, setFeatures] = useState([]);
   const [featureInput, setFeatureInput] = useState('');
   const [stepErrors, setStepErrors] = useState({});
+  const [cityOptions, setCityOptions] = useState([]);
 
   const [existingImages, setExistingImages] = useState([]);
   const [removedImageIds, setRemovedImageIds] = useState([]);
@@ -63,6 +64,8 @@ export default function EditAd() {
     try {
       const car = await getCar(id);
       if (latestIdRef.current !== id) return;
+      const loadedCity = CITY_LABELS[car.city] || car.city || '';
+      const foundProvince = getProvinceForCity(loadedCity);
       setForm({
         brand: car.brand || '',
         model_name: car.model_name || '',
@@ -74,10 +77,14 @@ export default function EditAd() {
         condition: CONDITION_LABELS[car.condition] || '',
         body_type: BODY_LABELS[car.body_type] || '',
         color: COLOR_LABELS[car.color] || '',
-        city: CITY_LABELS[car.city] || '',
+        province: foundProvince || car.province || '',
+        city: loadedCity,
         title: car.title || '',
         description: car.description || '',
       });
+      if (foundProvince) {
+        setCityOptions(getCitiesForProvince(foundProvince));
+      }
       setFeatures(car.features || []);
       setExistingImages(Array.isArray(car.images) ? car.images : car.images?.results || []);
     } catch {
@@ -90,6 +97,12 @@ export default function EditAd() {
   };
 
   const updateForm = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleProvinceChange = (e) => {
+    const province = e.target.value;
+    setCityOptions(province ? getCitiesForProvince(province) : []);
+    setForm((prev) => ({ ...prev, province, city: '' }));
+  };
 
   const addFeature = () => {
     const trimmed = featureInput.trim();
@@ -125,6 +138,7 @@ export default function EditAd() {
   };
   const validateStep3 = () => {
     const missing = [];
+    if (!form.province) missing.push('استان');
     if (!form.city) missing.push('شهر');
     if (!form.color) missing.push('رنگ');
     return missing.length ? `لطفاً این فیلدها را پر کنید: ${missing.join('، ')}` : null;
@@ -184,7 +198,8 @@ export default function EditAd() {
         body_type: BODY_MAP[form.body_type],
         condition: CONDITION_MAP[form.condition],
         color: COLOR_MAP[form.color],
-        city: CITY_MAP[form.city],
+        province: form.province,
+        city: form.city,
         description: form.description,
         features,
       };
@@ -210,7 +225,7 @@ export default function EditAd() {
         const fieldLabels = {
           title: 'عنوان', brand: 'برند', model_name: 'مدل', year: 'سال ساخت',
           price: 'قیمت', mileage: 'کارکرد', fuel_type: 'نوع سوخت', transmission: 'گیربکس',
-          body_type: 'نوع بدنه', condition: 'وضعیت', color: 'رنگ', city: 'شهر',
+          body_type: 'نوع بدنه', condition: 'وضعیت', color: 'رنگ', province: 'استان', city: 'شهر',
           description: 'توضیحات', features: 'امکانات', detail: 'جزئیات',
           non_field_errors: 'خطا',
         };
@@ -438,21 +453,29 @@ export default function EditAd() {
             <h2 className="text-lg font-bold text-text-primary">مکان و رنگ</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium text-text-primary mb-1.5">استان *</label>
+                <select value={form.province} onChange={handleProvinceChange} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.province ? 'border-red-500' : 'border-border'}`} required>
+                  <option value="">انتخاب استان</option>
+                  {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+                {stepErrors.province && <p className="text-xs text-red-500 mt-1">{stepErrors.province}</p>}
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">شهر *</label>
-                <select value={form.city} onChange={(e) => { updateForm('city', e.target.value); setStepErrors((p) => ({ ...p, city: undefined })); }} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.city ? 'border-red-500' : 'border-border'}`} required>
+                <select value={form.city} onChange={(e) => { updateForm('city', e.target.value); setStepErrors((p) => ({ ...p, city: undefined })); }} disabled={!form.province} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${stepErrors.city ? 'border-red-500' : 'border-border'}`} required>
                   <option value="">انتخاب شهر</option>
-                  {CITY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {cityOptions.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
                 {stepErrors.city && <p className="text-xs text-red-500 mt-1">{stepErrors.city}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">رنگ *</label>
-                <select value={form.color} onChange={(e) => { updateForm('color', e.target.value); setStepErrors((p) => ({ ...p, color: undefined })); }} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.color ? 'border-red-500' : 'border-border'}`} required>
-                  <option value="">انتخاب رنگ</option>
-                  {COLOR_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                {stepErrors.color && <p className="text-xs text-red-500 mt-1">{stepErrors.color}</p>}
-              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1.5">رنگ *</label>
+              <select value={form.color} onChange={(e) => { updateForm('color', e.target.value); setStepErrors((p) => ({ ...p, color: undefined })); }} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.color ? 'border-red-500' : 'border-border'}`} required>
+                <option value="">انتخاب رنگ</option>
+                {COLOR_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {stepErrors.color && <p className="text-xs text-red-500 mt-1">{stepErrors.color}</p>}
             </div>
             <div className="bg-green-100 dark:bg-green-950 border border-green-300 dark:border-green-800 rounded-xl p-4 flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-accent-500 shrink-0 mt-0.5" />
