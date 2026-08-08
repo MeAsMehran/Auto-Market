@@ -38,7 +38,7 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             <Link to="/" className="flex items-center gap-2 shrink-0">
               <Car className="w-7 h-7 text-brand-500" />
-              <span className="text-xl font-bold text-brand-700 hidden sm:block">آتو مارکت</span>
+              <span className="text-xl font-bold text-brand-600 dark:text-brand-400 hidden sm:block">آتو مارکت</span>
             </Link>
 
             <div className="relative">

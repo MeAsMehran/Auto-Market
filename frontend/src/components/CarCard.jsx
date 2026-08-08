@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { MapPin, Clock, Heart, Car, Camera } from 'lucide-react';
+import { MapPin, Clock, Heart, Car } from 'lucide-react';
 import { useState } from 'react';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
 import { useFavorites } from '../context/FavoritesContext';
@@ -85,7 +85,7 @@ function FavoriteButton({ car, size = 'md' }) {
   );
 }
 
-export function CarGridCard({ car }) {
+export function CarGridCard({ car, isOwner = false }) {
   return (
     <motion.div variants={fadeUpItem} className="will-change-transform">
       <Link
@@ -110,23 +110,26 @@ export function CarGridCard({ car }) {
               <motion.span
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="absolute top-3 right-3 bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md"
+                className="absolute top-3 right-3 bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md z-10"
               >
                 ویژه
               </motion.span>
             )}
-            {car.images?.length > 0 && (
-              <span className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-md flex items-center gap-1">
-                <Camera className="w-3 h-3" />
-                {toPersianNumber(car.images.length)}
-              </span>
+            {isOwner && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`absolute top-3 left-3 bg-brand-600 dark:bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md z-10 ${car.is_featured ? 'right-3 left-auto' : ''}`}
+              >
+                مال من
+              </motion.span>
             )}
-            <FavoriteButton car={car} />
+            {!isOwner && <FavoriteButton car={car} />}
           </div>
           <div className="p-4">
             <div className="flex items-center gap-2 mb-2">
               {car.brand && (
-                <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 text-xs font-medium rounded-lg">
+                <span className="px-2 py-0.5 bg-[#1d4ed8] dark:bg-brand-900 text-white dark:text-brand-300 text-xs font-medium rounded-lg">
                   {car.brand}
                 </span>
               )}
@@ -156,7 +159,7 @@ export function CarGridCard({ car }) {
   );
 }
 
-export function CarListCard({ car }) {
+export function CarListCard({ car, isOwner = false }) {
   return (
     <motion.div variants={fadeInLeftItem} className="will-change-transform">
       <Link
@@ -176,19 +179,16 @@ export function CarListCard({ car }) {
           {car.is_featured && (
             <span className="absolute top-2 right-2 bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg">ویژه</span>
           )}
-          {car.images?.length > 0 && (
-            <span className="absolute top-2 left-2 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-md flex items-center gap-1">
-              <Camera className="w-3 h-3" />
-              {toPersianNumber(car.images.length)}
-            </span>
+          {isOwner && (
+            <span className="absolute top-2 left-2 bg-brand-600 dark:bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg">مال من</span>
           )}
-          <FavoriteButton car={car} size="sm" />
+          {!isOwner && <FavoriteButton car={car} size="sm" />}
         </div>
         <div className="flex-1 p-5 flex flex-col justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
               {car.brand && (
-                <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 text-xs font-medium rounded-lg">
+                <span className="px-2 py-0.5 bg-[#1d4ed8] dark:bg-brand-900 text-white dark:text-brand-300 text-xs font-medium rounded-lg">
                   {car.brand}
                 </span>
               )}

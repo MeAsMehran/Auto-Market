@@ -83,6 +83,7 @@ class DetailCarAdSerializer(serializers.Serializer):
 class ListCarAdSerializer(serializers.Serializer):
 
     id           = serializers.IntegerField(read_only=True)
+    seller_id    = serializers.IntegerField(source='seller.id', read_only=True)
     title        = serializers.CharField(read_only=True)
     brand        = serializers.CharField(read_only=True)
     model_name   = serializers.CharField(read_only=True)

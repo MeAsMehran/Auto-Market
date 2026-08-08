@@ -194,12 +194,14 @@ export default function CarDetail() {
                 </p>
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={(e) => toggleLike(car, e)}
-                  className={`p-3 rounded-xl transition-colors ${liked ? 'text-red-500 bg-red-50 dark:bg-red-950' : 'text-text-secondary hover:bg-surface-tertiary'}`}
-                >
-                  <Heart className={`w-5 h-5 ${liked ? 'fill-red-500' : ''}`} />
-                </button>
+                {!isOwner && (
+                  <button
+                    onClick={(e) => toggleLike(car, e)}
+                    className={`p-3 rounded-xl transition-colors ${liked ? 'text-red-500 bg-red-50 dark:bg-red-950' : 'text-text-secondary hover:bg-surface-tertiary'}`}
+                  >
+                    <Heart className={`w-5 h-5 ${liked ? 'fill-red-500' : ''}`} />
+                  </button>
+                )}
                 <button className="p-3 text-text-secondary hover:bg-surface-tertiary rounded-xl transition-colors">
                   <Share2 className="w-5 h-5" />
                 </button>
