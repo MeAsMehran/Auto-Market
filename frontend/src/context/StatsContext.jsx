@@ -64,6 +64,14 @@ export function StatsProvider({ children }) {
     }
   }, [user]);
 
+  useEffect(() => {
+    const handleStatsRefresh = () => {
+      setFetched(false);
+    };
+    window.addEventListener('stats-refresh', handleStatsRefresh);
+    return () => window.removeEventListener('stats-refresh', handleStatsRefresh);
+  }, []);
+
   return (
     <StatsContext.Provider value={{ stats, loading, error, fetchStats, refreshStats }}>
       {children}

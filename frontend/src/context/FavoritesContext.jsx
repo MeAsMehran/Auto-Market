@@ -178,6 +178,7 @@ export function FavoritesProvider({ children }) {
       try {
         if (nextLiked) await addFavorite(car.id);
         else await removeFavorite(car.id);
+        window.dispatchEvent(new Event('stats-refresh'));
       } catch {
         // Roll back on failure.
         updateSingleton(car, wasLiked);
