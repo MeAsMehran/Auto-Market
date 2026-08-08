@@ -451,7 +451,7 @@ export default function PostAd() {
               </div>
             </div>
 
-            <div className="bg-accent-50 dark:bg-accent-950 border border-accent-200 dark:border-accent-800 rounded-xl p-4 flex items-start gap-3">
+            <div className="bg-green-100 dark:bg-green-950 border border-green-300 dark:border-green-800 rounded-xl p-4 flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-accent-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-green-800 dark:text-green-300">نزدیک به اتمام!</p>

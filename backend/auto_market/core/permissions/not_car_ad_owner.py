@@ -2,7 +2,6 @@
 from django.shortcuts import get_object_or_404
 
 from rest_framework.permissions import SAFE_METHODS, BasePermission
-from rest_framework.exceptions import PermissionDenied
 
 from ads.models import Car
 

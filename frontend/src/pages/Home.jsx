@@ -3,8 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Search, SlidersHorizontal, Grid3X3, List, MapPin, Clock,
-  ChevronLeft, ChevronRight, AlertCircle, Car, Truck,
-  Bus, Bike, Star, Shield, Users, TrendingUp
+  ChevronLeft, ChevronRight, AlertCircle, Car, Truck, Star, Shield, Users, TrendingUp
 } from 'lucide-react';
 import { getCars } from '../lib/carApi';
 import { useDebouncedValue } from '../hooks/useDebouncedValue';
@@ -14,6 +13,7 @@ import { staggerContainer } from '../components/AnimatedPage';
 import { CITY_LABELS } from '../lib/constants';
 import { formatPrice, toPersianNumber } from '../utils/format';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { useAuth } from '../context/AuthContext';
 
 const MOCK_CARS = [
   { id: 1, title: '۲۰۲۲ تسلا مدل ۳ لانگ رنج', price: 4500000000, year: 2022, mileage: 12000, fuel_type: 'electric', transmission: 'automatic', city: 'تهران', created_at: '2026-07-27T10:00:00Z', image: 'https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=400&h=300&fit=crop', color: 'سفید', is_featured: true, brand: 'تسلا', model: 'مدل ۳' },
@@ -34,9 +34,9 @@ const bodyTypes = [
   { key: 'sedan', label: 'سدان', icon: Car },
   { key: 'suv', label: 'شاسی‌بلند', icon: Truck },
   { key: 'hatchback', label: 'هاچ‌بک', icon: Car },
-  { key: 'crossover', label: 'کراس‌اوور', icon: Bus },
+  { key: 'crossover', label: 'کراس‌اوور', icon: Truck },
   { key: 'pickup', label: 'وانت', icon: Truck },
-  { key: 'coupe', label: 'کوپه', icon: Bike },
+  { key: 'coupe', label: 'کوپه', icon: Car },
 ];
 
 function CarSilhouette({ className = '', speed = 14, delay = 0, size = 200, y = 0, reducedMotion = false }) {
@@ -167,6 +167,7 @@ function FeaturedMarquee({ cars, reducedMotion = false }) {
 }
 
 export default function Home() {
+  const { user } = useAuth();
   const reducedMotion = useReducedMotion();
   const [searchParams, setSearchParams] = useSearchParams();
   const [viewMode, setViewMode] = useState('grid');
@@ -498,7 +499,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
+        <div className="mt-6 -mx-4 sm:-mx-6 px-4 sm:px-6 flex items-center gap-2 overflow-x-auto scrollbar-hide pb-2">
           {bodyTypes.map(({ key, label, icon: Icon }) => (
             <motion.button
               key={key}
@@ -551,7 +552,7 @@ export default function Home() {
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
           >
             {filteredCars.map((car) => (
-              <CarGridCard key={car.id} car={car} />
+              <CarGridCard key={car.id} car={car} isOwner={user && car.seller_id === user.id} />
             ))}
           </motion.div>
         )}
@@ -566,7 +567,7 @@ export default function Home() {
             className="space-y-4"
           >
             {filteredCars.map((car) => (
-              <CarListCard key={car.id} car={car} />
+              <CarListCard key={car.id} car={car} isOwner={user && car.seller_id === user.id} />
             ))}
           </motion.div>
         )}

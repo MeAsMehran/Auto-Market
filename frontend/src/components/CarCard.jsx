@@ -85,7 +85,7 @@ function FavoriteButton({ car, size = 'md' }) {
   );
 }
 
-export function CarGridCard({ car }) {
+export function CarGridCard({ car, isOwner = false }) {
   return (
     <motion.div variants={fadeUpItem} className="will-change-transform">
       <Link
@@ -110,14 +110,35 @@ export function CarGridCard({ car }) {
               <motion.span
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="absolute top-3 right-3 bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md"
+                className="absolute top-3 right-3 bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md z-10"
               >
                 ویژه
               </motion.span>
             )}
-            <FavoriteButton car={car} />
+            {isOwner && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`absolute top-3 left-3 bg-brand-600 dark:bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md z-10 ${car.is_featured ? 'right-3 left-auto' : ''}`}
+              >
+                مال من
+              </motion.span>
+            )}
+            {!isOwner && <FavoriteButton car={car} />}
           </div>
           <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              {car.brand && (
+                <span className="px-2 py-0.5 bg-[#1d4ed8] dark:bg-brand-900 text-white dark:text-brand-300 text-xs font-medium rounded-lg">
+                  {car.brand}
+                </span>
+              )}
+              {car.model_name && (
+                <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                  {car.model_name}
+                </span>
+              )}
+            </div>
             <h3 className="font-semibold text-text-primary text-sm leading-snug mb-1 line-clamp-2 group-hover:text-brand-500 transition-colors">
               {car.title}
             </h3>
@@ -138,7 +159,7 @@ export function CarGridCard({ car }) {
   );
 }
 
-export function CarListCard({ car }) {
+export function CarListCard({ car, isOwner = false }) {
   return (
     <motion.div variants={fadeInLeftItem} className="will-change-transform">
       <Link
@@ -158,10 +179,25 @@ export function CarListCard({ car }) {
           {car.is_featured && (
             <span className="absolute top-2 right-2 bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg">ویژه</span>
           )}
-          <FavoriteButton car={car} size="sm" />
+          {isOwner && (
+            <span className="absolute top-2 left-2 bg-brand-600 dark:bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg">مال من</span>
+          )}
+          {!isOwner && <FavoriteButton car={car} size="sm" />}
         </div>
         <div className="flex-1 p-5 flex flex-col justify-between">
           <div>
+            <div className="flex items-center gap-2 mb-1">
+              {car.brand && (
+                <span className="px-2 py-0.5 bg-[#1d4ed8] dark:bg-brand-900 text-white dark:text-brand-300 text-xs font-medium rounded-lg">
+                  {car.brand}
+                </span>
+              )}
+              {car.model_name && (
+                <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                  {car.model_name}
+                </span>
+              )}
+            </div>
             <h3 className="font-semibold text-text-primary group-hover:text-brand-500 transition-colors">{car.title}</h3>
             <div className="flex flex-wrap gap-2 mt-2">
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.year)}</span>
