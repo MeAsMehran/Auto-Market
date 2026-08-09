@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Search, Send, Phone, Car, CheckCheck, MoreVertical, ArrowLeft, User, MessageCircle } from 'lucide-react';
+import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
 
 const MOCK_CONVERSATIONS = [
   { id: 1, name: 'امیر ر.', lastMessage: 'آیا قیمت قابل مذاکره است؟', time: '۲ دقیقه پیش', unread: 2, online: true, car: 'تسلا مدل ۳', avatar: null },
@@ -39,7 +41,12 @@ export default function Chat() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      <div className="bg-surface rounded-2xl border border-border overflow-hidden h-[calc(100vh-12rem)] min-h-[500px] flex">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className="bg-surface rounded-2xl border border-border overflow-hidden h-[calc(100vh-12rem)] min-h-[500px] flex"
+      >
         <div className={`w-full sm:w-96 border-l border-border flex flex-col ${!showMobileList && 'hidden sm:flex'}`}>
           <div className="p-4 border-b border-border">
             <h2 className="font-bold text-text-primary text-lg mb-3">پیام‌ها</h2>
@@ -55,7 +62,12 @@ export default function Chat() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto">
+          <motion.div
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
+            className="flex-1 overflow-y-auto"
+          >
             {filteredConversations.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <MessageCircle className="w-8 h-8 mx-auto text-text-tertiary mb-2" />
@@ -63,10 +75,13 @@ export default function Chat() {
               </div>
             ) : (
               filteredConversations.map((conv) => (
-                <button
+                <motion.button
                   key={conv.id}
+                  variants={fadeUpItem}
+                  whileHover={{ x: -4 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                   onClick={() => { setSelectedChat(conv.id); setShowMobileList(false); }}
-                  className={`w-full flex items-center gap-3 p-4 hover:bg-surface-secondary transition-colors border-b border-border-light text-right ${selectedChat === conv.id ? 'bg-brand-50 dark:bg-brand-950' : ''}`}
+                  className={`w-full flex items-center gap-3 p-4 hover:bg-surface-secondary transition-colors border-b border-border-light text-right will-change-transform ${selectedChat === conv.id ? 'bg-brand-50 dark:bg-brand-950' : ''}`}
                 >
                   <div className="relative shrink-0">
                     <div className="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center">
@@ -87,10 +102,10 @@ export default function Chat() {
                       {conv.unread}
                     </span>
                   )}
-                </button>
+                </motion.button>
               ))
             )}
-          </div>
+          </motion.div>
         </div>
 
         {selectedChat && activeConversation ? (
@@ -119,18 +134,25 @@ export default function Chat() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {MOCK_MESSAGES.map((msg) => (
-                <div key={msg.id} className={`flex ${msg.sender === 'me' ? 'justify-start' : 'justify-end'}`}>
-                  <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${msg.sender === 'me' ? 'bg-brand-500 text-white rounded-bl-md' : 'bg-surface-tertiary text-text-primary rounded-br-md'}`}>
-                    <p>{msg.text}</p>
-                    <div className={`flex items-center gap-1 mt-1 ${msg.sender === 'me' ? 'justify-start' : 'justify-end'}`}>
-                      <span className={`text-[10px] ${msg.sender === 'me' ? 'text-white/70' : 'text-text-tertiary'}`}>{msg.time}</span>
-                      {msg.sender === 'me' && <CheckCheck className="w-3 h-3 text-white/70" />}
+            <div className="flex-1 overflow-y-auto p-4">
+              <motion.div
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+                className="space-y-3"
+              >
+                {MOCK_MESSAGES.map((msg) => (
+                  <motion.div key={msg.id} variants={fadeUpItem} className={`flex ${msg.sender === 'me' ? 'justify-start' : 'justify-end'}`}>
+                    <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${msg.sender === 'me' ? 'bg-brand-500 text-white rounded-bl-md' : 'bg-surface-tertiary text-text-primary rounded-br-md'}`}>
+                      <p>{msg.text}</p>
+                      <div className={`flex items-center gap-1 mt-1 ${msg.sender === 'me' ? 'justify-start' : 'justify-end'}`}>
+                        <span className={`text-[10px] ${msg.sender === 'me' ? 'text-white/70' : 'text-text-tertiary'}`}>{msg.time}</span>
+                        {msg.sender === 'me' && <CheckCheck className="w-3 h-3 text-white/70" />}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                ))}
+              </motion.div>
             </div>
 
             <form onSubmit={handleSend} className="p-4 border-t border-border">
@@ -154,14 +176,19 @@ export default function Chat() {
           </div>
         ) : (
           <div className="hidden sm:flex flex-1 items-center justify-center bg-surface-secondary">
-            <div className="text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.1, ease: 'easeOut' }}
+              className="text-center"
+            >
               <MessageCircle className="w-16 h-16 mx-auto text-text-tertiary mb-4" />
               <h3 className="text-lg font-semibold text-text-primary mb-1">پیام‌های شما</h3>
               <p className="text-text-secondary text-sm max-w-xs">یک گفتگو را انتخاب کنید یا آگهی‌ها را مرور کنید تا با فروشندگان ارتباط برقرار کنید.</p>
-            </div>
+            </motion.div>
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
