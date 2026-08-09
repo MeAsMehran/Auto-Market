@@ -1,16 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, X, ChevronRight, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus } from 'lucide-react';
+import { Upload, X, ChevronRight, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus, Gauge, Calendar, Droplet, Settings2, Palette, CircleDot } from 'lucide-react';
 import { createCar, uploadCarImages } from '../lib/carApi';
 import {
-  BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP,
+  BRANDS, FUEL_MAP, TRANSMISSION_MAP, BODY_MAP, COLOR_MAP,
   PROVINCES, getCitiesForProvince,
+  CONDITION_OPTIONS, DETAILED_CONDITION_CATEGORIES,
 } from '../lib/constants';
 import { useStats } from '../context/StatsContext';
 
 const FUEL_OPTIONS = Object.keys(FUEL_MAP);
 const TRANSMISSION_OPTIONS = Object.keys(TRANSMISSION_MAP);
-const CONDITION_OPTIONS = Object.keys(CONDITION_MAP);
 const BODY_OPTIONS = Object.keys(BODY_MAP);
 const COLOR_OPTIONS = Object.keys(COLOR_MAP);
 
@@ -18,8 +18,12 @@ const STORAGE_KEY = 'postAdDraft';
 
 const defaultForm = {
   brand: '', model_name: '', year: '', price: '', mileage: '',
-  fuel_type: '', transmission: '', condition: '', body_type: '',
+  fuel_type: '', transmission: '', body_type: '',
   color: '', province: '', city: '', title: '', description: '',
+  detail_conditions: {
+    body_condition: '', motor_condition: '', gearbox_condition: '',
+    front_suspension_condition: '', electrical_condition: '', cabin_condition: '',
+  },
 };
 
 const DRAFT_TTL = 10 * 60 * 1000;
@@ -97,8 +101,8 @@ export default function PostAd() {
     if (!form.mileage || parseInt(form.mileage, 10) < 0) missing.push('کارکرد');
     if (!form.body_type) missing.push('نوع بدنه');
     if (!form.fuel_type) missing.push('نوع سوخت');
-    if (!form.transmission) missing.push('گیربکس');
-    if (!form.condition) missing.push('وضعیت');
+    if (!form.transmission) missing.push('نوع گیربکس');
+    if (!form.detail_conditions) missing.push('وضعیت فنی');
     return missing.length ? `لطفاً این فیلدها را پر کنید: ${missing.join('، ')}` : null;
   };
 
@@ -180,12 +184,13 @@ export default function PostAd() {
         fuel_type: FUEL_MAP[form.fuel_type],
         transmission: TRANSMISSION_MAP[form.transmission],
         body_type: BODY_MAP[form.body_type],
-        condition: CONDITION_MAP[form.condition],
+        condition: 'good',
         color: COLOR_MAP[form.color],
         province: form.province,
         city: form.city,
         description: form.description,
         features,
+        detail_conditions: form.detail_conditions,
       };
 
       const newCar = await createCar(carData);
@@ -214,9 +219,9 @@ export default function PostAd() {
           price: 'قیمت',
           mileage: 'کارکرد',
           fuel_type: 'نوع سوخت',
-          transmission: 'گیربکس',
+          transmission: 'نوع گیربکس',
           body_type: 'نوع بدنه',
-          condition: 'وضعیت',
+          detail_conditions: 'وضعیت فنی',
           color: 'رنگ',
           province: 'استان',
           city: 'شهر',
@@ -268,73 +273,194 @@ export default function PostAd() {
 
       <form onSubmit={handleSubmit}>
         {step === 1 && (
-          <div className="bg-surface rounded-2xl border border-border p-6 space-y-5">
-            <h2 className="text-lg font-bold text-text-primary">اطلاعات اولیه</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">برند *</label>
-                <select value={form.brand} onChange={(e) => updateForm('brand', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب برند</option>
-                  {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">مدل *</label>
-                <input type="text" value={form.model_name} onChange={(e) => updateForm('model_name', e.target.value)} placeholder="مثال: مدل ۳، X۵، کمری" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">سال ساخت *</label>
-                <select value={form.year} onChange={(e) => updateForm('year', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب سال</option>
-                  {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">قیمت (تومان) *</label>
-                <input type="number" value={form.price} onChange={(e) => updateForm('price', e.target.value)} placeholder="مثال: ۱۵۰۰۰۰۰۰۰" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">کارکرد (کیلومتر) *</label>
-                <input type="number" value={form.mileage} onChange={(e) => updateForm('mileage', e.target.value)} placeholder="مثال: ۱۲۰۰۰" className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">نوع بدنه *</label>
-                <select value={form.body_type} onChange={(e) => updateForm('body_type', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب نوع بدنه</option>
-                  {BODY_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
-                </select>
+          <div className="space-y-6">
+            {/* Main Info Card */}
+            <div className="bg-surface rounded-2xl border border-border p-6">
+              <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
+                <Car className="w-5 h-5 text-brand-500" />
+                اطلاعات خودرو
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Brand */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    برند خودرو
+                  </label>
+                  <select
+                    value={form.brand}
+                    onChange={(e) => updateForm('brand', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">برند را انتخاب کنید</option>
+                    {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+
+                {/* Model */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    مدل خودرو
+                  </label>
+                  <input
+                    type="text"
+                    value={form.model_name}
+                    onChange={(e) => updateForm('model_name', e.target.value)}
+                    placeholder="مثال: پژو ۲۰۶"
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary/50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Year */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Calendar className="w-3.5 h-3.5" />
+                    سال تولید
+                  </label>
+                  <select
+                    value={form.year}
+                    onChange={(e) => updateForm('year', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">سال را انتخاب کنید</option>
+                    {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Price */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    قیمت (تومان)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => updateForm('price', e.target.value)}
+                    placeholder="۱,۵۰۰,۰۰۰,۰۰۰"
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary/50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Mileage */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Gauge className="w-3.5 h-3.5" />
+                    کارکرد (کیلومتر)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.mileage}
+                    onChange={(e) => updateForm('mileage', e.target.value)}
+                    placeholder="۵۰,۰۰۰"
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary/50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Body Type */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Car className="w-3.5 h-3.5" />
+                    نوع بدنه
+                  </label>
+                  <select
+                    value={form.body_type}
+                    onChange={(e) => updateForm('body_type', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">نوع بدنه را انتخاب کنید</option>
+                    {BODY_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">نوع سوخت *</label>
-                <select value={form.fuel_type} onChange={(e) => updateForm('fuel_type', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب سوخت</option>
-                  {FUEL_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">گیربکس *</label>
-                <select value={form.transmission} onChange={(e) => updateForm('transmission', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب گیربکس</option>
-                  {TRANSMISSION_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">وضعیت *</label>
-                <select value={form.condition} onChange={(e) => updateForm('condition', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب وضعیت</option>
-                  {CONDITION_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+            {/* Fuel & Gearbox Card */}
+            <div className="bg-surface rounded-2xl border border-border p-6">
+              <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
+                <Settings2 className="w-5 h-5 text-brand-500" />
+                مشخصات فنی
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Fuel */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Droplet className="w-3.5 h-3.5" />
+                    نوع سوخت
+                  </label>
+                  <select
+                    value={form.fuel_type}
+                    onChange={(e) => updateForm('fuel_type', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">نوع سوخت را انتخاب کنید</option>
+                    {FUEL_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+
+                {/* Gearbox */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Settings2 className="w-3.5 h-3.5" />
+                    نوع گیربکس
+                  </label>
+                  <select
+                    value={form.transmission}
+                    onChange={(e) => updateForm('transmission', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">نوع گیربکس را انتخاب کنید</option>
+                    {TRANSMISSION_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-start">
-              <button type="button" onClick={goToStep2} className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
-                بعدی <ChevronLeft className="w-4 h-4" />
+            {/* Condition Card */}
+            <div className="bg-surface rounded-2xl border border-border p-6">
+              <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
+                <CircleDot className="w-5 h-5 text-brand-500" />
+                وضعیت فنی خودرو
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {DETAILED_CONDITION_CATEGORIES.map((cat) => (
+                  <div key={cat.key} className="space-y-1.5">
+                    <label className="flex items-center gap-1 text-xs font-medium text-text-secondary">
+                      {cat.label}
+                    </label>
+                    <select
+                      value={form.detail_conditions?.[cat.key] || ''}
+                      onChange={(e) => updateForm('detail_conditions', { ...form.detail_conditions, [cat.key]: e.target.value })}
+                      className="w-full px-2 py-2 bg-surface-tertiary border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                      required
+                    >
+                      <option value="">—</option>
+                      {CONDITION_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={goToStep2}
+                className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white font-semibold rounded-xl transition-all shadow-lg shadow-brand-500/20"
+              >
+                مرحله بعد
+                <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
           </div>

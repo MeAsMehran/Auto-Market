@@ -4,6 +4,9 @@ from django.conf import settings
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVector, SearchVectorField
 from django.db.models import F
+from django.core.exceptions import ValidationError
+
+from core.iran_provinces import utils   # My own package
 
 # Create your models here.
 
@@ -52,63 +55,30 @@ class Car(models.Model):
         ('orange', 'نارنجی'),
         ('other', 'سایر'),
     ]
-    CITY_CHOICES = [
-        ('tehran', 'تهران'),
-        ('isfahan', 'اصفهان'),
-        ('mashhad', 'مشهد'),
-        ('tabriz', 'تبریز'),
-        ('shiraz', 'شیراز'),
-        ('karaj', 'کرج'),
-        ('ahvaz', 'اهواز'),
-        ('qom', 'قم'),
-        ('kermanshah', 'کرمانشاه'),
-        ('urmia', 'ارومیه'),
-        ('rasht', 'رشت'),
-        ('zahedan', 'زاهدان'),
-        ('hamedan', 'همدان'),
-        ('yazd', 'یزد'),
-        ('ardabil', 'اردبیل'),
-        ('bandar_abbas', 'بندرعباس'),
-        ('kerman', 'کرمان'),
-        ('sanandaj', 'سنندج'),
-        ('bojnord', 'بجنورد'),
-        ('sari', 'ساری'),
-        ('bushehr', 'بوشهر'),
-        ('arak', 'اراک'),
-        ('zanjan', 'زنجان'),
-        ('qazvin', 'قزوین'),
-        ('khorramabad', 'خرم‌آباد'),
-        ('birjand', 'بیرجند'),
-        ('noshehr', 'نوشهر'),
-        ('gorgan', 'گرگان'),
-        ('ilam', 'ایلام'),
-        ('semnan', 'سمنان'),
-        ('kashan', 'کاشان'),
-    ]
 
-    seller        = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cars')
-    title         = models.CharField(max_length=200, blank=False, null=False)
-    brand         = models.CharField(max_length=50, blank=False, null=False)
-    model_name    = models.CharField(max_length=50, blank=False, null=False)
-    year          = models.PositiveIntegerField()
-    price         = models.PositiveIntegerField()       # In Tomans
-    mileage       = models.PositiveIntegerField()     # In Kilometer
-    fuel_type     = models.CharField(max_length=20, choices=FUEL_CHOICES, blank=False, null=False)
-    transmission  = models.CharField(max_length=20, choices=TRANSMISSION_CHOICES)
-    body_type     = models.CharField(max_length=20, choices=BODY_CHOICES)
-    condition     = models.CharField(max_length=20, choices=CONDITION_CHOICES)
-    color         = models.CharField(max_length=20, choices=COLOR_CHOICES)
-    city          = models.CharField(max_length=20, choices=CITY_CHOICES)
-    description   = models.TextField()
-    features      = models.JSONField(default=list, blank=True)
-    is_featured   = models.BooleanField(default=False)
-    is_active     = models.BooleanField(default=True)
-    created_at    = models.DateTimeField(auto_now_add=True)
-    updated_at    = models.DateTimeField(auto_now=True)
+    seller            = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='cars')
+    title             = models.CharField(max_length=200, blank=False, null=False)
+    brand             = models.CharField(max_length=50, blank=False, null=False)
+    model_name        = models.CharField(max_length=50, blank=False, null=False)
+    year              = models.PositiveIntegerField()
+    price             = models.PositiveIntegerField()       # In Tomans
+    mileage           = models.PositiveIntegerField()     # In Kilometer
+    fuel_type         = models.CharField(max_length=20, choices=FUEL_CHOICES, blank=False, null=False)
+    transmission      = models.CharField(max_length=20, choices=TRANSMISSION_CHOICES)
+    body_type         = models.CharField(max_length=20, choices=BODY_CHOICES)
+    condition         = models.CharField(max_length=20, choices=CONDITION_CHOICES)  # don't need this after added the detail_conditions (don't comment the condition because i have records with this field)
+    detail_conditions = models.JSONField(default=dict, blank=True)
+    color             = models.CharField(max_length=20, choices=COLOR_CHOICES)
+    province          = models.CharField(max_length=50, choices=[(p, p) for p in utils.PROVINCES])
+    city              = models.CharField(max_length=50, )
+    description       = models.TextField()
+    features          = models.JSONField(default=list, blank=True)
+    is_featured       = models.BooleanField(default=False)
+    is_active         = models.BooleanField(default=True)
+    created_at        = models.DateTimeField(auto_now_add=True)
+    updated_at        = models.DateTimeField(auto_now=True)
 
-    search_vector = SearchVectorField(null=True, blank=True)
-
-    # vin = 
+    search_vector     = SearchVectorField(null=True, blank=True)
 
     class Meta:
         ordering = ['-created_at']
@@ -139,6 +109,15 @@ class Car(models.Model):
         ]
 
     def save(self, *args, **kwargs):
+        # Validate province-city relationship
+        is_valid, error = utils.validate_province_city(self.province, self.city)
+        if not is_valid:
+            raise ValidationError({'city': error})
+
+        # Save without search_vector first
+        self.search_vector = None
+        super().save(*args, **kwargs)
+
         """
         Automatically populate search_vector when a car is saved.
 
@@ -149,7 +128,6 @@ class Car(models.Model):
         """
         # Save without search_vector first
         self.search_vector = None
-        super().save(*args, **kwargs)
         self.search_vector = (
             SearchVector(F('title'), weight='A') +
             SearchVector(F('brand'), weight='B') +

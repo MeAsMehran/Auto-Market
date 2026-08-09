@@ -46,3 +46,4 @@ ALL_CITIES = []
 
 ALL_CITIES = list(dict.fromkeys(chain.from_iterable(PROVINCE_CITY_MAP.values())))
 
+
