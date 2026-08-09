@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
-import { Phone, MessageCircle, Share2, Heart, MapPin, Clock, Fuel, Gauge, Calendar, Settings, CheckCircle, ChevronLeft, ChevronRight, Shield, Flag, User, Edit3, Eye, Trash2, RotateCcw, Sparkles, Star, Palette, Droplet, Settings2, Car, CircleDot } from 'lucide-react';
+import { Phone, MessageCircle, Share2, Heart, MapPin, Clock, Fuel, Gauge, Calendar, Settings, CheckCircle, ChevronLeft, ChevronRight, Shield, Flag, User, Edit3, Eye, Trash2, RotateCcw, Sparkles, Star, Palette, Droplet, Settings2, Car, CircleDot, Wrench, Zap, FileText, ListChecks } from 'lucide-react';
 import { getCar, deleteCar, restoreCar } from '../lib/carApi';
 import {
   FUEL_LABELS, TRANSMISSION_LABELS, COLOR_LABELS, CITY_LABELS, BODY_LABELS,
-  DETAILED_CONDITION_LABELS, CONDITION_LABELS, getConditionBg,
+  DETAILED_CONDITION_LABELS, CONDITION_LABELS, getConditionColor,
 } from '../lib/constants';
 import CarSpinner from '../components/CarSpinner';
 import { useFavorites } from '../context/FavoritesContext';
@@ -18,6 +18,15 @@ function fixImageUrl(url) {
   if (url.startsWith('http')) return url;
   return `${BACKEND_URL}${url.startsWith('/') ? '' : '/'}${url}`;
 }
+
+const CONDITION_ICONS = {
+  body_condition: Car,
+  cabin_condition: User,
+  motor_condition: Settings2,
+  gearbox_condition: Settings,
+  electrical_condition: Zap,
+  front_suspension_condition: Wrench,
+};
 
 export default function CarDetail() {
   const { id } = useParams();
@@ -211,72 +220,64 @@ export default function CarDetail() {
 
             <p className="text-3xl font-bold text-brand-500 mb-6">{formatPrice(car.price)}</p>
 
-            {/* Main Specs Card */}
-            <div className="bg-surface rounded-2xl border border-border p-5 mb-4">
-              <h2 className="text-base font-bold text-text-primary mb-5 flex items-center gap-2">
-                <Settings2 className="w-5 h-5 text-brand-500" />
-                مشخصات اصلی
-              </h2>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Main Specs */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                 {[
                   { icon: Calendar, label: 'سال تولید', value: toPersianNumber(car.year) },
                   { icon: Gauge, label: 'کارکرد', value: `${toPersianNumber(car.mileage?.toLocaleString('fa-IR'))} ک.م` },
                   { icon: Droplet, label: 'نوع سوخت', value: FUEL_LABELS[car.fuel_type] || car.fuel_type },
                   { icon: Settings2, label: 'نوع گیربکس', value: TRANSMISSION_LABELS[car.transmission] || car.transmission },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-3 p-3 bg-surface-tertiary/50 rounded-xl">
-                    <div className="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
-                      <item.icon className="w-5 h-5 text-brand-500" />
+                  <div key={item.label} className="group flex min-h-[104px] flex-col items-center justify-center gap-2 rounded-2xl border border-border bg-surface p-3 text-center transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/40 hover:shadow-lg">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500/10 transition-colors group-hover:bg-brand-500/20">
+                      <item.icon className="h-5 w-5 text-brand-500" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs text-text-tertiary">{item.label}</p>
-                      <p className="font-semibold text-text-primary text-sm truncate">{item.value}</p>
+                      <p className="text-[11px] leading-4 text-text-tertiary">{item.label}</p>
+                      <p className="truncate text-sm font-bold leading-5 text-text-primary">{item.value}</p>
                     </div>
                   </div>
                 ))}
-              </div>
             </div>
 
-            {/* Color & Body Card */}
-            <div className="bg-surface rounded-2xl border border-border p-5 mb-4">
-              <h2 className="text-base font-bold text-text-primary mb-5 flex items-center gap-2">
-                <Palette className="w-5 h-5 text-brand-500" />
-                رنگ و بدنه
-              </h2>
-              <div className="grid grid-cols-2 gap-4">
+            {/* Appearance Specs */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
                 {[
                   { icon: Palette, label: 'رنگ بدنه', value: COLOR_LABELS[car.color] || car.color },
                   { icon: Car, label: 'نوع بدنه', value: BODY_LABELS[car.body_type] || car.body_type },
                 ].map((item) => (
-                  <div key={item.label} className="flex items-center gap-3 p-3 bg-surface-tertiary/50 rounded-xl">
-                    <div className="w-10 h-10 rounded-lg bg-brand-500/10 flex items-center justify-center shrink-0">
-                      <item.icon className="w-5 h-5 text-brand-500" />
+                  <div key={item.label} className="group flex min-h-[92px] items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/40 hover:shadow-lg">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 transition-colors group-hover:bg-brand-500/20">
+                      <item.icon className="h-5 w-5 text-brand-500" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs text-text-tertiary">{item.label}</p>
-                      <p className="font-semibold text-text-primary text-sm truncate">{item.value}</p>
+                      <p className="text-[11px] leading-4 text-text-tertiary">{item.label}</p>
+                      <p className="truncate text-sm font-bold leading-5 text-text-primary">{item.value}</p>
                     </div>
                   </div>
                 ))}
-              </div>
             </div>
 
-            {/* Condition Card */}
+            {/* Technical Condition */}
             {car.detail_conditions && Object.values(car.detail_conditions).some(v => v) && (
-              <div className="bg-surface rounded-2xl border border-border p-5 mb-4">
-                <h2 className="text-base font-bold text-text-primary mb-5 flex items-center gap-2">
-                  <CircleDot className="w-5 h-5 text-brand-500" />
+              <div className="mb-4 rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                <h2 className="mb-5 flex items-center gap-2 text-base font-bold text-text-primary">
+                  <CircleDot className="h-5 w-5 text-brand-500" />
                   وضعیت فنی خودرو
                 </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {Object.entries(car.detail_conditions).map(([key, value]) => {
                     if (!value) return null;
+                    const ConditionIcon = CONDITION_ICONS[key] || CircleDot;
                     return (
-                      <div key={key} className="p-3 bg-surface-tertiary/50 rounded-xl text-center">
-                        <p className="text-xs text-text-tertiary mb-2">{DETAILED_CONDITION_LABELS[key] || key}</p>
-                        <span className={`inline-block px-3 py-1.5 rounded-lg text-xs font-semibold ${getConditionBg(value)}`}>
-                          {CONDITION_LABELS[value] || value}
-                        </span>
+                      <div key={key} className="group flex min-h-[92px] items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-brand-500/40 hover:shadow-lg">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-brand-500/10 transition-colors group-hover:bg-brand-500/20">
+                          <ConditionIcon className="h-5 w-5 text-brand-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] leading-4 text-text-tertiary">{DETAILED_CONDITION_LABELS[key] || key}</p>
+                          <p className={`truncate text-sm font-bold leading-5 ${getConditionColor(value)}`}>{CONDITION_LABELS[value] || value}</p>
+                        </div>
                       </div>
                     );
                   })}
@@ -284,14 +285,20 @@ export default function CarDetail() {
               </div>
             )}
 
-            <div className="mb-6">
-              <h2 className="text-lg font-bold text-text-primary mb-3">توضیحات</h2>
+            <div className="mb-4 rounded-2xl border border-border bg-surface p-5 shadow-sm">
+              <h2 className="mb-3 flex items-center gap-2 text-base font-bold text-text-primary">
+                <FileText className="h-5 w-5 text-brand-500" />
+                توضیحات
+              </h2>
               <p className="text-text-secondary leading-relaxed">{car.description}</p>
             </div>
 
             {car.features && car.features.length > 0 && (
-              <div>
-                <h2 className="text-lg font-bold text-text-primary mb-3">امکانات</h2>
+              <div className="rounded-2xl border border-border bg-surface p-5 shadow-sm">
+                <h2 className="mb-5 flex items-center gap-2 text-base font-bold text-text-primary">
+                  <ListChecks className="h-5 w-5 text-brand-500" />
+                  امکانات
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   {car.features.map((feature) => (
                     <span key={feature} className="flex items-center gap-1.5 px-3 py-1.5 bg-surface-tertiary text-text-secondary text-sm rounded-xl">
