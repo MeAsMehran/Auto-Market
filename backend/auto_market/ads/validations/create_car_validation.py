@@ -2,6 +2,9 @@
 from rest_framework.exceptions import ValidationError
 import datetime
 
+from ..models import Car
+from core.iran_provinces import utils
+
 ###########################
 
 def validate(data):
@@ -17,10 +20,10 @@ def validate(data):
     body_type = data.get('body_type')
     condition = data.get('condition')
     color = data.get('color')
-    city = data.get('city')
     description = data.get('description')
     is_featured = data.get('is_featured')
     features = data.get('features', [])
+    detail_conditions = data.get('detail_conditions', {})       
 
     if not title:
         raise ValidationError("عنوان آگهی الزامی است.")
@@ -51,6 +54,27 @@ def validate(data):
     for feat in features:
         if not isinstance(feat, str) or not feat.strip():
             raise ValidationError("هر امکان باید متن غیر خالی باشد.")   
+
+
+    # detail_conditions_validations:
+
+    # dict(Car.CONDITION_CHOICES) is a dict lookup -> O(1)
+    # Car.CONDITION_CHOICES is a list -> O(n)
+    for condition_key , value in detail_conditions.items():
+        if value not in dict(Car.CONDITION_CHOICES) and value != "":
+            raise ValidationError("The value is not valid")
+
+
+    # Province and City:
+    province = data.get('province') 
+    city = data.get('city')
+
+    if province and city:
+        valid_cities = utils.PROVINCE_CITY_MAP.get(province, [])
+        if city not in valid_cities:
+            raise ValidationError({
+                'city': f"شهر '{city}' در استان '{province}' وجود ندارد"
+            })
 
     return data
 

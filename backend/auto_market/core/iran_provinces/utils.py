@@ -1,5 +1,5 @@
 
-from .data import PROVINCE_CITY_MAP, ALL_CITIES
+from .data import PROVINCE_CITY_MAP, ALL_CITIES, PROVINCES
 
 # Cache for O(1) city → province lookup
 _CITY_TO_PROVINCE = {city: province for province, cities in PROVINCE_CITY_MAP.items() for city in cities}
