@@ -34,6 +34,8 @@ urlpatterns = [
     # ads app:
     path('api/', include('ads.urls')),
 
+    # chat app:
+    path('api/', include('chat.urls')),
 
     # rest_framework_simplejwt: -> we comment these lines because we already do these in accounts LoginView and add refresh token
     # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),

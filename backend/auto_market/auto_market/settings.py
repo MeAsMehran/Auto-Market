@@ -41,6 +41,8 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',   # Daphne must be listed before django.contrib.staticfiles in INSTALLED_APPS.
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -58,6 +60,8 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
     'django_celery_results',
+    'channels',     # must be before 'daphne'
+    
 
     # my apps:
     'accounts.apps.AccountsConfig',
@@ -102,7 +106,9 @@ TEMPLATES = [
     },
 ]
 
+# WSGI & ASGI APPLICATIONS:
 WSGI_APPLICATION = 'auto_market.wsgi.application'
+ASGI_APPLICATION = "auto_market.asgi.application"
 
 
 # rest_framework_simplejwt configuration:
@@ -299,7 +305,15 @@ CELERY_TIMEZONE = "UTC"
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'loopdeloop2003@gmail.com')
 
 
-
+# Django Channels
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [os.getenv("REDIS_URL", "redis://localhost:6379/1")],
+        },
+    },
+}
 
 
 
