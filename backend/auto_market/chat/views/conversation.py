@@ -11,6 +11,7 @@ from rest_framework import status
 from ..serializers.conversations_serializer import (ConversationSerializer, CreateConversationSerializer, GetConversationSerializer, ListConversationsSerializer)
 from ..models import Conversation
 from core.permissions.conversation_owner import ConversationOwner
+from core.pagination.pagination import SmallPageNumberPagination
 
 #####################
 
@@ -73,10 +74,12 @@ class ListConversationsView(APIView):
         responses={200, ListConversationsSerializer}
     )
     def get(self, request):
-        conversations = Conversation.objects.filter(Q(seller=request.user) | Q(buyer=request.user))
+        conversations = Conversation.objects.filter(Q(seller=request.user) | Q(buyer=request.user)).select_related('car_ad', 'car_ad__seller',).order_by('-updated_at')
 
-        serializer = ListConversationsSerializer(conversations, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        paginator = SmallPageNumberPagination()
+        page = paginator.paginate_queryset(conversations, request)
+        serializer = GetConversationSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 
