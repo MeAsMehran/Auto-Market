@@ -37,3 +37,5 @@ class ChatConsumer(AsyncWebsocketConsumer):
             'message': event['message'],
             'sender': event['sender']
         }))
+
+
