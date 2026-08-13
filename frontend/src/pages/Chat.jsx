@@ -119,6 +119,24 @@ export default function Chat() {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
+
+          setConversations((prev) =>
+            prev.map((conv) => {
+              if (conv.id === conversationId) {
+                return {
+                  ...conv,
+                  last_message: {
+                    id: msg.id,
+                    message_text: msg.text,
+                    created_at: msg.created_at,
+                  },
+                  updated_at: new Date().toISOString(),
+                };
+              }
+              return conv;
+            }).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+          );
+
           scrollToBottom();
         }
       } catch (err) {
@@ -284,6 +302,24 @@ export default function Chat() {
         if (prev.some((m) => m.id === normalizedMsg.id)) return prev;
         return [...prev, normalizedMsg];
       });
+
+      setConversations((prev) =>
+        prev.map((conv) => {
+          if (conv.id === selectedChat) {
+            return {
+              ...conv,
+              last_message: {
+                id: savedMessage.id,
+                message_text: savedMessage.message_text || messageText,
+                created_at: savedMessage.created_at,
+              },
+              updated_at: new Date().toISOString(),
+            };
+          }
+          return conv;
+        }).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+      );
+
       scrollToBottom();
     } catch (err) {
       console.error('Send error:', err);
@@ -326,12 +362,16 @@ export default function Chat() {
   const getOtherUser = (conversation) => {
     const carAd = conversation.car_ad || {};
     const seller = carAd.seller || {};
-    const buyer = conversation.buyer;
+    const buyer = conversation.buyer || {};
+
+    if (!user) {
+      return { id: null, name: 'کاربر', isOnline: false };
+    }
 
     let otherUserId;
     let otherUserName;
 
-    if (user && seller.id === user.id) {
+    if (seller.id === user.id) {
       otherUserId = buyer?.id;
       otherUserName = buyer?.name || 'کاربر';
     } else {
@@ -403,7 +443,7 @@ export default function Chat() {
             animate="animate"
             className="flex-1 overflow-y-auto"
           >
-            {loading ? (
+            {!user || loading ? (
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
               </div>
@@ -416,40 +456,68 @@ export default function Chat() {
               conversations.map((conv) => {
                 const otherUser = getOtherUser(conv);
                 const lastMessage = conv.last_message;
+                const carAd = conv.car_ad;
                 return (
                   <motion.button
                     key={conv.id}
                     variants={fadeUpItem}
-                    whileHover={{ x: -2 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                    whileHover={{ scale: 0.98 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 25 }}
                     onClick={() => handleSelectChat(conv)}
-                    className={`w-full flex items-center gap-3 p-4 hover:bg-surface-secondary transition-colors border-b border-border-light text-right will-change-transform ${
-                      selectedChat === conv.id ? 'bg-brand-50 dark:bg-brand-950/50' : ''
+                    className={`w-full flex items-start gap-3 p-4 hover:bg-surface-secondary transition-all border-b border-border-light text-right will-change-transform ${
+                      selectedChat === conv.id ? 'bg-brand-50 dark:bg-brand-950/30 ring-1 ring-brand-500/20' : ''
                     }`}
                   >
                     <div className="relative shrink-0">
-                      <div className="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center">
-                        <User className="w-5 h-5 text-brand-500" />
+                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-sm">
+                        <span className="text-white font-bold text-lg">
+                          {otherUser.name?.charAt(0)?.toUpperCase() || '?'}
+                        </span>
                       </div>
                       {otherUser.isOnline && (
-                        <div className="absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-surface rounded-full" />
+                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-3 border-surface rounded-full" />
                       )}
                     </div>
-                    <div className="flex-1 min-w-0 text-right">
+
+                    <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="font-medium text-text-primary text-sm truncate">
-                          {otherUser.name}
-                        </h3>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <h3 className="font-semibold text-text-primary text-sm truncate">
+                            {otherUser.name}
+                          </h3>
+                          {otherUser.isOnline && (
+                            <span className="w-2 h-2 bg-green-500 rounded-full shrink-0" />
+                          )}
+                        </div>
                         <span className="text-xs text-text-tertiary shrink-0">
                           {formatDate(conv.updated_at)}
                         </span>
                       </div>
-                      <p className="text-xs text-text-secondary truncate">
-                        {conv.car_ad?.title}
+
+                      <div className="flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400 truncate">
+                        <span className="font-medium truncate">{carAd?.brand}</span>
+                        <span className="text-text-tertiary">·</span>
+                        <span className="truncate">{carAd?.model_name}</span>
+                      </div>
+
+                      <p className="text-xs text-text-secondary truncate font-medium">
+                        {carAd?.title}
                       </p>
+
                       {lastMessage && (
-                        <p className="text-xs text-text-tertiary truncate mt-1">
-                          {lastMessage.message_text}
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-xs text-text-tertiary truncate flex-1">
+                            {lastMessage.message_text}
+                          </p>
+                          <span className="text-[10px] text-text-tertiary shrink-0">
+                            {formatTime(lastMessage.created_at)}
+                          </span>
+                        </div>
+                      )}
+
+                      {!lastMessage && (
+                        <p className="text-xs text-text-tertiary italic">
+                          هنوز پیامی ارسال نشده
                         </p>
                       )}
                     </div>
