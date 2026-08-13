@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Send, ArrowLeft, User, MessageCircle, AlertCircle, X, Check, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
-import { listConversations, deleteConversation, getConversation, listMessages, sendMessage, getUsersPresence } from '../lib/chatApi';
+import { listConversations, deleteConversation, getConversation, listMessages, sendMessage, getUsersPresence, markMessagesAsRead } from '../lib/chatApi';
 import { useAuth } from '../context/AuthContext';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
@@ -52,6 +52,8 @@ export default function Chat() {
   const [toast, setToast] = useState(null);
   const [wsStatus, setWsStatus] = useState('disconnected');
   const [onlineUsers, setOnlineUsers] = useState({});
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [hasNewMessage, setHasNewMessage] = useState(false);
 
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
@@ -60,6 +62,7 @@ export default function Chat() {
   const conversationsLoadedRef = useRef(false);
   const abortControllerRef = useRef(null);
   const wsConversationIdRef = useRef(null);
+  const lastMessageCountRef = useRef(0);
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type, id: Date.now() });
@@ -72,6 +75,30 @@ export default function Chat() {
         block: 'end',
       });
     });
+  }, []);
+
+  const scrollToBottomForce = useCallback((smooth = true) => {
+    setHasNewMessage(false);
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: smooth ? 'smooth' : 'auto',
+        block: 'end',
+      });
+      setIsAtBottom(true);
+    });
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const threshold = 100;
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    setIsAtBottom(isNearBottom);
+
+    if (isNearBottom) {
+      setHasNewMessage(false);
+    }
   }, []);
 
   const connectWebSocket = useCallback((conversationId) => {
@@ -89,10 +116,16 @@ export default function Chat() {
     wsConversationIdRef.current = conversationId;
     setWsStatus('connecting');
     const ws = new WebSocket(`${WS_URL}/ws/chat/${conversationId}/?token=${token}`);
+    let pingInterval = null;
 
     ws.onopen = () => {
       setWsStatus('connected');
       reconnectAttemptsRef.current = 0;
+      pingInterval = setInterval(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'ping' }));
+        }
+      }, 60000);
     };
 
     ws.onmessage = (event) => {
@@ -100,10 +133,12 @@ export default function Chat() {
         const data = JSON.parse(event.data);
 
         if (data.type === 'presence_update') {
-          setOnlineUsers((prev) => ({
-            ...prev,
-            [data.user_id]: data.is_online,
-          }));
+          if (ws.readyState === WebSocket.OPEN) {
+            setOnlineUsers((prev) => ({
+              ...prev,
+              [data.user_id]: data.is_online,
+            }));
+          }
           return;
         }
 
@@ -115,6 +150,9 @@ export default function Chat() {
             sender: { id: msg.sender_id, name: msg.sender_name },
             created_at: msg.created_at,
           };
+
+          const isOwnMessage = msg.sender_id === user?.id;
+
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
@@ -137,7 +175,11 @@ export default function Chat() {
             }).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
           );
 
-          scrollToBottom();
+          if (isOwnMessage || isAtBottom) {
+            scrollToBottom();
+          } else {
+            setHasNewMessage(true);
+          }
         }
       } catch (err) {
         console.error('WebSocket parse error:', err);
@@ -145,6 +187,7 @@ export default function Chat() {
     };
 
     ws.onclose = (event) => {
+      if (pingInterval) clearInterval(pingInterval);
       setWsStatus('disconnected');
       if (event.code !== 1000 && reconnectAttemptsRef.current < 3) {
         reconnectAttemptsRef.current++;
@@ -172,11 +215,6 @@ export default function Chat() {
     if (conversationsLoadedRef.current) return;
     conversationsLoadedRef.current = true;
 
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
-    abortControllerRef.current = new AbortController();
-
     try {
       const data = await listConversations();
       const convs = Array.isArray(data) ? data : [];
@@ -190,13 +228,14 @@ export default function Chat() {
       if (userIdsSet.size > 0) {
         try {
           const presenceData = await getUsersPresence([...userIdsSet]);
-          setOnlineUsers(presenceData || {});
+          if (presenceData && typeof presenceData === 'object') {
+            setOnlineUsers(presenceData);
+          }
         } catch (e) {
           console.error('Failed to fetch presence:', e);
         }
       }
     } catch (err) {
-      if (err.name === 'AbortError') return;
       console.error('Failed to load conversations:', err);
       showToast('خطا در بارگذاری گفتگوها', 'error');
       setConversations([]);
@@ -209,6 +248,9 @@ export default function Chat() {
     try {
       setLoadingMessages(true);
       setMessages([]);
+      setHasNewMessage(false);
+      setIsAtBottom(true);
+      lastMessageCountRef.current = 0;
 
       const [conversation, msgsData] = await Promise.all([
         getConversation(conversationId),
@@ -226,7 +268,22 @@ export default function Chat() {
       }));
 
       setMessages(normalizedMessages);
-      scrollToBottom(false);
+      lastMessageCountRef.current = normalizedMessages.length;
+
+      requestAnimationFrame(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      });
+
+      try {
+        await markMessagesAsRead(conversationId);
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === conversationId ? { ...conv, unread_count: 0 } : conv
+          )
+        );
+      } catch (e) {
+        console.error('Failed to mark messages as read:', e);
+      }
     } catch (err) {
       console.error('Failed to load messages:', err);
       showToast('خطا در بارگذاری پیام‌ها', 'error');
@@ -234,28 +291,31 @@ export default function Chat() {
     } finally {
       setLoadingMessages(false);
     }
-  }, [showToast, scrollToBottom]);
+  }, [showToast]);
 
   useEffect(() => {
-    let mounted = true;
-    loadConversations().then(() => {
-      if (!mounted) return;
-    });
-    return () => {
-      mounted = false;
-      conversationsLoadedRef.current = false;
-    };
+    if (conversationsLoadedRef.current) return;
+    loadConversations();
   }, [loadConversations]);
 
+  const connectedChatRef = useRef(null);
+
   useEffect(() => {
-    if (selectedChat) {
-      loadMessages(selectedChat);
-      connectWebSocket(selectedChat);
-    } else {
+    if (!selectedChat) {
       disconnectWebSocket();
       setActiveConversation(null);
       setMessages([]);
+      connectedChatRef.current = null;
+      return;
     }
+
+    if (connectedChatRef.current === selectedChat) {
+      return;
+    }
+
+    connectedChatRef.current = selectedChat;
+    loadMessages(selectedChat);
+    connectWebSocket(selectedChat);
 
     return () => disconnectWebSocket();
   }, [selectedChat, loadMessages, connectWebSocket, disconnectWebSocket]);
@@ -272,12 +332,9 @@ export default function Chat() {
     return () => clearInterval(pingInterval);
   }, [selectedChat, wsStatus]);
 
-  const handleSend = async (e) => {
-    e.preventDefault();
-    if (!newMessage.trim() || !selectedChat || sending) return;
+  const submitMessage = async (messageText) => {
+    if (!messageText.trim() || !selectedChat || sending) return;
 
-    const messageText = newMessage.trim();
-    setNewMessage('');
     setSending(true);
 
     try {
@@ -327,6 +384,14 @@ export default function Chat() {
     } finally {
       setSending(false);
     }
+  };
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    const text = newMessage.trim();
+    if (!text) return;
+    setNewMessage('');
+    await submitMessage(text);
   };
 
   const handleDelete = async (e, conversationId) => {
@@ -577,7 +642,11 @@ export default function Chat() {
               </button>
             </div>
 
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-surface-secondary">
+            <div
+              ref={messagesContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto p-4 bg-surface-secondary"
+            >
               {loadingMessages ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
@@ -628,19 +697,48 @@ export default function Chat() {
                     );
                   })}
                   <div ref={messagesEndRef} />
+                  {hasNewMessage && !isAtBottom && (
+                    <motion.button
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      onClick={scrollToBottomForce}
+                      className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-brand-500 text-white px-4 py-2 rounded-full text-sm shadow-lg flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                      پیام جدید
+                    </motion.button>
+                  )}
                 </motion.div>
               )}
             </div>
 
             <form onSubmit={handleSend} className="p-4 border-t border-border bg-surface">
               <div className="flex items-center gap-2 bg-surface-tertiary rounded-2xl px-4 py-2 border border-border focus-within:border-brand-500 transition-colors">
-                <input
-                  type="text"
+                <textarea
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      const text = e.target.value.trim();
+                      if (text) {
+                        setNewMessage('');
+                        submitMessage(text);
+                      }
+                    }
+                  }}
                   placeholder="پیام خود را بنویسید..."
-                  className="flex-1 bg-transparent text-sm focus:outline-none text-text-primary placeholder:text-text-tertiary"
+                  className="flex-1 bg-transparent text-sm focus:outline-none text-text-primary placeholder:text-text-tertiary resize-none min-h-[24px] max-h-[120px]"
                   disabled={sending}
+                  rows={1}
+                  style={{ height: 'auto', overflow: 'hidden' }}
+                  onInput={(e) => {
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                  }}
                 />
                 <button
                   type="submit"

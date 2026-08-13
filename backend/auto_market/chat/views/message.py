@@ -1,4 +1,5 @@
 
+
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -50,7 +51,7 @@ class ReceiveMessageView(APIView):
     @extend_schema(
         responses={status.HTTP_200_OK, MessageSerializer}
     )
-    def get(self, request, message_id):  
+    def get(self, request, message_id):
         pass
 
 
@@ -87,11 +88,26 @@ class RetrieveMessagesView(APIView):
         }, status=status.HTTP_200_OK)
 
 
-    # sender_user   = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sender_user_messages')
-    # receiver_user = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='receiver_user_messages')
-    #
-    # message_text  = models.TextField(max_length=10000, blank=False, null=False)
-    # is_read          =
+class MarkMessagesAsReadView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={status.HTTP_200_OK}
+    )
+    def post(self, request, conversation_id):
+        conversation = get_object_or_404(
+            Conversation.objects.only('id'),
+            Q(seller=request.user) | Q(buyer=request.user),
+            pk=conversation_id
+        )
+
+        updated_count = Message.objects.filter(
+            conversation=conversation,
+            receiver_user=request.user,
+            is_read=False
+        ).update(is_read=True)
+
+        return Response({'marked_read': updated_count}, status=status.HTTP_200_OK)
 
 
 

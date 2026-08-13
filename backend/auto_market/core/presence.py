@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 REDIS_PRESENCE_KEY = "presence:user:{user_id}"
 REDIS_USER_PRESENCE_SET = "presence:online_users"
+REDIS_CONNECTION_COUNT_KEY = "presence:connections:{user_id}"
 PRESENCE_TTL = 300
 
 
@@ -46,13 +47,21 @@ class PresenceService:
     def _get_user_key(self, user_id: int) -> str:
         return REDIS_PRESENCE_KEY.format(user_id=user_id)
 
+    def _get_connection_count_key(self, user_id: int) -> str:
+        return REDIS_CONNECTION_COUNT_KEY.format(user_id=user_id)
+
     def set_user_online(self, user_id: int) -> bool:
         if not self.redis:
             return False
         try:
-            key = self._get_user_key(user_id)
-            self.redis.setex(key, PRESENCE_TTL, json.dumps({'status': 'online'}))
-            self.redis.sadd(REDIS_USER_PRESENCE_SET, user_id)
+            count_key = self._get_connection_count_key(user_id)
+            new_count = self.redis.incr(count_key)
+
+            if new_count == 1:
+                key = self._get_user_key(user_id)
+                self.redis.setex(key, PRESENCE_TTL, json.dumps({'status': 'online'}))
+                self.redis.sadd(REDIS_USER_PRESENCE_SET, user_id)
+
             return True
         except Exception:
             return False
@@ -61,9 +70,18 @@ class PresenceService:
         if not self.redis:
             return False
         try:
-            key = self._get_user_key(user_id)
-            self.redis.delete(key)
-            self.redis.srem(REDIS_USER_PRESENCE_SET, user_id)
+            count_key = self._get_connection_count_key(user_id)
+            current_count = self.redis.get(count_key)
+            current_count = int(current_count) if current_count else 0
+
+            if current_count <= 1:
+                self.redis.delete(count_key)
+                key = self._get_user_key(user_id)
+                self.redis.delete(key)
+                self.redis.srem(REDIS_USER_PRESENCE_SET, user_id)
+            else:
+                self.redis.decr(count_key)
+
             return True
         except Exception:
             return False
@@ -72,12 +90,21 @@ class PresenceService:
         if not self.redis:
             return False
         try:
-            key = self._get_user_key(user_id)
-            if self.redis.exists(key):
-                self.redis.expire(key, PRESENCE_TTL)
+            count_key = self._get_connection_count_key(user_id)
+            current_count = self.redis.get(count_key)
+            current_count = int(current_count) if current_count else 0
+
+            if current_count > 0:
+                key = self._get_user_key(user_id)
+                self.redis.setex(key, PRESENCE_TTL, json.dumps({'status': 'online'}))
                 return True
             else:
-                return self.set_user_online(user_id)
+                count = self.redis.incr(count_key)
+                if count == 1:
+                    key = self._get_user_key(user_id)
+                    self.redis.setex(key, PRESENCE_TTL, json.dumps({'status': 'online'}))
+                    self.redis.sadd(REDIS_USER_PRESENCE_SET, user_id)
+                return True
         except Exception:
             return False
 

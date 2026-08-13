@@ -52,6 +52,7 @@ class ListConversationsSerializer(serializers.Serializer):
     updated_at = serializers.DateTimeField(read_only=True)
     last_message = serializers.SerializerMethodField()
     other_user_online = serializers.SerializerMethodField()
+    unread_count = serializers.SerializerMethodField()
 
     def get_last_message(self, obj):
         last_msg = obj.conversation_messages.order_by('-created_at').first()
@@ -74,3 +75,13 @@ class ListConversationsSerializer(serializers.Serializer):
             other_user_id = obj.seller.id
 
         return presence_service.is_user_online(other_user_id)
+
+    def get_unread_count(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user:
+            return 0
+
+        return obj.conversation_messages.filter(
+            receiver_user=request.user,
+            is_read=False
+        ).count()
