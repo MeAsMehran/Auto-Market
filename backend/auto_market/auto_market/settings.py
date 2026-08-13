@@ -31,8 +31,8 @@ load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = True
+# DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
@@ -59,10 +59,11 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
+    'debug_toolbar',
+    "silk",
     'django_celery_results',
     'channels',     # must be before 'daphne'
     
-
     # my apps:
     'accounts.apps.AccountsConfig',
     'ads.apps.AdsConfig',
@@ -71,6 +72,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    "silk.middleware.SilkyMiddleware",
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -85,8 +89,6 @@ CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173'
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False  # MUST be False when using credentials!. If True, ANY website could steal your user's cookies (security vulnerability)
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
-
-
 
 
 ROOT_URLCONF = 'auto_market.urls'

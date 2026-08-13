@@ -45,6 +45,12 @@ urlpatterns = [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
 
+    # debug_toolbar -> testing my queries:
+    path('__debug__/', include("debug_toolbar.urls")),
+
+    # silk -> testing my queries:
+    path("silk/", include("silk.urls", namespace="silk")),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 

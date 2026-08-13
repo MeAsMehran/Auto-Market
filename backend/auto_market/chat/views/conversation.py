@@ -74,8 +74,9 @@ class ListConversationsView(APIView):
         responses={200, ListConversationsSerializer}
     )
     def get(self, request):
-        conversations = Conversation.objects.filter(Q(seller=request.user) | Q(buyer=request.user)).select_related('car_ad', 'car_ad__seller',).order_by('-updated_at')
+        conversations = Conversation.objects.filter(Q(seller=request.user) | Q(buyer=request.user)).select_related('car_ad', 'car_ad__seller', 'buyer', 'seller').order_by('-updated_at')
 
+        # conversations = Conversation.objects.filter(Q(seller=request.user) | Q(buyer=request.user))
         paginator = SmallPageNumberPagination()
         page = paginator.paginate_queryset(conversations, request)
         serializer = GetConversationSerializer(page, many=True)
