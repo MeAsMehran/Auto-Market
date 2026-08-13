@@ -271,10 +271,16 @@ export default function Chat() {
   const getOtherUser = (conversation) => {
     const carAd = conversation.car_ad || {};
     const seller = carAd.seller || {};
+    const buyer = conversation.sender_user;
+    const receiverUser = conversation.receiver_user;
+
     if (seller.id === user?.id) {
-      return { name: 'شما', isSelf: true };
+      return { name: buyer?.name || 'کاربر', isSelf: false };
     }
-    return { name: seller.name || 'کاربر', isSelf: false };
+    if (buyer?.id === user?.id) {
+      return { name: receiverUser?.name || seller?.name || 'کاربر', isSelf: false };
+    }
+    return { name: seller?.name || 'کاربر', isSelf: false };
   };
 
   const formatDate = (dateString) => {
@@ -383,15 +389,15 @@ export default function Chat() {
                         {conv.car_ad?.brand} {conv.car_ad?.model_name}
                       </p>
                     </div>
-                    <button
+                    <div
                       onClick={(e) => handleDelete(e, conv.id)}
-                      className="p-1 text-text-tertiary hover:text-red-500 shrink-0"
+                      className="p-1 text-text-tertiary hover:text-red-500 shrink-0 cursor-pointer"
                       title="حذف گفتگو"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
-                    </button>
+                    </div>
                   </motion.button>
                 );
               })
