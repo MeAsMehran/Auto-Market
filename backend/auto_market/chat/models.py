@@ -33,14 +33,13 @@ class Message(models.Model):
     receiver_user = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='receiver_user_messages')
 
     message_text  = models.TextField(max_length=10000, blank=False, null=False)
-    is_read          = models.BooleanField(default=False)
+    is_read       = models.BooleanField(default=False)
 
     created_at    = models.DateTimeField(auto_now_add=True)
-    updated_at    = models.DateTimeField(auto_now=True)
+    updated_at     = models.DateTimeField(auto_now=True)
 
-    def save(self, *args, **kwargs):
-        pass
-
+    class Meta:
+        ordering = ['created_at']
 
     def __str__(self):
         return self.message_text

@@ -12,6 +12,7 @@ from ..serializers.conversations_serializer import (ConversationSerializer, Crea
 from ..models import Conversation
 from core.permissions.conversation_owner import ConversationOwner
 from core.pagination.pagination import SmallPageNumberPagination
+from core.presence import presence_service
 
 #####################
 
@@ -23,20 +24,15 @@ class CreateConversationView(APIView):
         responses={201: ConversationSerializer}
     )
     def post(self, request):
-        # we pass this context for the serializer validate method to use request to get the user
-        input_serializer = CreateConversationSerializer(data=request.data, context={'request': request})         
+        input_serializer = CreateConversationSerializer(data=request.data, context={'request': request})
         if input_serializer.is_valid():
             car_ad = input_serializer.validated_data.get('car_ad')
             seller = car_ad.seller
             buyer = request.user
 
             conversation = Conversation.objects.create(car_ad=car_ad, buyer=buyer, seller=seller)
-            # try:
-            #     conversation = Conversation.objects.create(car_ad=car_ad, buyer=buyer, seller=seller)
-            # except:
-            #     return Response("")
 
-            result_serializer = ConversationSerializer(conversation) 
+            result_serializer = ConversationSerializer(conversation)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
         return Response(input_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -52,17 +48,19 @@ class DeleteConversationView(APIView):
         conversation.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
-        
+
 class GetConversationView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        # request=?,
         responses={200: GetConversationSerializer},
     )
     def get(self, request, conversation_id):
-        # conversation_id = request.query_params.get('conversation_id')
-        conversation = get_object_or_404(Conversation, Q(seller=request.user) | Q(buyer=request.user), pk=conversation_id,)
+        conversation = get_object_or_404(
+            Conversation.objects.select_related('car_ad', 'car_ad__seller', 'buyer', 'seller'),
+            Q(seller=request.user) | Q(buyer=request.user),
+            pk=conversation_id
+        )
         serializer = GetConversationSerializer(conversation)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
@@ -71,18 +69,41 @@ class ListConversationsView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        responses={200, ListConversationsSerializer}
+        responses={200: ListConversationsSerializer(many=True)}
     )
     def get(self, request):
-        conversations = Conversation.objects.filter(Q(seller=request.user) | Q(buyer=request.user)).select_related('car_ad', 'car_ad__seller', 'buyer', 'seller').order_by('-updated_at')
+        conversations = Conversation.objects.filter(
+            Q(seller=request.user) | Q(buyer=request.user)
+        ).select_related(
+            'car_ad', 'car_ad__seller', 'buyer', 'seller'
+        ).prefetch_related(
+            'conversation_messages'
+        ).order_by('-updated_at')
 
-        # conversations = Conversation.objects.filter(Q(seller=request.user) | Q(buyer=request.user))
-        paginator = SmallPageNumberPagination()
-        page = paginator.paginate_queryset(conversations, request)
-        serializer = GetConversationSerializer(page, many=True)
-        return paginator.get_paginated_response(serializer.data)
+        serializer = ListConversationsSerializer(conversations, many=True, context={'request': request})
+        return Response(serializer.data)
 
 
+class UserPresenceView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        responses={200: dict}
+    )
+    def get(self, request):
+        user_ids = request.query_params.get('user_ids', '')
+        if not user_ids:
+            return Response({'error': 'user_ids required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user_id_list = [int(uid.strip()) for uid in user_ids.split(',') if uid.strip()]
+        except ValueError:
+            return Response({'error': 'Invalid user_ids format'}, status=status.HTTP_400_BAD_REQUEST)
+
+        presence_data = presence_service.get_users_presence(user_id_list)
+        result = {str(uid): is_online for uid, is_online in presence_data.items()}
+
+        return Response(result, status=status.HTTP_200_OK)
 
 
 

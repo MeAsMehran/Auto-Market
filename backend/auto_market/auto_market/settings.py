@@ -308,15 +308,23 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'loopdeloop2003@gmail.com')
 
 
 # Django Channels
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [os.getenv("REDIS_URL", "redis://localhost:6379/1")],
+if 'test' in sys.argv or 'daphne' in sys.argv[0]:
+    # Use in-memory channel layer for development (no Redis needed)
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
         },
-    },
-}
-
+    }
+else:
+    # Use Redis for production
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [os.getenv("REDIS_URL", "redis://localhost:6379/1")],
+            },
+        },
+    }
 
 
 

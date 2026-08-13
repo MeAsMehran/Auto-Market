@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Send, CheckCheck, MoreVertical, ArrowLeft, User, MessageCircle, AlertCircle, X, Check } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Send, ArrowLeft, User, MessageCircle, AlertCircle, X, Check, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
-import { listConversations, deleteConversation, getConversation, listMessages, sendMessage } from '../lib/chatApi';
+import { listConversations, deleteConversation, getConversation, listMessages, sendMessage, getUsersPresence } from '../lib/chatApi';
 import { useAuth } from '../context/AuthContext';
 
-// ============================================
-// Toast Notification System
-// ============================================
+const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
+
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, 4000);
@@ -37,181 +37,262 @@ const Toast = ({ message, type, onClose }) => {
   );
 };
 
-// ============================================
-// Main Chat Component
-// ============================================
 export default function Chat() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [conversations, setConversations] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [activeConversation, setActiveConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
   const [showMobileList, setShowMobileList] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
-  const [pollingInterval, setPollingInterval] = useState(null);
-  
-  // Toast state
   const [toast, setToast] = useState(null);
+  const [wsStatus, setWsStatus] = useState('disconnected');
+  const [onlineUsers, setOnlineUsers] = useState({});
 
   const messagesEndRef = useRef(null);
+  const wsRef = useRef(null);
+  const messagesContainerRef = useRef(null);
+  const reconnectAttemptsRef = useRef(0);
+  const conversationsLoadedRef = useRef(false);
+  const abortControllerRef = useRef(null);
+  const wsConversationIdRef = useRef(null);
 
-  // ============================================
-  // Toast Helper
-  // ============================================
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type, id: Date.now() });
   }, []);
 
-  // ============================================
-  // Load Conversations
-  // ============================================
+  const scrollToBottom = useCallback((smooth = true) => {
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: smooth ? 'smooth' : 'auto',
+        block: 'end',
+      });
+    });
+  }, []);
+
+  const connectWebSocket = useCallback((conversationId) => {
+    const token = localStorage.getItem('access_token');
+    if (!token || !conversationId) return;
+
+    if (wsConversationIdRef.current === conversationId && wsRef.current?.readyState === WebSocket.OPEN) {
+      return;
+    }
+
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+
+    wsConversationIdRef.current = conversationId;
+    setWsStatus('connecting');
+    const ws = new WebSocket(`${WS_URL}/ws/chat/${conversationId}/?token=${token}`);
+
+    ws.onopen = () => {
+      setWsStatus('connected');
+      reconnectAttemptsRef.current = 0;
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'presence_update') {
+          setOnlineUsers((prev) => ({
+            ...prev,
+            [data.user_id]: data.is_online,
+          }));
+          return;
+        }
+
+        if (data.type === 'new_message' && data.message) {
+          const msg = data.message;
+          const newMsg = {
+            id: msg.id,
+            content: msg.text,
+            sender: { id: msg.sender_id, name: msg.sender_name },
+            created_at: msg.created_at,
+          };
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === newMsg.id)) return prev;
+            return [...prev, newMsg];
+          });
+          scrollToBottom();
+        }
+      } catch (err) {
+        console.error('WebSocket parse error:', err);
+      }
+    };
+
+    ws.onclose = (event) => {
+      setWsStatus('disconnected');
+      if (event.code !== 1000 && reconnectAttemptsRef.current < 3) {
+        reconnectAttemptsRef.current++;
+        setTimeout(() => connectWebSocket(conversationId), 1000 * reconnectAttemptsRef.current);
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      setWsStatus('error');
+    };
+
+    wsRef.current = ws;
+  }, [scrollToBottom]);
+
+  const disconnectWebSocket = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close(1000);
+      wsRef.current = null;
+    }
+    wsConversationIdRef.current = null;
+  }, []);
+
   const loadConversations = useCallback(async () => {
+    if (conversationsLoadedRef.current) return;
+    conversationsLoadedRef.current = true;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    abortControllerRef.current = new AbortController();
+
     try {
       const data = await listConversations();
-      // Ensure data is always an array
-      setConversations(Array.isArray(data) ? data : []);
+      const convs = Array.isArray(data) ? data : [];
+      setConversations(convs);
+
+      const userIdsSet = new Set(convs.map((c) => {
+        if (user && c.seller?.id === user.id) return c.buyer?.id;
+        return c.seller?.id;
+      }).filter(Boolean));
+
+      if (userIdsSet.size > 0) {
+        try {
+          const presenceData = await getUsersPresence([...userIdsSet]);
+          setOnlineUsers(presenceData || {});
+        } catch (e) {
+          console.error('Failed to fetch presence:', e);
+        }
+      }
     } catch (err) {
+      if (err.name === 'AbortError') return;
       console.error('Failed to load conversations:', err);
       showToast('خطا در بارگذاری گفتگوها', 'error');
-      setConversations([]); // Reset to empty array on error
+      setConversations([]);
     } finally {
       setLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, user]);
 
-  useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
-
-  // ============================================
-  // Load Messages + Polling for Real-time
-  // ============================================
   const loadMessages = useCallback(async (conversationId) => {
     try {
       setLoadingMessages(true);
-      const conversation = await getConversation(conversationId);
-      const msgs = await listMessages(conversationId);
+      setMessages([]);
+
+      const [conversation, msgsData] = await Promise.all([
+        getConversation(conversationId),
+        listMessages(conversationId, 1),
+      ]);
+
       setActiveConversation(conversation);
-      // Ensure messages is always an array
-      setMessages(Array.isArray(msgs) ? msgs : []);
+
+      const msgs = msgsData.messages || msgsData || [];
+      const normalizedMessages = msgs.map((m) => ({
+        id: m.id,
+        content: m.message_text || m.content || '',
+        sender: m.sender_user || m.sender || { id: m.sender_id, name: m.sender_name },
+        created_at: m.created_at,
+      }));
+
+      setMessages(normalizedMessages);
+      scrollToBottom(false);
     } catch (err) {
       console.error('Failed to load messages:', err);
       showToast('خطا در بارگذاری پیام‌ها', 'error');
-      setMessages([]); // Reset to empty array on error
+      setMessages([]);
     } finally {
       setLoadingMessages(false);
     }
-  }, [showToast]);
+  }, [showToast, scrollToBottom]);
+
+  useEffect(() => {
+    let mounted = true;
+    loadConversations().then(() => {
+      if (!mounted) return;
+    });
+    return () => {
+      mounted = false;
+      conversationsLoadedRef.current = false;
+    };
+  }, [loadConversations]);
 
   useEffect(() => {
     if (selectedChat) {
       loadMessages(selectedChat);
+      connectWebSocket(selectedChat);
+    } else {
+      disconnectWebSocket();
+      setActiveConversation(null);
+      setMessages([]);
     }
-  }, [selectedChat, loadMessages]);
 
-  // ============================================
-  // Polling for Real-time Updates
-  // ============================================
+    return () => disconnectWebSocket();
+  }, [selectedChat, loadMessages, connectWebSocket, disconnectWebSocket]);
+
   useEffect(() => {
-    if (selectedChat) {
-      // Poll every 5 seconds for new messages
-      const interval = setInterval(async () => {
-        try {
-          const msgs = await listMessages(selectedChat);
-          // Ensure msgs is always an array
-          const safeMsgs = Array.isArray(msgs) ? msgs : [];
-          setMessages((prev) => {
-            // Only update if there are new messages
-            if (safeMsgs.length !== prev.length) {
-              return safeMsgs;
-            }
-            // Check if any message content changed
-            const hasChanges = safeMsgs.some((newMsg, idx) => {
-              const prevMsg = prev[idx];
-              return prevMsg && (newMsg.content !== prevMsg.content || newMsg.id !== prevMsg.id);
-            });
-            return hasChanges ? safeMsgs : prev;
-          });
-        } catch (err) {
-          // Silent fail for polling - don't show toast every 5 seconds
-          console.error('Polling error:', err);
-        }
-      }, 5000);
+    if (!selectedChat || wsStatus !== 'connected') return;
 
-      setPollingInterval(interval);
+    const pingInterval = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'ping' }));
+      }
+    }, 60000);
 
-      return () => clearInterval(interval);
-    }
-  }, [selectedChat]);
+    return () => clearInterval(pingInterval);
+  }, [selectedChat, wsStatus]);
 
-  // ============================================
-  // Scroll to Bottom
-  // ============================================
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // ============================================
-  // Optimistic Send Message
-  // ============================================
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim() || !selectedChat || sending) return;
 
-    const tempId = `temp_${Date.now()}`;
-    const optimisticMessage = {
-      id: tempId,
-      content: newMessage.trim(),
-      sender: user,
-      created_at: new Date().toISOString(),
-      _isOptimistic: true,
-    };
+    const messageText = newMessage.trim();
+    setNewMessage('');
+    setSending(true);
 
     try {
-      setSending(true);
-      
-      // Optimistic update - add message immediately
-      setMessages((prev) => [...prev, optimisticMessage]);
-      setNewMessage('');
-      
-      // Scroll to show new message
-      setTimeout(scrollToBottom, 100);
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        try {
+          wsRef.current.send(JSON.stringify({ message_text: messageText }));
+          scrollToBottom();
+          return;
+        } catch (wsErr) {
+          console.error('WebSocket send failed:', wsErr);
+        }
+      }
 
-      // Send to server
-      const savedMessage = await sendMessage(selectedChat, newMessage.trim());
-      
-      // Replace optimistic message with real one
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === tempId ? savedMessage : msg
-        )
-      );
-      
-      showToast('پیام ارسال شد', 'success');
+      const savedMessage = await sendMessage(selectedChat, messageText);
+      const normalizedMsg = {
+        id: savedMessage.id,
+        content: savedMessage.message_text || savedMessage.content,
+        sender: savedMessage.sender_user,
+        created_at: savedMessage.created_at,
+      };
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === normalizedMsg.id)) return prev;
+        return [...prev, normalizedMsg];
+      });
+      scrollToBottom();
     } catch (err) {
-      console.error('Failed to send message:', err);
-      
-      // Remove optimistic message on failure
-      setMessages((prev) => prev.filter((msg) => msg.id !== tempId));
-      setNewMessage(newMessage.trim()); // Restore message
-      
-      showToast(err.response?.data?.detail || 'خطا در ارسال پیام', 'error');
+      console.error('Send error:', err);
+      showToast('خطا در ارسال پیام', 'error');
     } finally {
       setSending(false);
     }
   };
 
-  // ============================================
-  // Delete Conversation
-  // ============================================
   const handleDelete = async (e, conversationId) => {
     e.stopPropagation();
     if (!window.confirm('آیا مطمئن هستید که می‌خواهید این گفتگو را حذف کنید؟')) return;
@@ -219,13 +300,12 @@ export default function Chat() {
     try {
       await deleteConversation(conversationId);
       setConversations((prev) => prev.filter((c) => c.id !== conversationId));
-      
+
       if (selectedChat === conversationId) {
         setSelectedChat(null);
-        setActiveConversation(null);
-        setMessages([]);
+        disconnectWebSocket();
       }
-      
+
       showToast('گفتگو حذف شد', 'success');
     } catch (err) {
       console.error('Failed to delete conversation:', err);
@@ -233,57 +313,41 @@ export default function Chat() {
     }
   };
 
-  // ============================================
-  // Select Chat
-  // ============================================
   const handleSelectChat = (conversation) => {
     setSelectedChat(conversation.id);
     setShowMobileList(false);
   };
 
-  // ============================================
-  // Back to List
-  // ============================================
   const handleBack = () => {
     setShowMobileList(true);
     setSelectedChat(null);
-    setActiveConversation(null);
-    setMessages([]);
   };
 
-  // ============================================
-  // Filter Conversations
-  // ============================================
-  const filteredConversations = conversations.filter((c) => {
-    const carAd = c.car_ad || {};
-    const seller = carAd.seller || {};
-    const searchText = searchQuery.toLowerCase();
-    return (
-      (seller.name && seller.name.toLowerCase().includes(searchText)) ||
-      (carAd.title && carAd.title.toLowerCase().includes(searchText)) ||
-      (carAd.brand && carAd.brand.toLowerCase().includes(searchText))
-    );
-  });
-
-  // ============================================
-  // Helper Functions
-  // ============================================
   const getOtherUser = (conversation) => {
     const carAd = conversation.car_ad || {};
     const seller = carAd.seller || {};
-    const buyer = conversation.sender_user;
-    const receiverUser = conversation.receiver_user;
+    const buyer = conversation.buyer;
 
-    if (seller.id === user?.id) {
-      return { name: buyer?.name || 'کاربر', isSelf: false };
+    let otherUserId;
+    let otherUserName;
+
+    if (user && seller.id === user.id) {
+      otherUserId = buyer?.id;
+      otherUserName = buyer?.name || 'کاربر';
+    } else {
+      otherUserId = seller?.id;
+      otherUserName = seller?.name || 'کاربر';
     }
-    if (buyer?.id === user?.id) {
-      return { name: receiverUser?.name || seller?.name || 'کاربر', isSelf: false };
-    }
-    return { name: seller?.name || 'کاربر', isSelf: false };
+
+    return {
+      id: otherUserId,
+      name: otherUserName,
+      isOnline: onlineUsers[otherUserId] || false,
+    };
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     const now = new Date();
     const diff = now - date;
@@ -296,16 +360,21 @@ export default function Chat() {
   };
 
   const formatTime = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
     return date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
   };
 
-  // ============================================
-  // Render
-  // ============================================
+  useEffect(() => {
+    const conversationId = searchParams.get('conversation');
+    if (conversationId) {
+      setSelectedChat(parseInt(conversationId));
+      setShowMobileList(false);
+    }
+  }, [searchParams]);
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
-      {/* Toast Notification */}
       <AnimatePresence>
         {toast && (
           <Toast
@@ -323,20 +392,9 @@ export default function Chat() {
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className="bg-surface rounded-2xl border border-border overflow-hidden h-[calc(100vh-12rem)] min-h-[500px] flex"
       >
-        {/* Conversation List */}
-        <div className={`w-full sm:w-96 border-l border-border flex flex-col ${!showMobileList && 'hidden sm:flex'}`}>
+        <div className={`w-full sm:w-80 border-l border-border flex flex-col ${!showMobileList && 'hidden sm:flex'}`}>
           <div className="p-4 border-b border-border">
-            <h2 className="font-bold text-text-primary text-lg mb-3">پیام‌ها</h2>
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-tertiary" />
-              <input
-                type="text"
-                placeholder="جستجوی گفتگوها..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pr-10 pl-4 py-2.5 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              />
-            </div>
+            <h2 className="font-bold text-text-primary text-lg">پیام‌ها</h2>
           </div>
 
           <motion.div
@@ -349,54 +407,51 @@ export default function Chat() {
               <div className="flex items-center justify-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
               </div>
-            ) : filteredConversations.length === 0 ? (
+            ) : conversations.length === 0 ? (
               <div className="text-center py-12 px-4">
                 <MessageCircle className="w-8 h-8 mx-auto text-text-tertiary mb-2" />
                 <p className="text-sm text-text-tertiary">هنوز گفتگویی ندارید</p>
               </div>
             ) : (
-              filteredConversations.map((conv) => {
+              conversations.map((conv) => {
                 const otherUser = getOtherUser(conv);
+                const lastMessage = conv.last_message;
                 return (
                   <motion.button
                     key={conv.id}
                     variants={fadeUpItem}
-                    whileHover={{ x: -4 }}
+                    whileHover={{ x: -2 }}
                     transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                     onClick={() => handleSelectChat(conv)}
                     className={`w-full flex items-center gap-3 p-4 hover:bg-surface-secondary transition-colors border-b border-border-light text-right will-change-transform ${
-                      selectedChat === conv.id ? 'bg-brand-50 dark:bg-brand-950' : ''
+                      selectedChat === conv.id ? 'bg-brand-50 dark:bg-brand-950/50' : ''
                     }`}
                   >
                     <div className="relative shrink-0">
                       <div className="w-12 h-12 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center">
                         <User className="w-5 h-5 text-brand-500" />
                       </div>
+                      {otherUser.isOnline && (
+                        <div className="absolute -bottom-0.5 -left-0.5 w-3.5 h-3.5 bg-green-500 border-2 border-surface rounded-full" />
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <div className="flex-1 min-w-0 text-right">
                       <div className="flex items-center justify-between gap-2">
                         <h3 className="font-medium text-text-primary text-sm truncate">
-                          {conv.car_ad?.title || 'بدون عنوان'}
+                          {otherUser.name}
                         </h3>
                         <span className="text-xs text-text-tertiary shrink-0">
-                          {formatDate(conv.created_at)}
+                          {formatDate(conv.updated_at)}
                         </span>
                       </div>
-                      <p className="text-xs text-text-tertiary truncate">
-                        {otherUser.isSelf ? 'گفتگو با خودتان' : `گفتگو با ${otherUser.name}`}
+                      <p className="text-xs text-text-secondary truncate">
+                        {conv.car_ad?.title}
                       </p>
-                      <p className="text-sm text-text-secondary truncate">
-                        {conv.car_ad?.brand} {conv.car_ad?.model_name}
-                      </p>
-                    </div>
-                    <div
-                      onClick={(e) => handleDelete(e, conv.id)}
-                      className="p-1 text-text-tertiary hover:text-red-500 shrink-0 cursor-pointer"
-                      title="حذف گفتگو"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
+                      {lastMessage && (
+                        <p className="text-xs text-text-tertiary truncate mt-1">
+                          {lastMessage.message_text}
+                        </p>
+                      )}
                     </div>
                   </motion.button>
                 );
@@ -405,11 +460,9 @@ export default function Chat() {
           </motion.div>
         </div>
 
-        {/* Chat Window */}
         {selectedChat && activeConversation ? (
           <div className={`flex-1 flex flex-col ${showMobileList && 'hidden sm:flex'}`}>
-            {/* Chat Header */}
-            <div className="flex items-center gap-3 p-4 border-b border-border">
+            <div className="flex items-center gap-3 p-4 border-b border-border bg-surface">
               <button onClick={handleBack} className="sm:hidden p-1 hover:bg-surface-tertiary rounded-lg">
                 <ArrowLeft className="w-5 h-5 text-text-secondary" />
               </button>
@@ -417,26 +470,46 @@ export default function Chat() {
                 <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center">
                   <User className="w-4 h-4 text-brand-500" />
                 </div>
+                {activeConversation && (() => {
+                  const otherUserId = user?.id === activeConversation.seller?.id
+                    ? activeConversation.buyer?.id
+                    : activeConversation.seller?.id;
+                  const isOtherOnline = onlineUsers[otherUserId] || false;
+                  return isOtherOnline ? (
+                    <div className="absolute -bottom-0.5 -left-0.5 w-3 h-3 bg-green-500 border-2 border-surface rounded-full" />
+                  ) : null;
+                })()}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-text-primary text-sm">
                   {activeConversation.car_ad?.title}
                 </h3>
-                <p className="text-xs text-text-tertiary">
-                  {activeConversation.car_ad?.brand} {activeConversation.car_ad?.model_name} · ${activeConversation.car_ad?.price}
+                <p className="text-xs text-text-tertiary flex items-center gap-1">
+                  {activeConversation && (() => {
+                    const otherUserId = user?.id === activeConversation.seller?.id
+                      ? activeConversation.buyer?.id
+                      : activeConversation.seller?.id;
+                    const isOtherOnline = onlineUsers[otherUserId] || false;
+                    return isOtherOnline ? (
+                      <span className="text-green-500">آنلاین</span>
+                    ) : (
+                      <span>آفلاین</span>
+                    );
+                  })()}
                 </p>
               </div>
-              {activeConversation.car_ad?.images?.[0] && (
-                <img
-                  src={activeConversation.car_ad.images[0].image}
-                  alt={activeConversation.car_ad.title}
-                  className="w-10 h-10 rounded-lg object-cover"
-                />
-              )}
+              <button
+                onClick={(e) => handleDelete(e, selectedChat)}
+                className="p-2 text-text-tertiary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950 rounded-lg transition-colors"
+                title="حذف گفتگو"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
             </div>
 
-            {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 bg-surface-secondary">
+            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 bg-surface-secondary">
               {loadingMessages ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-500"></div>
@@ -450,35 +523,37 @@ export default function Chat() {
                   variants={staggerContainer}
                   initial="initial"
                   animate="animate"
-                  className="space-y-3"
+                  className="space-y-2"
                 >
-                  {messages.map((msg) => {
+                  {messages.map((msg, index) => {
                     const isOwn = msg.sender?.id === user?.id;
-                    const isOptimistic = msg._isOptimistic;
-                    
+                    const prevMsg = messages[index - 1];
+                    const showDate = !prevMsg || 
+                      new Date(msg.created_at).toDateString() !== new Date(prevMsg.created_at).toDateString();
+
                     return (
-                      <motion.div
-                        key={msg.id}
-                        variants={fadeUpItem}
-                        className={`flex ${isOwn ? 'justify-start' : 'justify-end'}`}
-                      >
-                        <div
-                          className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
-                            isOwn
-                              ? 'bg-brand-500 text-white rounded-bl-md'
-                              : 'bg-surface border border-border text-text-primary rounded-br-md'
-                          } ${isOptimistic ? 'opacity-70' : ''}`}
-                        >
-                          {isOptimistic && (
-                            <div className="text-xs mb-1 text-white/70">در حال ارسال...</div>
-                          )}
-                          <p>{msg.content}</p>
-                          <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-start' : 'justify-end'}`}>
-                            <span className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-text-tertiary'}`}>
-                              {formatTime(msg.created_at)}
+                      <motion.div key={msg.id} variants={fadeUpItem}>
+                        {showDate && (
+                          <div className="text-center my-4">
+                            <span className="text-xs text-text-tertiary bg-surface px-3 py-1 rounded-full">
+                              {formatDate(msg.created_at)}
                             </span>
-                            {isOwn && !isOptimistic && <CheckCheck className="w-3 h-3 text-white/70" />}
-                            {isOwn && isOptimistic && <div className="w-3 h-3 border border-white/70 rounded-full" />}
+                          </div>
+                        )}
+                        <div className={`flex ${isOwn ? 'justify-start' : 'justify-end'} mb-1`}>
+                          <div
+                            className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm ${
+                              isOwn
+                                ? 'bg-brand-500 text-white rounded-bl-md rounded-br-sm'
+                                : 'bg-surface border border-border text-text-primary rounded-br-md rounded-bl-sm'
+                            }`}
+                          >
+                            <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
+                            <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-start' : 'justify-end'}`}>
+                              <span className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-text-tertiary'}`}>
+                                {formatTime(msg.created_at)}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </motion.div>
@@ -489,24 +564,23 @@ export default function Chat() {
               )}
             </div>
 
-            {/* Message Input */}
-            <form onSubmit={handleSend} className="p-4 border-t border-border">
-              <div className="flex items-center gap-2">
+            <form onSubmit={handleSend} className="p-4 border-t border-border bg-surface">
+              <div className="flex items-center gap-2 bg-surface-tertiary rounded-2xl px-4 py-2 border border-border focus-within:border-brand-500 transition-colors">
                 <input
                   type="text"
                   value={newMessage}
                   onChange={(e) => setNewMessage(e.target.value)}
                   placeholder="پیام خود را بنویسید..."
-                  className="flex-1 px-4 py-2.5 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                  className="flex-1 bg-transparent text-sm focus:outline-none text-text-primary placeholder:text-text-tertiary"
                   disabled={sending}
                 />
                 <button
                   type="submit"
                   disabled={!newMessage.trim() || sending}
-                  className="p-2.5 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white rounded-xl transition-colors"
+                  className="p-2 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white rounded-xl transition-colors shrink-0"
                 >
                   {sending ? (
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
                     <Send className="w-4 h-4" />
                   )}
