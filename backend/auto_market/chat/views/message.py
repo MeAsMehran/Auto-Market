@@ -54,7 +54,7 @@ class ReceiveMessageView(APIView):
     def get(self, request, message_id):
         pass
 
-
+"""
 class RetrieveMessagesView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -86,6 +86,96 @@ class RetrieveMessagesView(APIView):
             'page_size': page_size,
             'has_next': end < total_messages,
         }, status=status.HTTP_200_OK)
+"""
+
+"""
+above RetrieveMessagesView:
+
+Initial load (no cursor):
+GET /api/conversation/1/messages/?limit=50
+
+Response:
+{
+  "messages": [1, 2, 3, ...50],      ← Newest at end (index 49)
+  "next_cursor": "1",                  ← First message ID (oldest in batch)
+  "has_next": true                     ← More older messages exist
+}
+
+Down RetrieveMessagesView:
+
+Load more (with cursor):
+GET /api/conversation/1/messages/?limit=50&cursor=1
+
+Response:
+{
+  "messages": [51, 52, 53, ...100],   ← Older messages
+  "next_cursor": "51",
+  "has_next": true
+}
+"""
+
+class RetrieveMessagesView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, conversation_id):
+        conversation = get_object_or_404(
+            Conversation.objects.only('id'),
+            Q(seller=request.user) | Q(buyer=request.user),
+            pk=conversation_id
+        )
+
+        # Limit: default 50, max 50
+        limit = int(request.query_params.get('limit', 50))
+        limit = max(1, min(limit, 50))  # Clamp between 1 and 50
+
+        # Cursor: message ID to fetch messages BEFORE
+        cursor = request.query_params.get('cursor')
+        
+        if cursor:
+            cursor = int(cursor)
+            # Get the cursor message's created_at for proper ordering
+            try:
+                cursor_msg = Message.objects.get(id=cursor, conversation=conversation)
+                cursor_date = cursor_msg.created_at
+            except Message.DoesNotExist:
+                cursor_date = None
+        else:
+            cursor_date = None
+
+        # Build query
+        queryset = Message.objects.filter(conversation=conversation)
+        
+        if cursor_date:
+            # Get messages OLDER than cursor
+            queryset = queryset.filter(created_at__lt=cursor_date)
+        
+        # Order by newest first, limit to get latest N
+        messages = queryset.select_related(
+        'sender_user', 
+        'receiver_user', 
+        'conversation',
+        'conversation__car_ad'
+        ).order_by('-created_at')[:limit]
+        
+        # Reverse to get oldest first in this batch (for display order)
+        messages = list(reversed(messages))
+
+        # Determine next cursor
+        if messages:
+            next_cursor = str(messages[0].id) if len(messages) == limit else None
+            has_next = next_cursor is not None
+        else:
+            next_cursor = None
+            has_next = False
+
+        serializer = ListMessageSerializer(messages, many=True)
+
+        return Response({
+            'messages': serializer.data,
+            'next_cursor': next_cursor,
+            'has_next': has_next,
+        })
+
 
 
 class MarkMessagesAsReadView(APIView):
