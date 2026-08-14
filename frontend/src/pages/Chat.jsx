@@ -48,24 +48,26 @@ export default function Chat() {
   const [showMobileList, setShowMobileList] = useState(true);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState(null);
   const [wsStatus, setWsStatus] = useState('disconnected');
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [typingUsers, setTypingUsers] = useState({});
+  const [nextCursor, setNextCursor] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
 
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const reconnectAttemptsRef = useRef(0);
+  const prevScrollHeightRef = useRef(0);
   const conversationsLoadedRef = useRef(false);
-  const abortControllerRef = useRef(null);
   const wsConversationIdRef = useRef(null);
   const lastMessageCountRef = useRef(0);
   const typingTimeoutRef = useRef(null);
   const lastSeenMessageIdRef = useRef(null);
-  const prevSelectedChatRef = useRef(null);
   const pendingMessagesRef = useRef({});
 
   const showToast = useCallback((message, type = 'info') => {
@@ -92,6 +94,53 @@ export default function Chat() {
     });
   }, []);
 
+  const loadMoreMessagesRef = useRef(null);
+
+  const loadMoreMessages = useCallback(async () => {
+    if (loadMoreMessagesRef.current) return;
+    loadMoreMessagesRef.current = true;
+
+    try {
+      setLoadingMore(true);
+
+      const container = messagesContainerRef.current;
+      const oldScrollHeight = container?.scrollHeight || 0;
+
+      const msgsData = await listMessages(selectedChat, nextCursor);
+
+      const msgs = msgsData.messages || [];
+      if (msgs.length === 0) {
+        setHasMore(false);
+        return;
+      }
+
+      const normalizedMessages = msgs.map((m) => ({
+        id: m.id,
+        content: m.message_text || m.content || '',
+        sender: { id: m.sender_id, name: m.sender_name },
+        status: m.status || 'sent',
+        created_at: m.created_at,
+      }));
+
+      setMessages((prev) => [...normalizedMessages, ...prev]);
+      setNextCursor(msgsData.next_cursor || null);
+      setHasMore(msgsData.has_next || false);
+
+      requestAnimationFrame(() => {
+        if (container) {
+          const newScrollHeight = container.scrollHeight;
+          container.scrollTop = newScrollHeight - oldScrollHeight;
+        }
+      });
+    } catch (err) {
+      console.error('Failed to load more messages:', err);
+      showToast('خطا در بارگذاری پیام‌های قدیمی‌تر', 'error');
+    } finally {
+      setLoadingMore(false);
+      loadMoreMessagesRef.current = null;
+    }
+  }, [hasMore, loadingMore, nextCursor, selectedChat, showToast]);
+
   const handleScroll = useCallback(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -101,6 +150,8 @@ export default function Chat() {
     const scrollHeight = container.scrollHeight;
     const clientHeight = container.clientHeight;
     const isNearBottom = scrollHeight - scrollTop - clientHeight < threshold;
+    const isNearTop = scrollTop < threshold;
+
     setIsAtBottom(isNearBottom);
 
     if (isNearBottom) {
@@ -115,7 +166,11 @@ export default function Chat() {
         }
       }
     }
-  }, []);
+
+    if (isNearTop && hasMore && !loadingMore && nextCursor && loadMoreMessages) {
+      loadMoreMessages();
+    }
+  }, [hasMore, loadingMore, nextCursor, loadMoreMessages]);
 
   const sendTypingStop = useCallback(() => {
     if (typingTimeoutRef.current) {
@@ -326,27 +381,32 @@ export default function Chat() {
       setMessages([]);
       setHasNewMessage(false);
       setIsAtBottom(true);
+      setNextCursor(null);
+      setHasMore(true);
       lastMessageCountRef.current = 0;
 
       const [conversation, msgsData] = await Promise.all([
         getConversation(conversationId),
-        listMessages(conversationId, 1),
+        listMessages(conversationId),
       ]);
 
       setActiveConversation(conversation);
 
-      const msgs = msgsData.messages || msgsData || [];
+      const msgs = msgsData.messages || [];
       const normalizedMessages = msgs.map((m) => ({
         id: m.id,
         content: m.message_text || m.content || '',
-        sender: m.sender_user || m.sender || { id: m.sender_id, name: m.sender_name },
+        sender: { id: m.sender_id, name: m.sender_name },
         status: m.status || 'sent',
         created_at: m.created_at,
       }));
 
       setMessages(normalizedMessages);
+      setNextCursor(msgsData.next_cursor || null);
+      setHasMore(msgsData.has_next || false);
       lastMessageCountRef.current = normalizedMessages.length;
       lastSeenMessageIdRef.current = null;
+      prevScrollHeightRef.current = 0;
 
       try {
         await markMessagesAsRead(conversationId);
@@ -820,6 +880,16 @@ export default function Chat() {
                   animate="animate"
                   className="space-y-2"
                 >
+                  {loadingMore && (
+                    <div className="flex justify-center py-2">
+                      <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-brand-500"></div>
+                    </div>
+                  )}
+                  {!hasMore && messages.length > 0 && (
+                    <div className="text-center py-2 text-xs text-text-tertiary">
+                      قدیمی‌ترین پیام‌ها
+                    </div>
+                  )}
                   {messages.map((msg, index) => {
                     const isOwn = msg.sender?.id === user?.id;
                     const prevMsg = messages[index - 1];
