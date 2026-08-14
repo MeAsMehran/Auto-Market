@@ -31,8 +31,8 @@ load_dotenv()
 SECRET_KEY = os.getenv('SECRET_KEY', 'fallback')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-# DEBUG = os.getenv('DEBUG', 'False') == 'True'
+# DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
@@ -308,15 +308,13 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'loopdeloop2003@gmail.com')
 
 
 # Django Channels
-if 'test' in sys.argv or 'daphne' in sys.argv[0]:
-    # Use in-memory channel layer for development (no Redis needed)
+if DEBUG:
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer",
         },
     }
 else:
-    # Use Redis for production
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
@@ -325,6 +323,3 @@ else:
             },
         },
     }
-
-
-

@@ -2,16 +2,22 @@
 Custom JWT Authentication Middleware for Django Channels WebSocket.
 
 This middleware allows WebSocket connections to authenticate using JWT tokens
-passed as a URL query parameter (?token=xxx).
+passed as a URL query parameter (?token=xxx) or via subprotocol header.
 
-Usage:
-    ws://localhost:8000/ws/chat/13/?token=YOUR_JWT_ACCESS_TOKEN
+Security Features:
+- Token is required for WebSocket connections (no anonymous access)
+- Failed authentication attempts are logged
+- Proper error responses help client distinguish auth failures
 """
 
 import jwt
+import logging
 from urllib.parse import parse_qs
 from django.conf import settings
 from channels.db import database_sync_to_async
+from channels.generic.websocket import AsyncWebsocketConsumer
+
+logger = logging.getLogger('auto_market.auth')
 
 
 @database_sync_to_async
@@ -21,7 +27,7 @@ def get_user_from_jwt(token: str):
 
     Returns:
         User instance if token is valid
-        None if token is invalid or user not found
+        None if token is invalid, expired, or user not found
     """
     from django.contrib.auth import get_user_model
     User = get_user_model()
@@ -30,22 +36,27 @@ def get_user_from_jwt(token: str):
         payload = jwt.decode(
             token,
             settings.SECRET_KEY,
-            algorithms=["HS256"]
+            algorithms=["HS256"],
+            options={
+                "verify_exp": True,
+                "require": ["exp", "user_id"],
+            }
         )
         user_id = payload.get('user_id')
         if not user_id:
-            return None
+            return None, "invalid_token"
 
         user = User.objects.get(id=user_id)
         if not user.is_active:
-            return None
-        return user
+            return None, "user_inactive"
+
+        return user, None
     except jwt.ExpiredSignatureError:
-        return None
-    except jwt.InvalidTokenError:
-        return None
+        return None, "token_expired"
+    except jwt.InvalidTokenError as e:
+        return None, f"invalid_token"
     except User.DoesNotExist:
-        return None
+        return None, "user_not_found"
 
 
 class JWTAuthMiddlewareInstance:
@@ -55,6 +66,8 @@ class JWTAuthMiddlewareInstance:
     Extracts JWT token from:
     1. WebSocket subprotocol header (recommended - more secure)
     2. URL query parameter (?token=xxx) - fallback for backwards compatibility
+
+    WebSocket connections without a valid token will be rejected.
     """
 
     def __init__(self, app):
@@ -74,16 +87,33 @@ class JWTAuthMiddlewareInstance:
                 query_params = parse_qs(query_string)
                 token = query_params.get('token', [None])[0]
 
-            if token:
-                user = await get_user_from_jwt(token)
-                if user:
-                    scope['user'] = user
-                    scope['auth'] = token
-                else:
-                    scope['user'] = None
-                    scope['auth'] = None
+            if not token:
+                await self._send_auth_error(send, "Authentication required. Provide JWT token via ?token=query_param or subprotocol header.")
+                logger.warning(f"WebSocket auth rejected: No token provided from {scope.get('client')}")
+                return
+
+            user, error = await get_user_from_jwt(token)
+
+            if user:
+                scope['user'] = user
+                scope['auth'] = token
+                logger.debug(f"WebSocket auth success for user {user.id}")
             else:
-                scope['user'] = None
-                scope['auth'] = None
+                await self._send_auth_error(send, f"Authentication failed: {error}")
+                logger.warning(f"WebSocket auth rejected: {error} from {scope.get('client')}")
+                return
 
         return await self.app(scope, receive, send)
+
+    async def _send_auth_error(self, send, message):
+        await send({
+            'type': 'websocket.accept',
+        })
+        await send({
+            'type': 'websocket.send',
+            'text': f'{{"type": "error", "code": "authentication_failed", "message": "{message}"}}',
+        })
+        await send({
+            'type': 'websocket.close',
+            'code': 4001,
+        })

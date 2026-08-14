@@ -66,6 +66,11 @@ class ConversationConsumer(WebsocketConsumer):
         self.user = self.scope.get('user')
 
         if not self.user or not self.user.is_authenticated:
+            self.send(text_data=json.dumps({
+                'type': 'error',
+                'code': 'authentication_required',
+                'message': 'Authentication required. Please provide a valid JWT token.'
+            }))
             self.close()
             return
 
@@ -106,6 +111,7 @@ class ConversationConsumer(WebsocketConsumer):
         msg_type = data.get('type')
 
         if msg_type == 'ping':
+            self.send(text_data=json.dumps({'type': 'pong'}))
             return
 
         if msg_type not in ('message_delivered', 'messages_seen', 'typing_start', 'typing_stop'):
