@@ -6,7 +6,6 @@ from ads.serializers.car_serializer import DetailCarAdSerializer
 from ads.models import Car
 from ..models import Conversation
 from accounts.serializers import UserSerializer
-from core.presence import presence_service
 
 
 #######################################################
@@ -51,7 +50,6 @@ class ListConversationsSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
     last_message = serializers.SerializerMethodField()
-    other_user_online = serializers.SerializerMethodField()
     unread_count = serializers.SerializerMethodField()
 
     def get_last_message(self, obj):
@@ -63,18 +61,6 @@ class ListConversationsSerializer(serializers.Serializer):
                 'created_at': last_msg.created_at,
             }
         return None
-
-    def get_other_user_online(self, obj):
-        request = self.context.get('request')
-        if not request or not request.user:
-            return False
-
-        if request.user.id == obj.seller.id:
-            other_user_id = obj.buyer.id
-        else:
-            other_user_id = obj.seller.id
-
-        return presence_service.is_user_online(other_user_id)
 
     def get_unread_count(self, obj):
         request = self.context.get('request')

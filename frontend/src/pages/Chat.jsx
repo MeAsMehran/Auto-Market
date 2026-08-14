@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { Send, ArrowLeft, User, MessageCircle, AlertCircle, X, Check, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
-import { listConversations, deleteConversation, getConversation, listMessages, sendMessage, getUsersPresence, markMessagesAsRead } from '../lib/chatApi';
+import { listConversations, deleteConversation, getConversation, listMessages, sendMessage, markMessagesAsRead } from '../lib/chatApi';
 import { useAuth } from '../context/AuthContext';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
@@ -51,9 +51,9 @@ export default function Chat() {
   const [sending, setSending] = useState(false);
   const [toast, setToast] = useState(null);
   const [wsStatus, setWsStatus] = useState('disconnected');
-  const [onlineUsers, setOnlineUsers] = useState({});
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [hasNewMessage, setHasNewMessage] = useState(false);
+  const [typingUsers, setTypingUsers] = useState({});
 
   const messagesEndRef = useRef(null);
   const wsRef = useRef(null);
@@ -63,6 +63,10 @@ export default function Chat() {
   const abortControllerRef = useRef(null);
   const wsConversationIdRef = useRef(null);
   const lastMessageCountRef = useRef(0);
+  const typingTimeoutRef = useRef(null);
+  const lastSeenMessageIdRef = useRef(null);
+  const prevSelectedChatRef = useRef(null);
+  const pendingMessagesRef = useRef({});
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type, id: Date.now() });
@@ -92,14 +96,48 @@ export default function Chat() {
     const container = messagesContainerRef.current;
     if (!container) return;
 
-    const threshold = 100;
-    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    const threshold = 150;
+    const scrollTop = container.scrollTop;
+    const scrollHeight = container.scrollHeight;
+    const clientHeight = container.clientHeight;
+    const isNearBottom = scrollHeight - scrollTop - clientHeight < threshold;
     setIsAtBottom(isNearBottom);
 
     if (isNearBottom) {
       setHasNewMessage(false);
+      const messages = container.querySelectorAll('[data-message-id]');
+      if (messages && messages.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+        const lastMsg = messages[messages.length - 1];
+        const lastId = parseInt(lastMsg.dataset.messageId);
+        if (lastId && lastId !== lastSeenMessageIdRef.current) {
+          lastSeenMessageIdRef.current = lastId;
+          wsRef.current.send(JSON.stringify({ type: 'messages_seen', last_seen_message_id: lastId }));
+        }
+      }
     }
   }, []);
+
+  const sendTypingStop = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'typing_stop' }));
+    }
+  }, []);
+
+  const handleTyping = useCallback(() => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'typing_start' }));
+    }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      sendTypingStop();
+    }, 3000);
+  }, [sendTypingStop]);
 
   const connectWebSocket = useCallback((conversationId) => {
     const token = localStorage.getItem('access_token');
@@ -115,7 +153,7 @@ export default function Chat() {
 
     wsConversationIdRef.current = conversationId;
     setWsStatus('connecting');
-    const ws = new WebSocket(`${WS_URL}/ws/chat/${conversationId}/?token=${token}`);
+    const ws = new WebSocket(`${WS_URL}/ws/chat/${conversationId}/`, ['jwt', token]);
     let pingInterval = null;
 
     ws.onopen = () => {
@@ -132,54 +170,108 @@ export default function Chat() {
       try {
         const data = JSON.parse(event.data);
 
-        if (data.type === 'presence_update') {
-          if (ws.readyState === WebSocket.OPEN) {
-            setOnlineUsers((prev) => ({
-              ...prev,
-              [data.user_id]: data.is_online,
-            }));
-          }
-          return;
-        }
-
         if (data.type === 'new_message' && data.message) {
           const msg = data.message;
           const newMsg = {
             id: msg.id,
             content: msg.text,
             sender: { id: msg.sender_id, name: msg.sender_name },
+            status: msg.status || 'sent',
             created_at: msg.created_at,
           };
 
           const isOwnMessage = msg.sender_id === user?.id;
+          const clientMsgId = msg.client_message_id;
 
           setMessages((prev) => {
+            if (clientMsgId && prev.some((m) => m.clientId === clientMsgId)) {
+              return prev.map((m) =>
+                m.clientId === clientMsgId ? { ...m, ...newMsg, status: msg.status } : m
+              );
+            }
             if (prev.some((m) => m.id === newMsg.id)) return prev;
             return [...prev, newMsg];
           });
 
-          setConversations((prev) =>
-            prev.map((conv) => {
-              if (conv.id === conversationId) {
-                return {
-                  ...conv,
-                  last_message: {
-                    id: msg.id,
-                    message_text: msg.text,
-                    created_at: msg.created_at,
-                  },
-                  updated_at: new Date().toISOString(),
-                };
-              }
-              return conv;
-            }).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-          );
+          if (clientMsgId) {
+            delete pendingMessagesRef.current[clientMsgId];
+          }
+
+          if (!isOwnMessage) {
+            ws.send(JSON.stringify({ type: 'message_delivered', message_id: msg.id }));
+          }
 
           if (isOwnMessage || isAtBottom) {
             scrollToBottom();
           } else {
             setHasNewMessage(true);
           }
+        }
+
+        if (data.type === 'conversation_updated' && data.conversation) {
+          const updatedConv = data.conversation;
+          setConversations((prev) => {
+            const exists = prev.some((c) => c.id === updatedConv.id);
+            let updated;
+            if (exists) {
+              updated = prev.map((conv) => {
+                if (conv.id === updatedConv.id) {
+                  const isOwnMessage = user?.id === (updatedConv.last_message?.sender_id || updatedConv.last_message?.sender_user?.id);
+                  const newUnreadCount = isOwnMessage ? 0 : ((conv.unread_count || 0) + 1);
+                  return {
+                    ...conv,
+                    last_message: updatedConv.last_message,
+                    updated_at: updatedConv.updated_at,
+                    unread_count: updatedConv.id === conversationId ? 0 : newUnreadCount,
+                  };
+                }
+                return conv;
+              });
+            } else {
+              getConversation(updatedConv.id).then((fullConv) => {
+                if (fullConv && !conversations.some((c) => c.id === fullConv.id)) {
+                  setConversations((prevConv) => {
+                    const newList = [...(prevConv || []), fullConv];
+                    return newList.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+                  });
+                }
+              });
+              updated = prev;
+            }
+            return updated.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+          });
+        }
+
+        if (data.type === 'status_update') {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === data.message_id ? { ...m, status: data.status } : m
+            )
+          );
+        }
+
+        if (data.type === 'messages_seen_update') {
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id <= data.last_seen_id ? { ...m, status: 'seen' } : m
+            )
+          );
+
+          setConversations((prev) =>
+            prev.map((conv) => {
+              if (conv.id === conversationId) {
+                return { ...conv, unread_count: 0 };
+              }
+              return conv;
+            })
+          );
+        }
+
+        if (data.type === 'typing_update') {
+          setTypingUsers((prev) => ({
+            ...prev,
+            [data.user_id]: data.is_typing,
+          }));
         }
       } catch (err) {
         console.error('WebSocket parse error:', err);
@@ -219,22 +311,6 @@ export default function Chat() {
       const data = await listConversations();
       const convs = Array.isArray(data) ? data : [];
       setConversations(convs);
-
-      const userIdsSet = new Set(convs.map((c) => {
-        if (user && c.seller?.id === user.id) return c.buyer?.id;
-        return c.seller?.id;
-      }).filter(Boolean));
-
-      if (userIdsSet.size > 0) {
-        try {
-          const presenceData = await getUsersPresence([...userIdsSet]);
-          if (presenceData && typeof presenceData === 'object') {
-            setOnlineUsers(presenceData);
-          }
-        } catch (e) {
-          console.error('Failed to fetch presence:', e);
-        }
-      }
     } catch (err) {
       console.error('Failed to load conversations:', err);
       showToast('خطا در بارگذاری گفتگوها', 'error');
@@ -264,15 +340,13 @@ export default function Chat() {
         id: m.id,
         content: m.message_text || m.content || '',
         sender: m.sender_user || m.sender || { id: m.sender_id, name: m.sender_name },
+        status: m.status || 'sent',
         created_at: m.created_at,
       }));
 
       setMessages(normalizedMessages);
       lastMessageCountRef.current = normalizedMessages.length;
-
-      requestAnimationFrame(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
-      });
+      lastSeenMessageIdRef.current = null;
 
       try {
         await markMessagesAsRead(conversationId);
@@ -332,15 +406,81 @@ export default function Chat() {
     return () => clearInterval(pingInterval);
   }, [selectedChat, wsStatus]);
 
-  const submitMessage = async (messageText) => {
-    if (!messageText.trim() || !selectedChat || sending) return;
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (wsRef.current) {
+        wsRef.current.close(1000);
+      }
+    };
 
-    setSending(true);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
+
+  useEffect(() => {
+    if (!user) {
+      disconnectWebSocket();
+    }
+  }, [user, disconnectWebSocket]);
+
+  useEffect(() => {
+    if (selectedChat && messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+
+        const messages = messagesContainerRef.current?.querySelectorAll('[data-message-id]');
+        if (messages && messages.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+          const lastMsg = messages[messages.length - 1];
+          const lastId = parseInt(lastMsg.dataset.messageId);
+          if (lastId && lastId !== lastSeenMessageIdRef.current) {
+            lastSeenMessageIdRef.current = lastId;
+            wsRef.current.send(JSON.stringify({ type: 'messages_seen', last_seen_message_id: lastId }));
+          }
+        }
+      }, 250);
+    }
+  }, [selectedChat, messages.length]);
+
+  const submitMessage = async (messageText, retryClientId = null) => {
+    if (!messageText.trim() || !selectedChat) return;
+
+    const clientId = retryClientId || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    if (!retryClientId) {
+      setSending(true);
+    }
+    sendTypingStop();
+
+    if (!retryClientId) {
+      const tempMsg = {
+        id: clientId,
+        clientId: clientId,
+        content: messageText,
+        sender: user,
+        status: 'sending',
+        created_at: new Date().toISOString(),
+      };
+      setMessages((prev) => [...prev, tempMsg]);
+      scrollToBottom();
+    }
 
     try {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         try {
-          wsRef.current.send(JSON.stringify({ message_text: messageText }));
+          wsRef.current.send(JSON.stringify({
+            message_text: messageText,
+            client_message_id: clientId
+          }));
+
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.clientId === clientId ? { ...m, status: 'sent' } : m
+            )
+          );
+
+          if (retryClientId) {
+            delete pendingMessagesRef.current[clientId];
+          }
           scrollToBottom();
           return;
         } catch (wsErr) {
@@ -351,13 +491,17 @@ export default function Chat() {
       const savedMessage = await sendMessage(selectedChat, messageText);
       const normalizedMsg = {
         id: savedMessage.id,
+        clientId: clientId,
         content: savedMessage.message_text || savedMessage.content,
         sender: savedMessage.sender_user,
+        status: savedMessage.status || 'sent',
         created_at: savedMessage.created_at,
       };
+
       setMessages((prev) => {
-        if (prev.some((m) => m.id === normalizedMsg.id)) return prev;
-        return [...prev, normalizedMsg];
+        return prev.map((m) =>
+          m.clientId === clientId ? normalizedMsg : m
+        );
       });
 
       setConversations((prev) =>
@@ -377,13 +521,32 @@ export default function Chat() {
         }).sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
       );
 
+      delete pendingMessagesRef.current[clientId];
       scrollToBottom();
     } catch (err) {
       console.error('Send error:', err);
-      showToast('خطا در ارسال پیام', 'error');
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.clientId === clientId ? { ...m, status: 'failed' } : m
+        )
+      );
+      pendingMessagesRef.current[clientId] = messageText;
     } finally {
       setSending(false);
     }
+  };
+
+  const retryMessage = async (clientId) => {
+    const messageText = pendingMessagesRef.current[clientId];
+    if (!messageText) return;
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.clientId === clientId ? { ...m, status: 'sending' } : m
+      )
+    );
+
+    await submitMessage(messageText, clientId);
   };
 
   const handleSend = async (e) => {
@@ -430,7 +593,7 @@ export default function Chat() {
     const buyer = conversation.buyer || {};
 
     if (!user) {
-      return { id: null, name: 'کاربر', isOnline: false };
+      return { id: null, name: 'کاربر' };
     }
 
     let otherUserId;
@@ -447,7 +610,6 @@ export default function Chat() {
     return {
       id: otherUserId,
       name: otherUserName,
-      isOnline: onlineUsers[otherUserId] || false,
     };
   };
 
@@ -539,21 +701,13 @@ export default function Chat() {
                           {otherUser.name?.charAt(0)?.toUpperCase() || '?'}
                         </span>
                       </div>
-                      {otherUser.isOnline && (
-                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-green-500 border-3 border-surface rounded-full" />
-                      )}
                     </div>
 
                     <div className="flex-1 min-w-0 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <h3 className="font-semibold text-text-primary text-sm truncate">
-                            {otherUser.name}
-                          </h3>
-                          {otherUser.isOnline && (
-                            <span className="w-2 h-2 bg-green-500 rounded-full shrink-0" />
-                          )}
-                        </div>
+                        <h3 className="font-semibold text-text-primary text-sm truncate">
+                          {otherUser.name}
+                        </h3>
                         <span className="text-xs text-text-tertiary shrink-0">
                           {formatDate(conv.updated_at)}
                         </span>
@@ -574,6 +728,11 @@ export default function Chat() {
                           <p className="text-xs text-text-tertiary truncate flex-1">
                             {lastMessage.message_text}
                           </p>
+                          {conv.unread_count > 0 && (
+                            <span className="bg-brand-500 text-white text-[10px] font-bold rounded-full px-1.5 py-0.5 min-w-[18px] text-center">
+                              {conv.unread_count > 99 ? '99+' : conv.unread_count}
+                            </span>
+                          )}
                           <span className="text-[10px] text-text-tertiary shrink-0">
                             {formatTime(lastMessage.created_at)}
                           </span>
@@ -603,15 +762,6 @@ export default function Chat() {
                 <div className="w-10 h-10 rounded-full bg-brand-100 dark:bg-brand-900 flex items-center justify-center">
                   <User className="w-4 h-4 text-brand-500" />
                 </div>
-                {activeConversation && (() => {
-                  const otherUserId = user?.id === activeConversation.seller?.id
-                    ? activeConversation.buyer?.id
-                    : activeConversation.seller?.id;
-                  const isOtherOnline = onlineUsers[otherUserId] || false;
-                  return isOtherOnline ? (
-                    <div className="absolute -bottom-0.5 -left-0.5 w-3 h-3 bg-green-500 border-2 border-surface rounded-full" />
-                  ) : null;
-                })()}
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-text-primary text-sm">
@@ -622,12 +772,20 @@ export default function Chat() {
                     const otherUserId = user?.id === activeConversation.seller?.id
                       ? activeConversation.buyer?.id
                       : activeConversation.seller?.id;
-                    const isOtherOnline = onlineUsers[otherUserId] || false;
-                    return isOtherOnline ? (
-                      <span className="text-green-500">آنلاین</span>
-                    ) : (
-                      <span>آفلاین</span>
-                    );
+                    const isTyping = typingUsers[otherUserId];
+                    if (isTyping) {
+                      return (
+                        <span className="text-blue-500 flex items-center gap-1">
+                          <span className="flex gap-0.5">
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0ms'}} />
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '150ms'}} />
+                            <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '300ms'}} />
+                          </span>
+                          در حال تایپ...
+                        </span>
+                      );
+                    }
+                    return null;
                   })()}
                 </p>
               </div>
@@ -665,11 +823,11 @@ export default function Chat() {
                   {messages.map((msg, index) => {
                     const isOwn = msg.sender?.id === user?.id;
                     const prevMsg = messages[index - 1];
-                    const showDate = !prevMsg || 
+                    const showDate = !prevMsg ||
                       new Date(msg.created_at).toDateString() !== new Date(prevMsg.created_at).toDateString();
 
                     return (
-                      <motion.div key={msg.id} variants={fadeUpItem}>
+                      <motion.div key={msg.id} variants={fadeUpItem} data-message-id={msg.id}>
                         {showDate && (
                           <div className="text-center my-4">
                             <span className="text-xs text-text-tertiary bg-surface px-3 py-1 rounded-full">
@@ -690,6 +848,41 @@ export default function Chat() {
                               <span className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-text-tertiary'}`}>
                                 {formatTime(msg.created_at)}
                               </span>
+                              {isOwn && msg.status !== 'sending' && msg.status !== 'failed' && (
+                                <span className="text-white/70">
+                                  {msg.status === 'seen' ? (
+                                    <svg className="w-4 h-4 text-blue-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  ) : msg.status === 'delivered' ? (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                    </svg>
+                                  )}
+                                </span>
+                              )}
+                              {isOwn && msg.status === 'sending' && (
+                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                              )}
+                              {isOwn && msg.status === 'failed' && (
+                                <button
+                                  onClick={() => retryMessage(msg.clientId)}
+                                  className="flex items-center gap-1 text-red-300 hover:text-red-200"
+                                  title="Retry"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                  <span className="text-[10px]">Retry</span>
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -719,7 +912,10 @@ export default function Chat() {
               <div className="flex items-center gap-2 bg-surface-tertiary rounded-2xl px-4 py-2 border border-border focus-within:border-brand-500 transition-colors">
                 <textarea
                   value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
+                  onChange={(e) => {
+                    setNewMessage(e.target.value);
+                    handleTyping();
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
@@ -727,6 +923,7 @@ export default function Chat() {
                       if (text) {
                         setNewMessage('');
                         submitMessage(text);
+                        sendTypingStop();
                       }
                     }
                   }}

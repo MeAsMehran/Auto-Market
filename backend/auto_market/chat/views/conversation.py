@@ -12,7 +12,6 @@ from ..serializers.conversations_serializer import (ConversationSerializer, Crea
 from ..models import Conversation
 from core.permissions.conversation_owner import ConversationOwner
 from core.pagination.pagination import SmallPageNumberPagination
-from core.presence import presence_service
 
 #####################
 
@@ -82,28 +81,6 @@ class ListConversationsView(APIView):
 
         serializer = ListConversationsSerializer(conversations, many=True, context={'request': request})
         return Response(serializer.data)
-
-
-class UserPresenceView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    @extend_schema(
-        responses={200: dict}
-    )
-    def get(self, request):
-        user_ids = request.query_params.get('user_ids', '')
-        if not user_ids:
-            return Response({'error': 'user_ids required'}, status=status.HTTP_400_BAD_REQUEST)
-
-        try:
-            user_id_list = [int(uid.strip()) for uid in user_ids.split(',') if uid.strip()]
-        except ValueError:
-            return Response({'error': 'Invalid user_ids format'}, status=status.HTTP_400_BAD_REQUEST)
-
-        presence_data = presence_service.get_users_presence(user_id_list)
-        result = {str(uid): is_online for uid, is_online in presence_data.items()}
-
-        return Response(result, status=status.HTTP_200_OK)
 
 
 

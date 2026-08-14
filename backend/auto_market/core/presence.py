@@ -57,10 +57,9 @@ class PresenceService:
             count_key = self._get_connection_count_key(user_id)
             new_count = self.redis.incr(count_key)
 
-            if new_count == 1:
-                key = self._get_user_key(user_id)
-                self.redis.setex(key, PRESENCE_TTL, json.dumps({'status': 'online'}))
-                self.redis.sadd(REDIS_USER_PRESENCE_SET, user_id)
+            key = self._get_user_key(user_id)
+            self.redis.setex(key, PRESENCE_TTL, json.dumps({'status': 'online'}))
+            self.redis.sadd(REDIS_USER_PRESENCE_SET, user_id)
 
             return True
         except Exception:

@@ -52,8 +52,9 @@ class JWTAuthMiddlewareInstance:
     """
     JWT Authentication Middleware for Django Channels 4.x.
 
-    Extracts JWT token from URL query parameter (?token=xxx),
-    decodes it, and sets scope['user'] for the consumer.
+    Extracts JWT token from:
+    1. WebSocket subprotocol header (recommended - more secure)
+    2. URL query parameter (?token=xxx) - fallback for backwards compatibility
     """
 
     def __init__(self, app):
@@ -61,10 +62,17 @@ class JWTAuthMiddlewareInstance:
 
     async def __call__(self, scope, receive, send):
         if scope['type'] == 'websocket':
-            query_string = scope.get('query_string', b'').decode()
-            query_params = parse_qs(query_string)
+            token = None
+            subprotocols = scope.get('subprotocols', [])
 
-            token = query_params.get('token', [None])[0]
+            if 'jwt' in subprotocols:
+                idx = subprotocols.index('jwt')
+                if idx + 1 < len(subprotocols):
+                    token = subprotocols[idx + 1]
+            else:
+                query_string = scope.get('query_string', b'').decode()
+                query_params = parse_qs(query_string)
+                token = query_params.get('token', [None])[0]
 
             if token:
                 user = await get_user_from_jwt(token)

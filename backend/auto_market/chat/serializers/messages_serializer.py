@@ -1,4 +1,6 @@
 
+
+
 from rest_framework import serializers
 from .conversations_serializer import ConversationSerializer
 from accounts.serializers import UserSerializer
@@ -11,7 +13,7 @@ class SendMessageSerializer(serializers.Serializer):
 
 
 class ReceiveMessageSerializer(serializers.Serializer):
-    message_text = serializers.CharField(read_only=True)    
+    message_text = serializers.CharField(read_only=True)
     is_read      = serializers.BooleanField()
 
 
@@ -19,6 +21,7 @@ class MessageSerializer(serializers.Serializer):
     conversation = ConversationSerializer(read_only=True)
     message_text = serializers.CharField(read_only=True)
     is_read      = serializers.BooleanField()
+    status       = serializers.CharField(read_only=True)
 
 
 class ListMessageSerializer(serializers.Serializer):
@@ -28,7 +31,12 @@ class ListMessageSerializer(serializers.Serializer):
     receiver_user = UserSerializer(read_only=True)
     message_text  = serializers.CharField(read_only=True)
     is_read       = serializers.BooleanField(read_only=True)
+    status        = serializers.CharField(read_only=True)
     created_at    = serializers.DateTimeField(read_only=True)
+
+
+
+
 
 
 

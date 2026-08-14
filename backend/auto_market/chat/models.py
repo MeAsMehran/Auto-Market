@@ -2,7 +2,10 @@ from django.db import models, IntegrityError
 from django.conf import settings
 from ads.models import Car
 
-# Create your models here.
+class MessageStatus(models.TextChoices):
+    SENT = 'sent'
+    DELIVERED = 'delivered'
+    SEEN = 'seen'
 
 class Conversation(models.Model):
 
@@ -28,15 +31,18 @@ class Conversation(models.Model):
 
 class Message(models.Model):
 
+    STATUS_CHOICES = MessageStatus.choices
+
     conversation  = models.ForeignKey(to=Conversation, on_delete=models.CASCADE, related_name='conversation_messages')
     sender_user   = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sender_user_messages')
     receiver_user = models.ForeignKey(to=settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='receiver_user_messages')
 
     message_text  = models.TextField(max_length=10000, blank=False, null=False)
+    status        = models.CharField(max_length=20, choices=STATUS_CHOICES, default=MessageStatus.SENT)
     is_read       = models.BooleanField(default=False)
 
     created_at    = models.DateTimeField(auto_now_add=True)
-    updated_at     = models.DateTimeField(auto_now=True)
+    updated_at    = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['created_at']
