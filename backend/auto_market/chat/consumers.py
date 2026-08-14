@@ -9,13 +9,17 @@ Your setup:
 
 import json
 import time
+import logging
 from collections import defaultdict
+
 from django.db.models import Q
-from channels.generic.websocket import WebsocketConsumer
-from asgiref.sync import async_to_sync
 from django.shortcuts import get_object_or_404
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
 
 from .models import Conversation, Message, MessageStatus
+
+logger = logging.getLogger('auto_market.chat')
 
 
 class RateLimiter:
@@ -51,9 +55,9 @@ class RateLimiter:
 rate_limiter = RateLimiter(max_messages=30, window_seconds=60)
 
 
-class ConversationConsumer(WebsocketConsumer):
+class ConversationConsumer(AsyncWebsocketConsumer):
     """
-    WebSocket consumer for real-time chat.
+    Async WebSocket consumer for real-time chat.
 
     How it works:
     1. Client connects to: ws://.../ws/chat/<conversation_id>/
@@ -61,81 +65,104 @@ class ConversationConsumer(WebsocketConsumer):
     3. When message received → save to DB → broadcast to ALL clients in that conversation
     """
 
-    def connect(self):
+    async def connect(self):
+        logger.debug("WebSocket connect initiated")
         self.conversation_id = self.scope['url_route']['kwargs']['conversation_id']
         self.user = self.scope.get('user')
 
         if not self.user or not self.user.is_authenticated:
-            self.send(text_data=json.dumps({
+            logger.warning(f"WebSocket auth failed: user not authenticated")
+            await self.send(text_data=json.dumps({
                 'type': 'error',
                 'code': 'authentication_required',
-                'message': 'Authentication required. Please provide a valid JWT token.'
+                'message': 'Authentication required.'
             }))
-            self.close()
+            await self.close()
             return
 
-        self.conversation = get_object_or_404(
-            Conversation.objects.select_related('car_ad', 'buyer', 'seller'),
-            Q(seller=self.user) | Q(buyer=self.user),
-            pk=self.conversation_id
-        )
+        logger.debug(f"User {self.user.id} authenticated, checking conversation access")
+
+        try:
+            self.conversation = await self.get_conversation(self.conversation_id, self.user)
+            logger.debug(f"User {self.user.id} has access to conversation {self.conversation_id}")
+        except Exception as e:
+            logger.error(f"Conversation access denied for user {self.user.id}: {e}")
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'code': 'conversation_not_found',
+                'message': 'Conversation not found or access denied.'
+            }))
+            await self.close()
+            return
 
         self.conversation_name = f"chat_{self.conversation_id}"
 
-        async_to_sync(self.channel_layer.group_add)(
-            self.conversation_name,
-            self.channel_name
-        )
-
-        self.accept()
-
-    def disconnect(self, close_code):
-        if hasattr(self, 'user') and self.user and hasattr(self.user, 'id'):
-            rate_limiter.cleanup(self.user.id)
-        if hasattr(self, 'conversation_name'):
-            async_to_sync(self.channel_layer.group_discard)(
+        try:
+            await self.channel_layer.group_add(
                 self.conversation_name,
                 self.channel_name
             )
+            logger.debug(f"Added to channel group: {self.conversation_name}")
+        except Exception as e:
+            logger.error(f"Failed to join channel group: {e}")
+            await self.close()
+            return
 
-    def receive(self, text_data):
+        await self.accept()
+        logger.debug(f"WebSocket connection accepted for conversation {self.conversation_id}")
+
+    async def disconnect(self, close_code):
+        logger.debug(f"WebSocket disconnect: {close_code}")
+        if hasattr(self, 'user') and self.user and hasattr(self.user, 'id'):
+            rate_limiter.cleanup(self.user.id)
+        if hasattr(self, 'conversation_name'):
+            try:
+                await self.channel_layer.group_discard(
+                    self.conversation_name,
+                    self.channel_name
+                )
+            except Exception as e:
+                logger.error(f"Failed to leave channel group: {e}")
+
+    async def receive(self, text_data):
         try:
             data = json.loads(text_data)
         except json.JSONDecodeError:
-            self.send(text_data=json.dumps({
+            await self.send(text_data=json.dumps({
                 'type': 'error',
                 'message': 'Invalid JSON'
             }))
             return
 
         msg_type = data.get('type')
+        logger.debug(f"Received message type: {msg_type}")
 
         if msg_type == 'ping':
-            self.send(text_data=json.dumps({'type': 'pong'}))
+            await self.send(text_data=json.dumps({'type': 'pong'}))
             return
 
         if msg_type not in ('message_delivered', 'messages_seen', 'typing_start', 'typing_stop'):
             if not rate_limiter.is_allowed(self.user.id):
-                self.send(text_data=json.dumps({
+                await self.send(text_data=json.dumps({
                     'type': 'error',
-                    'message': 'Rate limit exceeded. Please slow down.'
+                    'message': 'Rate limit exceeded.'
                 }))
                 return
 
         if msg_type == 'message_delivered':
-            self._handle_message_delivered(data)
+            await self._handle_message_delivered(data)
             return
 
         if msg_type == 'messages_seen':
-            self._handle_messages_seen(data)
+            await self._handle_messages_seen(data)
             return
 
         if msg_type == 'typing_start':
-            self._handle_typing(True)
+            await self._handle_typing(True)
             return
 
         if msg_type == 'typing_stop':
-            self._handle_typing(False)
+            await self._handle_typing(False)
             return
 
         message_text = data.get('message_text', '').strip()
@@ -145,7 +172,7 @@ class ConversationConsumer(WebsocketConsumer):
             return
 
         if len(message_text) > 10000:
-            self.send(text_data=json.dumps({
+            await self.send(text_data=json.dumps({
                 'type': 'error',
                 'message': 'Message too long'
             }))
@@ -164,11 +191,10 @@ class ConversationConsumer(WebsocketConsumer):
             status=MessageStatus.SENT,
             is_read=False
         )
-        message.save()
+        await self.save_message(message)
+        await self.save_conversation(self.conversation)
 
-        self.conversation.save()
-
-        async_to_sync(self.channel_layer.group_send)(
+        await self.channel_layer.group_send(
             self.conversation_name,
             {
                 'type': 'chat_message',
@@ -185,7 +211,7 @@ class ConversationConsumer(WebsocketConsumer):
             }
         )
 
-        async_to_sync(self.channel_layer.group_send)(
+        await self.channel_layer.group_send(
             self.conversation_name,
             {
                 'type': 'conversation_updated',
@@ -201,21 +227,17 @@ class ConversationConsumer(WebsocketConsumer):
             }
         )
 
-    def _handle_message_delivered(self, data):
+    async def _handle_message_delivered(self, data):
         message_id = data.get('message_id')
         if not message_id:
             return
 
         try:
-            message = Message.objects.get(
-                id=message_id,
-                receiver_user=self.user
-            )
+            message = await self.get_message(message_id, self.user)
             if message.status == MessageStatus.SENT:
                 message.status = MessageStatus.DELIVERED
-                message.save(update_fields=['status'])
-
-                async_to_sync(self.channel_layer.group_send)(
+                await self.update_message_status(message)
+                await self.channel_layer.group_send(
                     self.conversation_name,
                     {
                         'type': 'status_update',
@@ -227,26 +249,20 @@ class ConversationConsumer(WebsocketConsumer):
         except Message.DoesNotExist:
             pass
 
-    def _handle_messages_seen(self, data):
+    async def _handle_messages_seen(self, data):
         last_seen_id = data.get('last_seen_message_id')
         if not last_seen_id:
             return
 
         try:
-            last_seen_message = Message.objects.get(id=last_seen_id, conversation=self.conversation)
+            last_seen_message = await self.get_message_by_id(last_seen_id, self.conversation)
         except Message.DoesNotExist:
             return
 
-        updated_count = Message.objects.filter(
-            conversation=self.conversation,
-            receiver_user=self.user,
-            status__in=[MessageStatus.SENT, MessageStatus.DELIVERED]
-        ).exclude(
-            id__gt=last_seen_id
-        ).update(status=MessageStatus.SEEN, is_read=True)
+        updated_count = await self.mark_messages_seen(self.conversation, self.user, last_seen_id)
 
         if updated_count > 0:
-            async_to_sync(self.channel_layer.group_send)(
+            await self.channel_layer.group_send(
                 self.conversation_name,
                 {
                     'type': 'messages_seen_update',
@@ -256,10 +272,8 @@ class ConversationConsumer(WebsocketConsumer):
                 }
             )
 
-    def _handle_typing(self, is_typing):
-        other_user = self.conversation.seller if self.user == self.conversation.buyer else self.conversation.buyer
-
-        async_to_sync(self.channel_layer.group_send)(
+    async def _handle_typing(self, is_typing):
+        await self.channel_layer.group_send(
             self.conversation_name,
             {
                 'type': 'typing_update',
@@ -268,37 +282,75 @@ class ConversationConsumer(WebsocketConsumer):
             }
         )
 
-    def chat_message(self, event):
-        self.send(text_data=json.dumps({
+    async def chat_message(self, event):
+        await self.send(text_data=json.dumps({
             'type': 'new_message',
             'message': event['message']
         }))
 
-    def status_update(self, event):
-        self.send(text_data=json.dumps({
+    async def status_update(self, event):
+        await self.send(text_data=json.dumps({
             'type': 'status_update',
             'message_id': event['message_id'],
             'status': event['status'],
             'sender_id': event['sender_id'],
         }))
 
-    def conversation_updated(self, event):
-        self.send(text_data=json.dumps({
+    async def conversation_updated(self, event):
+        await self.send(text_data=json.dumps({
             'type': 'conversation_updated',
             'conversation': event['conversation'],
         }))
 
-    def messages_seen_update(self, event):
-        self.send(text_data=json.dumps({
+    async def messages_seen_update(self, event):
+        await self.send(text_data=json.dumps({
             'type': 'messages_seen_update',
             'last_seen_id': event['last_seen_id'],
             'updated_count': event['updated_count'],
             'reader_id': event['reader_id'],
         }))
 
-    def typing_update(self, event):
-        self.send(text_data=json.dumps({
+    async def typing_update(self, event):
+        await self.send(text_data=json.dumps({
             'type': 'typing_update',
             'user_id': event['user_id'],
             'is_typing': event['is_typing'],
         }))
+
+    @database_sync_to_async
+    def get_conversation(self, conversation_id, user):
+        return get_object_or_404(
+            Conversation.objects.select_related('car_ad', 'buyer', 'seller'),
+            Q(seller=user) | Q(buyer=user),
+            pk=conversation_id
+        )
+
+    @database_sync_to_async
+    def get_message(self, message_id, user):
+        return Message.objects.get(id=message_id, receiver_user=user)
+
+    @database_sync_to_async
+    def get_message_by_id(self, message_id, conversation):
+        return Message.objects.get(id=message_id, conversation=conversation)
+
+    @database_sync_to_async
+    def save_message(self, message):
+        message.save()
+
+    @database_sync_to_async
+    def save_conversation(self, conversation):
+        conversation.save()
+
+    @database_sync_to_async
+    def update_message_status(self, message):
+        message.save(update_fields=['status'])
+
+    @database_sync_to_async
+    def mark_messages_seen(self, conversation, user, last_seen_id):
+        return Message.objects.filter(
+            conversation=conversation,
+            receiver_user=user,
+            status__in=[MessageStatus.SENT, MessageStatus.DELIVERED]
+        ).exclude(
+            id__gt=last_seen_id
+        ).update(status=MessageStatus.SEEN, is_read=True)

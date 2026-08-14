@@ -53,21 +53,34 @@ class ListConversationsSerializer(serializers.Serializer):
     unread_count = serializers.SerializerMethodField()
 
     def get_last_message(self, obj):
-        last_msg = obj.conversation_messages.order_by('-created_at').first()
-        if last_msg:
+        if obj.last_message_id:
             return {
-                'id': last_msg.id,
-                'message_text': last_msg.message_text,
-                'created_at': last_msg.created_at,
+                'id': obj.last_message_id,
+                'message_text': obj.last_message_text,
+                'created_at': obj.last_message_created_at,
             }
         return None
 
     def get_unread_count(self, obj):
-        request = self.context.get('request')
-        if not request or not request.user:
-            return 0
+        return obj.unread_count or 0
 
-        return obj.conversation_messages.filter(
-            receiver_user=request.user,
-            is_read=False
-        ).count()
+
+    # def get_last_message(self, obj):
+    #     last_msg = obj.conversation_messages.order_by('-created_at').first()
+    #     if last_msg:
+    #         return {
+    #             'id': last_msg.id,
+    #             'message_text': last_msg.message_text,
+    #             'created_at': last_msg.created_at,
+    #         }
+    #     return None
+    #
+    # def get_unread_count(self, obj):
+    #     request = self.context.get('request')
+    #     if not request or not request.user:
+    #         return 0
+    #
+    #     return obj.conversation_messages.filter(
+    #         receiver_user=request.user,
+    #         is_read=False
+    #     ).count()
