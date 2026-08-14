@@ -69,6 +69,7 @@ export default function Chat() {
   const typingTimeoutRef = useRef(null);
   const lastSeenMessageIdRef = useRef(null);
   const pendingMessagesRef = useRef({});
+  const wsMountedRef = useRef(true);
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type, id: Date.now() });
@@ -198,6 +199,8 @@ export default function Chat() {
     const token = localStorage.getItem('access_token');
     if (!token || !conversationId) return;
 
+    if (!wsMountedRef.current) return;
+
     if (wsConversationIdRef.current === conversationId && wsRef.current?.readyState === WebSocket.OPEN) {
       return;
     }
@@ -208,10 +211,14 @@ export default function Chat() {
 
     wsConversationIdRef.current = conversationId;
     setWsStatus('connecting');
-    const ws = new WebSocket(`${WS_URL}/ws/chat/${conversationId}/`, ['jwt', token]);
+    const ws = new WebSocket(`${WS_URL}/ws/chat/${conversationId}/?token=${token}`);
     let pingInterval = null;
 
     ws.onopen = () => {
+      if (!wsMountedRef.current) {
+        ws.close();
+        return;
+      }
       setWsStatus('connected');
       reconnectAttemptsRef.current = 0;
       pingInterval = setInterval(() => {
@@ -336,7 +343,7 @@ export default function Chat() {
     ws.onclose = (event) => {
       if (pingInterval) clearInterval(pingInterval);
       setWsStatus('disconnected');
-      if (event.code !== 1000 && reconnectAttemptsRef.current < 3) {
+      if (event.code !== 1000 && event.code !== 1006 && reconnectAttemptsRef.current < 3) {
         reconnectAttemptsRef.current++;
         setTimeout(() => connectWebSocket(conversationId), 1000 * reconnectAttemptsRef.current);
       }
@@ -348,7 +355,7 @@ export default function Chat() {
     };
 
     wsRef.current = ws;
-  }, [scrollToBottom]);
+  }, [scrollToBottom, user, isAtBottom]);
 
   const disconnectWebSocket = useCallback(() => {
     if (wsRef.current) {
@@ -356,7 +363,16 @@ export default function Chat() {
       wsRef.current = null;
     }
     wsConversationIdRef.current = null;
+    reconnectAttemptsRef.current = 0;
   }, []);
+
+  const connectWebSocketRef = useRef(connectWebSocket);
+  const disconnectWebSocketRef = useRef(disconnectWebSocket);
+
+  useEffect(() => {
+    connectWebSocketRef.current = connectWebSocket;
+    disconnectWebSocketRef.current = disconnectWebSocket;
+  });
 
   const loadConversations = useCallback(async () => {
     if (conversationsLoadedRef.current) return;
@@ -436,7 +452,7 @@ export default function Chat() {
 
   useEffect(() => {
     if (!selectedChat) {
-      disconnectWebSocket();
+      disconnectWebSocketRef.current?.();
       setActiveConversation(null);
       setMessages([]);
       connectedChatRef.current = null;
@@ -449,22 +465,12 @@ export default function Chat() {
 
     connectedChatRef.current = selectedChat;
     loadMessages(selectedChat);
-    connectWebSocket(selectedChat);
+    connectWebSocketRef.current?.(selectedChat);
 
-    return () => disconnectWebSocket();
-  }, [selectedChat, loadMessages, connectWebSocket, disconnectWebSocket]);
+    return () => disconnectWebSocketRef.current?.();
+  }, [selectedChat, loadMessages]);
 
-  useEffect(() => {
-    if (!selectedChat || wsStatus !== 'connected') return;
 
-    const pingInterval = setInterval(() => {
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: 'ping' }));
-      }
-    }, 60000);
-
-    return () => clearInterval(pingInterval);
-  }, [selectedChat, wsStatus]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
