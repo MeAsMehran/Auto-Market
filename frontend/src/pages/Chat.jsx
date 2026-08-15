@@ -8,6 +8,11 @@ import { useAuth } from '../context/AuthContext';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:8000';
 
+const MAX_MESSAGES = 1000;
+
+const capMessages = (messages) =>
+  messages.length > MAX_MESSAGES ? messages.slice(messages.length - MAX_MESSAGES) : messages;
+
 const Toast = ({ message, type, onClose }) => {
   useEffect(() => {
     const timer = setTimeout(onClose, 4000);
@@ -72,6 +77,11 @@ export default function Chat() {
   const wsMountedRef = useRef(true);
   const activeChatIdRef = useRef(null);
   const pendingAutoScrollRef = useRef(false);
+  const messagesCountRef = useRef(0);
+
+  useEffect(() => {
+    messagesCountRef.current = messages.length;
+  }, [messages.length]);
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type, id: Date.now() });
@@ -111,6 +121,12 @@ export default function Chat() {
       const container = messagesContainerRef.current;
       if (!container) return;
 
+      if (messagesCountRef.current >= MAX_MESSAGES) {
+        setHasMore(false);
+        setNextCursor(null);
+        return;
+      }
+
       const oldScrollHeight = container.scrollHeight;
       const oldScrollTop = container.scrollTop;
 
@@ -133,7 +149,7 @@ export default function Chat() {
       }));
 
       pendingAutoScrollRef.current = false;
-      setMessages((prev) => [...normalizedMessages, ...prev]);
+      setMessages((prev) => capMessages([...normalizedMessages, ...prev]));
       setNextCursor(msgsData.next_cursor || null);
       setHasMore(msgsData.has_next || false);
 
@@ -284,7 +300,7 @@ export default function Chat() {
               );
             }
             if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
+            return capMessages([...prev, newMsg]);
           });
 
           if (clientMsgId) {
@@ -451,7 +467,7 @@ export default function Chat() {
       }));
 
       pendingAutoScrollRef.current = true;
-      setMessages(normalizedMessages);
+      setMessages(capMessages(normalizedMessages));
       setNextCursor(msgsData.next_cursor || null);
       setHasMore(msgsData.has_next || false);
       lastMessageCountRef.current = normalizedMessages.length;
@@ -568,7 +584,7 @@ export default function Chat() {
         status: 'sending',
         created_at: new Date().toISOString(),
       };
-      setMessages((prev) => [...prev, tempMsg]);
+      setMessages((prev) => capMessages([...prev, tempMsg]));
       scrollToBottom();
     }
 

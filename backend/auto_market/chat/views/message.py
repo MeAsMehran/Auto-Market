@@ -130,43 +130,91 @@ class RetrieveMessagesView(APIView):
 
         # Cursor: message ID to fetch messages BEFORE
         cursor = request.query_params.get('cursor')
-        
+
+        # ── REMOVE this whole block (lines 134-143) ─────────────────────────
+        # if cursor:
+        #     cursor = int(cursor)
+        #     # Get the cursor message's created_at for proper ordering
+        #     try:
+        #         cursor_msg = Message.objects.get(id=cursor, conversation=conversation)
+        #         cursor_date = cursor_msg.created_at
+        #     except Message.DoesNotExist:
+        #         cursor_date = None
+        # else:
+        #     cursor_date = None
+
+        # ── ADD this instead (safe cursor parsing → (id, created_at)) ───────
+        cursor_id = None
+        cursor_date = None
         if cursor:
-            cursor = int(cursor)
-            # Get the cursor message's created_at for proper ordering
             try:
-                cursor_msg = Message.objects.get(id=cursor, conversation=conversation)
-                cursor_date = cursor_msg.created_at
-            except Message.DoesNotExist:
-                cursor_date = None
-        else:
-            cursor_date = None
+                cursor = int(cursor)
+            except (TypeError, ValueError):
+                cursor = None
+            if cursor:
+                cursor_msg = Message.objects.filter(
+                    id=cursor, conversation=conversation
+                ).only('id', 'created_at').first()
+                if cursor_msg:
+                    cursor_id = cursor_msg.id
+                    cursor_date = cursor_msg.created_at
+        # ── END ADD ─────────────────────────────────────────────────────────
 
         # Build query
         queryset = Message.objects.filter(conversation=conversation)
-        
-        if cursor_date:
-            # Get messages OLDER than cursor
-            queryset = queryset.filter(created_at__lt=cursor_date)
-        
+
+        # ── REMOVE this block (lines 148-150) ───────────────────────────────
+        # if cursor_date:
+        #     # Get messages OLDER than cursor
+        #     queryset = queryset.filter(created_at__lt=cursor_date)
+
+        # ── ADD this instead (compound cursor: ties broken by id) ───────────
+        if cursor_date is not None and cursor_id is not None:
+            queryset = queryset.filter(
+                Q(created_at__lt=cursor_date) | Q(created_at=cursor_date, id__lt=cursor_id)
+            )
+        # ── END ADD ─────────────────────────────────────────────────────────
+
         # Order by newest first, limit to get latest N
+        # ── REMOVE lines 153-158 (select_related + order_by + slice) ───────
+        # messages = queryset.select_related(
+        # 'sender_user',
+        # 'receiver_user',
+        # 'conversation',
+        # 'conversation__car_ad'
+        # ).order_by('-created_at')[:limit]
+
+        # ── ADD this instead (deterministic order + limit+1 for has_next) ───
         messages = queryset.select_related(
-        'sender_user', 
-        'receiver_user', 
-        'conversation',
-        'conversation__car_ad'
-        ).order_by('-created_at')[:limit]
-        
+            'sender_user',
+            'receiver_user',
+            'conversation',
+            'conversation__car_ad'
+        ).order_by('-created_at', '-id')[:limit + 1]
+
+        has_next = len(messages) > limit
+        messages = messages[:limit]
+        # ── END ADD ─────────────────────────────────────────────────────────
+
         # Reverse to get oldest first in this batch (for display order)
         messages = list(reversed(messages))
 
-        # Determine next cursor
+        # ── REMOVE this block (lines 163-169) ───────────────────────────────
+        # # Determine next cursor
+        # if messages:
+        #     next_cursor = str(messages[0].id) if len(messages) == limit else None
+        #     has_next = next_cursor is not None
+        # else:
+        #     next_cursor = None
+        #     has_next = False
+
+        # ── ADD this instead (next_cursor only when a next page exists) ─────
         if messages:
-            next_cursor = str(messages[0].id) if len(messages) == limit else None
-            has_next = next_cursor is not None
+            next_cursor = str(messages[0].id) if has_next else None
         else:
             next_cursor = None
             has_next = False
+        # ── END ADD ─────────────────────────────────────────────────────────
 
         serializer = ListMessageSerializer(messages, many=True)
 
