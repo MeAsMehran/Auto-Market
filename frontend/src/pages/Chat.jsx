@@ -393,7 +393,8 @@ export default function Chat() {
         if (data.type === 'messages_seen_update') {
           setMessages((prev) =>
             prev.map((m) =>
-              m.id <= data.last_seen_id ? { ...m, status: 'seen' } : m
+              m.id <= data.last_seen_id && m.sender?.id !== user?.id
+                ? { ...m, status: 'seen' } : m
             )
           );
 

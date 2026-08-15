@@ -9,7 +9,7 @@ from django.db.models import Q, F
 from django.db.models.functions import Greatest
 
 from ..serializers.messages_serializer import SendMessageSerializer, MessageSerializer, ReceiveMessageSerializer, ListMessageSerializer
-from ..models import Message, Conversation
+from ..models import Message, Conversation, MessageStatus
 
 ##########################################3
 
@@ -239,16 +239,40 @@ class MarkMessagesAsReadView(APIView):
             pk=conversation_id
         )
 
+        unread_messages = list(
+            Message.objects.filter(
+                conversation=conversation,
+                receiver_user=request.user,
+                is_read=False
+            ).values('id', 'sender_user_id')
+        )
+
         updated_count = Message.objects.filter(
             conversation=conversation,
             receiver_user=request.user,
             is_read=False
-        ).update(is_read=True)
+        ).update(is_read=True, status=MessageStatus.SEEN)
 
         if updated_count > 0 and request.user == conversation.buyer:
             Conversation.objects.filter(pk=conversation.id).update(
                 unread_count=Greatest(F('unread_count') - updated_count, 0)
             )
+
+        if unread_messages:
+            from channels.layers import get_channel_layer
+            from asgiref.sync import async_to_sync
+            channel_layer = get_channel_layer()
+            group_name = f"chat_{conversation_id}"
+            for msg in unread_messages:
+                async_to_sync(channel_layer.group_send)(
+                    group_name,
+                    {
+                        'type': 'status_update',
+                        'message_id': msg['id'],
+                        'status': MessageStatus.SEEN,
+                        'sender_id': msg['sender_user_id'],
+                    }
+                )
 
         return Response({'marked_read': updated_count}, status=status.HTTP_200_OK)
 
