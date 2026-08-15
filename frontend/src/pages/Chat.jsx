@@ -232,6 +232,25 @@ export default function Chat() {
       try {
         const data = JSON.parse(event.data);
 
+        if (data.type === 'error') {
+          let errorMessage = data.message || 'خطایی رخ داد';
+          if (data.code === 'rate_limit_exceeded' && data.retry_after) {
+            const seconds = data.retry_after;
+            errorMessage = `ظرفیت ارسال پیام تمام شد. ${seconds} ثانیه صبر کنید.`;
+          }
+          showToast(errorMessage, 'error');
+          if (data.client_message_id) {
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.clientId === data.client_message_id
+                  ? { ...m, status: 'failed', retryAfter: data.retry_after }
+                  : m
+              )
+            );
+          }
+          return;
+        }
+
         if (data.type === 'new_message' && data.message) {
           const msg = data.message;
           const newMsg = {
@@ -530,23 +549,17 @@ export default function Chat() {
       scrollToBottom();
     }
 
+    pendingMessagesRef.current[clientId] = messageText;
+
     try {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
         try {
           wsRef.current.send(JSON.stringify({
+            type: 'message',
             message_text: messageText,
             client_message_id: clientId
           }));
 
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.clientId === clientId ? { ...m, status: 'sent' } : m
-            )
-          );
-
-          if (retryClientId) {
-            delete pendingMessagesRef.current[clientId];
-          }
           scrollToBottom();
           return;
         } catch (wsErr) {
@@ -951,12 +964,12 @@ export default function Chat() {
                                 <button
                                   onClick={() => retryMessage(msg.clientId)}
                                   className="flex items-center gap-1 text-red-300 hover:text-red-200"
-                                  title="Retry"
+                                  title={msg.retryAfter ? `${msg.retryAfter}s تا امکان ارسال مجدد` : 'Retry'}
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                   </svg>
-                                  <span className="text-[10px]">Retry</span>
+                                  <span className="text-[10px]">{msg.retryAfter ? `${msg.retryAfter}s` : 'Retry'}</span>
                                 </button>
                               )}
                             </div>

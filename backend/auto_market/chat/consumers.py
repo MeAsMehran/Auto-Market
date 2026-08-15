@@ -10,10 +10,11 @@ Your setup:
 import json
 import time
 import logging
-from collections import defaultdict
+import redis
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 
@@ -24,35 +25,46 @@ logger = logging.getLogger('auto_market.chat')
 
 class RateLimiter:
     """
-    Simple in-memory rate limiter for WebSocket messages.
+    Redis-backed rate limiter for WebSocket messages using redis-py directly.
     Tracks message counts per user within a sliding time window.
     """
 
-    def __init__(self, max_messages=30, window_seconds=60):
+    def __init__(self, max_messages=5, window_seconds=60):
         self.max_messages = max_messages
         self.window_seconds = window_seconds
-        self.message_log = defaultdict(list)
+        self.key_prefix = "ratelimit:ws"
+        self.redis_client = redis.Redis(
+            host='localhost',
+            port=6379,
+            db=0,
+            decode_responses=True
+        )
+
+    def _get_key(self, user_id):
+        return f"{self.key_prefix}:{user_id}"
 
     def is_allowed(self, user_id):
         now = time.time()
         cutoff = now - self.window_seconds
+        key = self._get_key(user_id)
 
-        self.message_log[user_id] = [
-            ts for ts in self.message_log[user_id] if ts > cutoff
-        ]
+        timestamps = self.redis_client.lrange(key, 0, -1)
+        timestamps = [float(ts) for ts in timestamps if float(ts) > cutoff]
 
-        if len(self.message_log[user_id]) >= self.max_messages:
-            return False
+        if len(timestamps) >= self.max_messages:
+            oldest_timestamp = min(timestamps) if timestamps else now
+            retry_after = int(oldest_timestamp + self.window_seconds - now) + 1
+            return False, retry_after
 
-        self.message_log[user_id].append(now)
-        return True
+        self.redis_client.rpush(key, now)
+        self.redis_client.expire(key, self.window_seconds + 1)
+        return True, 0
 
     def cleanup(self, user_id):
-        if user_id in self.message_log:
-            del self.message_log[user_id]
+        self.redis_client.delete(self._get_key(user_id))
 
-
-rate_limiter = RateLimiter(max_messages=30, window_seconds=60)
+# Set the message rate limit for users which controls him/her not to send more than 70 message in a row(refresh the counter after 60 seconds)
+rate_limiter = RateLimiter(max_messages=50, window_seconds=60)
 
 
 class ConversationConsumer(AsyncWebsocketConsumer):
@@ -113,8 +125,8 @@ class ConversationConsumer(AsyncWebsocketConsumer):
 
     async def disconnect(self, close_code):
         logger.debug(f"WebSocket disconnect: {close_code}")
-        if hasattr(self, 'user') and self.user and hasattr(self.user, 'id'):
-            rate_limiter.cleanup(self.user.id)
+        # if hasattr(self, 'user') and self.user and hasattr(self.user, 'id'):
+            # rate_limiter.cleanup(self.user.id)
         if hasattr(self, 'conversation_name'):
             try:
                 await self.channel_layer.group_discard(
@@ -142,10 +154,15 @@ class ConversationConsumer(AsyncWebsocketConsumer):
             return
 
         if msg_type not in ('message_delivered', 'messages_seen', 'typing_start', 'typing_stop'):
-            if not rate_limiter.is_allowed(self.user.id):
+            allowed, retry_after = rate_limiter.is_allowed(self.user.id)
+            if not allowed:
+                client_msg_id = data.get('client_message_id')
                 await self.send(text_data=json.dumps({
                     'type': 'error',
-                    'message': 'Rate limit exceeded.'
+                    'code': 'rate_limit_exceeded',
+                    'message': 'ظرفیت ارسال پیام تمام شد. لطفاً کمی صبر کنید.',
+                    'retry_after': retry_after,
+                    'client_message_id': client_msg_id
                 }))
                 return
 
