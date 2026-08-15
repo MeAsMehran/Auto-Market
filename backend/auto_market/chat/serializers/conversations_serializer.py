@@ -50,7 +50,7 @@ class ListConversationsSerializer(serializers.Serializer):
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
     last_message = serializers.SerializerMethodField()
-    unread_count = serializers.SerializerMethodField()
+    unread_count = serializers.IntegerField(default=0)
 
     def get_last_message(self, obj):
         if obj.last_message_id:
@@ -60,9 +60,6 @@ class ListConversationsSerializer(serializers.Serializer):
                 'created_at': obj.last_message_created_at,
             }
         return None
-
-    def get_unread_count(self, obj):
-        return obj.unread_count or 0
 
 
     # def get_last_message(self, obj):

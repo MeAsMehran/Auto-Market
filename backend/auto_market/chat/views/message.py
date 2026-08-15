@@ -1,12 +1,12 @@
 
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from drf_spectacular.utils import extend_schema
 from django.shortcuts import get_object_or_404
-from django.db.models import Q
+from django.db.models import Q, F
+from django.db.models.functions import Greatest
 
 from ..serializers.messages_serializer import SendMessageSerializer, MessageSerializer, ReceiveMessageSerializer, ListMessageSerializer
 from ..models import Message, Conversation
@@ -245,8 +245,12 @@ class MarkMessagesAsReadView(APIView):
             is_read=False
         ).update(is_read=True)
 
-        return Response({'marked_read': updated_count}, status=status.HTTP_200_OK)
+        if updated_count > 0 and request.user == conversation.buyer:
+            Conversation.objects.filter(pk=conversation.id).update(
+                unread_count=Greatest(F('unread_count') - updated_count, 0)
+            )
 
+        return Response({'marked_read': updated_count}, status=status.HTTP_200_OK)
 
 
 

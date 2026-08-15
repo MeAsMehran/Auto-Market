@@ -12,7 +12,8 @@ import time
 import logging
 import redis
 
-from django.db.models import Q
+from django.db.models import Q, F
+from django.db.models.functions import Greatest
 from django.shortcuts import get_object_or_404
 
 from channels.generic.websocket import AsyncWebsocketConsumer
@@ -235,6 +236,7 @@ class ConversationConsumer(AsyncWebsocketConsumer):
                 'conversation': {
                     'id': self.conversation.id,
                     'updated_at': self.conversation.updated_at.isoformat() if self.conversation.updated_at else None,
+                    'unread_count': self.conversation.unread_count,  # ADD THIS LINE
                     'last_message': {
                         'id': message.id,
                         'message_text': message.message_text,
@@ -364,10 +366,17 @@ class ConversationConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def mark_messages_seen(self, conversation, user, last_seen_id):
-        return Message.objects.filter(
+        updated_count = Message.objects.filter(
             conversation=conversation,
             receiver_user=user,
             status__in=[MessageStatus.SENT, MessageStatus.DELIVERED]
         ).exclude(
             id__gt=last_seen_id
         ).update(status=MessageStatus.SEEN, is_read=True)
+
+        if updated_count > 0 and user == conversation.buyer:
+            Conversation.objects.filter(pk=conversation.id).update(
+                unread_count=Greatest(F('unread_count') - updated_count, 0)
+            )
+
+        return updated_count

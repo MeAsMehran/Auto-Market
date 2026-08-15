@@ -357,7 +357,7 @@ export default function Chat() {
               updated = prev.map((conv) => {
                 if (conv.id === updatedConv.id) {
                   const isOwnMessage = user?.id === (updatedConv.last_message?.sender_id || updatedConv.last_message?.sender_user?.id);
-                  const newUnreadCount = isOwnMessage ? 0 : ((conv.unread_count || 0) + 1);
+                  const newUnreadCount = isOwnMessage ? 0 : (updatedConv.unread_count ?? 0);
                   return {
                     ...conv,
                     last_message: updatedConv.last_message,

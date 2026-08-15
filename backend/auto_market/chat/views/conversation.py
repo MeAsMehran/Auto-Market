@@ -100,13 +100,6 @@ class ListConversationsView(APIView):
             conversation=OuterRef('pk')
         ).order_by('-created_at').values('created_at')[:1]
         
-        # Subquery: Count unread messages
-        unread_count_subquery = Message.objects.filter(
-            conversation=OuterRef('pk'),
-            receiver_user=user,
-            is_read=False
-        ).values('conversation').annotate(cnt=Count('id')).values('cnt')
-        
         conversations = Conversation.objects.filter(
             Q(seller=user) | Q(buyer=user)
         ).select_related(
@@ -115,7 +108,6 @@ class ListConversationsView(APIView):
             last_message_id=Subquery(last_msg_subquery),
             last_message_text=Subquery(last_msg_text_subquery),
             last_message_created_at=Subquery(last_msg_date_subquery),
-            unread_count=Subquery(unread_count_subquery),
         ).order_by('-updated_at')
         
         serializer = ListConversationsSerializer(
