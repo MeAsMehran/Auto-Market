@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Send, ArrowLeft, User, MessageCircle, AlertCircle, X, Check, Circle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -70,6 +70,8 @@ export default function Chat() {
   const lastSeenMessageIdRef = useRef(null);
   const pendingMessagesRef = useRef({});
   const wsMountedRef = useRef(true);
+  const activeChatIdRef = useRef(null);
+  const pendingAutoScrollRef = useRef(false);
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type, id: Date.now() });
@@ -101,13 +103,20 @@ export default function Chat() {
     if (loadMoreMessagesRef.current) return;
     loadMoreMessagesRef.current = true;
 
+    const chatId = selectedChat;
+
     try {
       setLoadingMore(true);
 
       const container = messagesContainerRef.current;
-      const oldScrollHeight = container?.scrollHeight || 0;
+      if (!container) return;
 
-      const msgsData = await listMessages(selectedChat, nextCursor);
+      const oldScrollHeight = container.scrollHeight;
+      const oldScrollTop = container.scrollTop;
+
+      const msgsData = await listMessages(chatId, nextCursor);
+
+      if (activeChatIdRef.current !== chatId) return;
 
       const msgs = msgsData.messages || [];
       if (msgs.length === 0) {
@@ -123,15 +132,19 @@ export default function Chat() {
         created_at: m.created_at,
       }));
 
+      pendingAutoScrollRef.current = false;
       setMessages((prev) => [...normalizedMessages, ...prev]);
       setNextCursor(msgsData.next_cursor || null);
       setHasMore(msgsData.has_next || false);
 
       requestAnimationFrame(() => {
-        if (container) {
-          const newScrollHeight = container.scrollHeight;
-          container.scrollTop = newScrollHeight - oldScrollHeight;
-        }
+        requestAnimationFrame(() => {
+          if (container) {
+            const newScrollHeight = container.scrollHeight;
+            const heightAdded = newScrollHeight - oldScrollHeight;
+            container.scrollTop = oldScrollTop + heightAdded;
+          }
+        });
       });
     } catch (err) {
       console.error('Failed to load more messages:', err);
@@ -412,6 +425,7 @@ export default function Chat() {
 
   const loadMessages = useCallback(async (conversationId) => {
     try {
+      activeChatIdRef.current = conversationId;
       setLoadingMessages(true);
       setMessages([]);
       setHasNewMessage(false);
@@ -436,6 +450,7 @@ export default function Chat() {
         created_at: m.created_at,
       }));
 
+      pendingAutoScrollRef.current = true;
       setMessages(normalizedMessages);
       setNextCursor(msgsData.next_cursor || null);
       setHasMore(msgsData.has_next || false);
@@ -508,23 +523,31 @@ export default function Chat() {
     }
   }, [user, disconnectWebSocket]);
 
-  useEffect(() => {
-    if (selectedChat && messages.length > 0) {
-      setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  useLayoutEffect(() => {
+    if (!pendingAutoScrollRef.current) return;
+    if (!selectedChat || messages.length === 0 || loadingMore || loadingMessages) return;
 
-        const messages = messagesContainerRef.current?.querySelectorAll('[data-message-id]');
-        if (messages && messages.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
-          const lastMsg = messages[messages.length - 1];
-          const lastId = parseInt(lastMsg.dataset.messageId);
-          if (lastId && lastId !== lastSeenMessageIdRef.current) {
-            lastSeenMessageIdRef.current = lastId;
-            wsRef.current.send(JSON.stringify({ type: 'messages_seen', last_seen_message_id: lastId }));
-          }
-        }
-      }, 250);
+    const container = messagesContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
     }
-  }, [selectedChat, messages.length]);
+
+    pendingAutoScrollRef.current = false;
+  }, [selectedChat, messages.length, loadingMore, loadingMessages]);
+
+  useEffect(() => {
+    if (selectedChat && messages.length > 0 && !loadingMore && !loadingMessages) {
+      const messages = messagesContainerRef.current?.querySelectorAll('[data-message-id]');
+      if (messages && messages.length > 0 && wsRef.current?.readyState === WebSocket.OPEN) {
+        const lastMsg = messages[messages.length - 1];
+        const lastId = parseInt(lastMsg.dataset.messageId);
+        if (lastId && lastId !== lastSeenMessageIdRef.current) {
+          lastSeenMessageIdRef.current = lastId;
+          wsRef.current.send(JSON.stringify({ type: 'messages_seen', last_seen_message_id: lastId }));
+        }
+      }
+    }
+  }, [selectedChat, messages.length, loadingMore, loadingMessages]);
 
   const submitMessage = async (messageText, retryClientId = null) => {
     if (!messageText.trim() || !selectedChat) return;
