@@ -78,6 +78,8 @@ export default function Chat() {
   const activeChatIdRef = useRef(null);
   const pendingAutoScrollRef = useRef(false);
   const messagesCountRef = useRef(0);
+  const sentTimeoutsRef = useRef({});
+  const retryTimeoutsRef = useRef({});
 
   useEffect(() => {
     messagesCountRef.current = messages.length;
@@ -85,6 +87,26 @@ export default function Chat() {
 
   const showToast = useCallback((message, type = 'info') => {
     setToast({ message, type, id: Date.now() });
+  }, []);
+
+  const markMessageFailed = useCallback((clientId, retryAfter = null) => {
+    clearTimeout(sentTimeoutsRef.current[clientId]);
+    delete sentTimeoutsRef.current[clientId];
+
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.clientId === clientId ? { ...m, status: 'failed', retryAfter } : m
+      )
+    );
+  }, []);
+
+  const deleteMessage = useCallback((clientId) => {
+    clearTimeout(sentTimeoutsRef.current[clientId]);
+    clearTimeout(retryTimeoutsRef.current[clientId]);
+    delete sentTimeoutsRef.current[clientId];
+    delete retryTimeoutsRef.current[clientId];
+    delete pendingMessagesRef.current[clientId];
+    setMessages((prev) => prev.filter((m) => m.clientId !== clientId));
   }, []);
 
   const scrollToBottom = useCallback((smooth = true) => {
@@ -269,13 +291,17 @@ export default function Chat() {
           }
           showToast(errorMessage, 'error');
           if (data.client_message_id) {
-            setMessages((prev) =>
-              prev.map((m) =>
-                m.clientId === data.client_message_id
-                  ? { ...m, status: 'failed', retryAfter: data.retry_after }
-                  : m
-              )
-            );
+            const retryAfter = data.retry_after || null;
+            markMessageFailed(data.client_message_id, retryAfter);
+            if (retryAfter && retryAfter > 0) {
+              if (retryTimeoutsRef.current[data.client_message_id]) {
+                clearTimeout(retryTimeoutsRef.current[data.client_message_id]);
+              }
+              retryTimeoutsRef.current[data.client_message_id] = setTimeout(
+                () => retryMessage(data.client_message_id),
+                retryAfter * 1000
+              );
+            }
           }
           return;
         }
@@ -305,6 +331,10 @@ export default function Chat() {
 
           if (clientMsgId) {
             delete pendingMessagesRef.current[clientMsgId];
+            clearTimeout(sentTimeoutsRef.current[clientMsgId]);
+            delete sentTimeoutsRef.current[clientMsgId];
+            clearTimeout(retryTimeoutsRef.current[clientMsgId]);
+            delete retryTimeoutsRef.current[clientMsgId];
           }
 
           if (!isOwnMessage) {
@@ -403,7 +433,7 @@ export default function Chat() {
     };
 
     wsRef.current = ws;
-  }, [scrollToBottom, user, isAtBottom]);
+  }, [scrollToBottom, user, isAtBottom, markMessageFailed]);
 
   const disconnectWebSocket = useCallback(() => {
     if (wsRef.current) {
@@ -583,6 +613,7 @@ export default function Chat() {
         sender: user,
         status: 'sending',
         created_at: new Date().toISOString(),
+        sentAt: Date.now(),
       };
       setMessages((prev) => capMessages([...prev, tempMsg]));
       scrollToBottom();
@@ -598,6 +629,13 @@ export default function Chat() {
             message_text: messageText,
             client_message_id: clientId
           }));
+
+          if (sentTimeoutsRef.current[clientId]) {
+            clearTimeout(sentTimeoutsRef.current[clientId]);
+          }
+          sentTimeoutsRef.current[clientId] = setTimeout(() => {
+            markMessageFailed(clientId, null);
+          }, 10000);
 
           scrollToBottom();
           return;
@@ -640,14 +678,14 @@ export default function Chat() {
       );
 
       delete pendingMessagesRef.current[clientId];
+      clearTimeout(sentTimeoutsRef.current[clientId]);
+      delete sentTimeoutsRef.current[clientId];
+      clearTimeout(retryTimeoutsRef.current[clientId]);
+      delete retryTimeoutsRef.current[clientId];
       scrollToBottom();
     } catch (err) {
       console.error('Send error:', err);
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.clientId === clientId ? { ...m, status: 'failed' } : m
-        )
-      );
+      markMessageFailed(clientId, null);
       pendingMessagesRef.current[clientId] = messageText;
     } finally {
       setSending(false);
@@ -658,9 +696,14 @@ export default function Chat() {
     const messageText = pendingMessagesRef.current[clientId];
     if (!messageText) return;
 
+    if (retryTimeoutsRef.current[clientId]) {
+      clearTimeout(retryTimeoutsRef.current[clientId]);
+      delete retryTimeoutsRef.current[clientId];
+    }
+
     setMessages((prev) =>
       prev.map((m) =>
-        m.clientId === clientId ? { ...m, status: 'sending' } : m
+        m.clientId === clientId ? { ...m, status: 'sending', sentAt: Date.now() } : m
       )
     );
 
@@ -967,13 +1010,18 @@ export default function Chat() {
                           <div
                             className={`max-w-[80%] px-4 py-2.5 rounded-2xl text-sm ${
                               isOwn
-                                ? 'bg-brand-500 text-white rounded-bl-md rounded-br-sm'
+                                ? msg.status === 'failed'
+                                  ? 'bg-red-500/20 text-red-700 dark:text-red-300 rounded-bl-sm'
+                                  : 'bg-brand-500 text-white rounded-bl-md rounded-br-sm'
                                 : 'bg-surface border border-border text-text-primary rounded-br-md rounded-bl-sm'
                             }`}
                           >
+                            {isOwn && msg.status === 'failed' && (
+                              <p className="text-[10px] font-bold text-red-500 mb-1">ارسال نشد</p>
+                            )}
                             <p className="leading-relaxed whitespace-pre-wrap break-words">{msg.content}</p>
                             <div className={`flex items-center gap-1 mt-1 ${isOwn ? 'justify-start' : 'justify-end'}`}>
-                              <span className={`text-[10px] ${isOwn ? 'text-white/70' : 'text-text-tertiary'}`}>
+                              <span className={`text-[10px] ${isOwn ? (msg.status === 'failed' ? 'text-red-700/70 dark:text-red-300/70' : 'text-white/70') : 'text-text-tertiary'}`}>
                                 {formatTime(msg.created_at)}
                               </span>
                               {isOwn && msg.status !== 'sending' && msg.status !== 'failed' && (
@@ -1000,16 +1048,29 @@ export default function Chat() {
                                 </svg>
                               )}
                               {isOwn && msg.status === 'failed' && (
-                                <button
-                                  onClick={() => retryMessage(msg.clientId)}
-                                  className="flex items-center gap-1 text-red-300 hover:text-red-200"
-                                  title={msg.retryAfter ? `${msg.retryAfter}s تا امکان ارسال مجدد` : 'Retry'}
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                  </svg>
-                                  <span className="text-[10px]">{msg.retryAfter ? `${msg.retryAfter}s` : 'Retry'}</span>
-                                </button>
+                                <>
+                                  <button
+                                    onClick={() => retryMessage(msg.clientId)}
+                                    disabled={msg.retryAfter && msg.retryAfter > 0}
+                                    className={`flex items-center gap-1 text-red-300 hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed`}
+                                    title={msg.retryAfter ? `${msg.retryAfter}s تا امکان ارسال مجدد` : 'تلاش مجدد'}
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    <span className="text-[10px]">{msg.retryAfter ? `${msg.retryAfter}s` : 'تلاش مجدد'}</span>
+                                  </button>
+                                  <button
+                                    onClick={() => deleteMessage(msg.clientId)}
+                                    className="flex items-center gap-1 text-red-400 hover:text-red-300"
+                                    title="حذف پیام"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    <span className="text-[10px]">حذف</span>
+                                  </button>
+                                </>
                               )}
                             </div>
                           </div>
