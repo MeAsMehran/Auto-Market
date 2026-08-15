@@ -13,8 +13,12 @@ from accounts.serializers import UserSerializer
 class ConversationSerializer(serializers.Serializer):
     id     = serializers.IntegerField(read_only=True)
     car_ad = DetailCarAdSerializer(read_only=True)
-    sender_user   = UserSerializer(source='buyer', read_only=True)
-    receiver_user = UserSerializer(source='seller', read_only=True)
+    # sender_user   = UserSerializer(source='buyer', read_only=True)      # Nested serializers can make the queries heavy 
+    # receiver_user = UserSerializer(source='seller', read_only=True)     # Nested serializers can make the queries heavy
+
+    # The source parameter refers to attributes on the object being serialized -> for below the object is conversation
+    sender_user_id   = serializers.IntegerField(source='buyer.id', read_only=True)
+    receiver_user_id = serializers.IntegerField(source='seller.id', read_only=True)
 
 
 class CreateConversationSerializer(serializers.Serializer):

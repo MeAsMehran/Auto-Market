@@ -31,7 +31,9 @@ class CreateConversationView(APIView):
             seller = car_ad.seller
             buyer = request.user
 
-            conversation = Conversation.objects.create(car_ad=car_ad, buyer=buyer, seller=seller)
+            conversation_object = Conversation.objects.create(car_ad=car_ad, buyer=buyer, seller=seller)
+
+            conversation = Conversation.objects.select_related('car_ad', 'car_ad__seller','buyer', 'seller').get(pk=conversation_object.pk)
 
             result_serializer = ConversationSerializer(conversation)
             return Response(result_serializer.data, status=status.HTTP_201_CREATED)
