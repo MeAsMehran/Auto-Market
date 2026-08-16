@@ -60,10 +60,11 @@ class GetConversationView(APIView):
     )
     def get(self, request, conversation_id):
         conversation = get_object_or_404(
-            Conversation.objects.select_related('car_ad', 'car_ad__seller', 'buyer', 'seller'),
-            Q(seller=request.user) | Q(buyer=request.user),
+            Conversation.objects.select_related('car_ad', 'buyer', 'seller'),     # makes the query lighter
+            Q(seller=request.user) | Q(buyer=request.user),     # filter the conversations which current user (as seller or as buyer) can see his own conversation
             pk=conversation_id
         )
+
         serializer = GetConversationSerializer(conversation)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
