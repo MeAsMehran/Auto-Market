@@ -93,12 +93,12 @@ class ListConversationsView(APIView):
             conversation=OuterRef('pk')
         ).order_by('-created_at').values('id')[:1]
         
-        # Subquery: Get last message text (for display)
+        # Subquery: Get last message text (for display) per conversation
         last_msg_text_subquery = Message.objects.filter(
             conversation=OuterRef('pk')
         ).order_by('-created_at').values('message_text')[:1]
         
-        # Subquery: Get last message created_at
+        # Subquery: Get last message created_at per conversation
         last_msg_date_subquery = Message.objects.filter(
             conversation=OuterRef('pk')
         ).order_by('-created_at').values('created_at')[:1]

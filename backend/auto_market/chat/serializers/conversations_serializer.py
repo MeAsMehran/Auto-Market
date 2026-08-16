@@ -63,13 +63,29 @@ class GetConversationSerializer(serializers.Serializer):
 
 class ListConversationsSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
-    car_ad = DetailCarAdSerializer(read_only=True)
-    buyer = UserSerializer(read_only=True)
-    seller = UserSerializer(read_only=True)
+
+    # car_ad section: 
+    # The source parameter refers to attributes on the object being serialized -> for below the object is conversation
+    # car_ad = DetailCarAdSerializer(read_only=True)    # Nested serializers can make the queries heavy
+    car_ad_id    = serializers.IntegerField(source="car_ad.id", read_only=True)
+    car_ad_title = serializers.CharField(source="car_ad.title", read_only=True)
+    car_ad_brand = serializers.CharField(source="car_ad.brand", read_only=True)
+
+    # buyer section:
+    # buyer = UserSerializer(read_only=True)    # Nested serializers can make the queries heavy
+    buyer_id     = serializers.IntegerField(source="buyer.id", read_only=True)
+    buyer_name   = serializers.CharField(source="buyer.name", read_only=True)
+
+    # seller section: 
+    # seller = UserSerializer(read_only=True)   # Nested serializers can make the queries heavy
+    seller_id    = serializers.IntegerField(source="seller.id", read_only=True)
+    seller_name  = serializers.CharField(source="seller.name", read_only=True)
+
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
+
     last_message = serializers.SerializerMethodField()
-    unread_count = serializers.IntegerField(default=0)
+    unread_count = serializers.IntegerField(default=0, read_only=True)
 
     def get_last_message(self, obj):
         if obj.last_message_id:
