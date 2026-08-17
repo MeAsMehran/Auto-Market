@@ -13,6 +13,23 @@ from ..models import Message, Conversation, MessageStatus
 
 ##########################################3
 
+"""
+Task	                    Mechanism	                Notes
+
+Initial page load	        HTTP REST	                GET /api/conversation/list/
+Click conversation	        HTTP REST	                GET /api/conversation/<id>/
+Load message history	    HTTP REST	                GET /api/conversation/<id>/messages/
+Mark messages read	        HTTP REST + WebSocket	    REST updates DB, WebSocket broadcasts to group
+Send message in real time	rebSocket	                ConversationConsumer.receive() → save_message() → group_send()
+Receive new message	        WebSocket	                Broadcast via chat_message handler
+Mark message delivered	    WebSocket	                { "type": "message_delivered" }
+Mark messages seen	        WebSocket	                { "type": "messages_seen" }
+Typing indicator	        WebSocket	                { "type": "typing_start/stop" }
+Conversation created	    HTTP REST	                POST /api/conversation/create/
+Delete conversation	        HTTP REST	                DELETE /api/conversation/delete/<id>/
+"""
+
+# If the websocket failed temporarily, the frontend uses the SendMessageView (HTTP) until the websocket get fixed
 class SendMessageView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -119,7 +136,7 @@ class RetrieveMessagesView(APIView):
 
     def get(self, request, conversation_id):
         conversation = get_object_or_404(
-            Conversation.objects.only('id'),
+            Conversation.objects.only('id'),        # in a query if you wanted a field or several fields you can select them by using .only(). this makes the query lighter, or if you wanted to not consider some fields user .exclude()
             Q(seller=request.user) | Q(buyer=request.user),
             pk=conversation_id
         )
@@ -131,19 +148,6 @@ class RetrieveMessagesView(APIView):
         # Cursor: message ID to fetch messages BEFORE
         cursor = request.query_params.get('cursor')
 
-        # ── REMOVE this whole block (lines 134-143) ─────────────────────────
-        # if cursor:
-        #     cursor = int(cursor)
-        #     # Get the cursor message's created_at for proper ordering
-        #     try:
-        #         cursor_msg = Message.objects.get(id=cursor, conversation=conversation)
-        #         cursor_date = cursor_msg.created_at
-        #     except Message.DoesNotExist:
-        #         cursor_date = None
-        # else:
-        #     cursor_date = None
-
-        # ── ADD this instead (safe cursor parsing → (id, created_at)) ───────
         cursor_id = None
         cursor_date = None
         if cursor:
@@ -158,22 +162,14 @@ class RetrieveMessagesView(APIView):
                 if cursor_msg:
                     cursor_id = cursor_msg.id
                     cursor_date = cursor_msg.created_at
-        # ── END ADD ─────────────────────────────────────────────────────────
 
         # Build query
         queryset = Message.objects.filter(conversation=conversation)
 
-        # ── REMOVE this block (lines 148-150) ───────────────────────────────
-        # if cursor_date:
-        #     # Get messages OLDER than cursor
-        #     queryset = queryset.filter(created_at__lt=cursor_date)
-
-        # ── ADD this instead (compound cursor: ties broken by id) ───────────
         if cursor_date is not None and cursor_id is not None:
             queryset = queryset.filter(
-                Q(created_at__lt=cursor_date) | Q(created_at=cursor_date, id__lt=cursor_id)
+                Q(created_at__lt=cursor_date) | Q(created_at=cursor_date, id__lt=cursor_id)     # if 2 messages has the same created_at date get the messages with id less than cursor_id then
             )
-        # ── END ADD ─────────────────────────────────────────────────────────
 
         # Order by newest first, limit to get latest N
         # ── REMOVE lines 153-158 (select_related + order_by + slice) ───────
@@ -199,22 +195,11 @@ class RetrieveMessagesView(APIView):
         # Reverse to get oldest first in this batch (for display order)
         messages = list(reversed(messages))
 
-        # ── REMOVE this block (lines 163-169) ───────────────────────────────
-        # # Determine next cursor
-        # if messages:
-        #     next_cursor = str(messages[0].id) if len(messages) == limit else None
-        #     has_next = next_cursor is not None
-        # else:
-        #     next_cursor = None
-        #     has_next = False
-
-        # ── ADD this instead (next_cursor only when a next page exists) ─────
         if messages:
             next_cursor = str(messages[0].id) if has_next else None
         else:
             next_cursor = None
             has_next = False
-        # ── END ADD ─────────────────────────────────────────────────────────
 
         serializer = ListMessageSerializer(messages, many=True)
 

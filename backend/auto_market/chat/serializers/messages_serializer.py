@@ -1,6 +1,4 @@
 
-
-
 from rest_framework import serializers
 from .conversations_serializer import ConversationSerializer
 from accounts.serializers import UserSerializer
