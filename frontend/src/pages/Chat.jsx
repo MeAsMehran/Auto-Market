@@ -356,7 +356,7 @@ export default function Chat() {
             if (exists) {
               updated = prev.map((conv) => {
                 if (conv.id === updatedConv.id) {
-                  const isOwnMessage = user?.id === (updatedConv.last_message?.sender_id || updatedConv.last_message?.sender_user?.id);
+                  const isOwnMessage = user?.id === updatedConv.last_message?.sender_id;
                   const newUnreadCount = isOwnMessage ? 0 : (updatedConv.unread_count ?? 0);
                   return {
                     ...conv,
@@ -750,9 +750,8 @@ export default function Chat() {
   };
 
   const getOtherUser = (conversation) => {
-    const carAd = conversation.car_ad || {};
-    const seller = carAd.seller || {};
-    const buyer = conversation.buyer || {};
+    const seller = { id: conversation.seller_id, name: conversation.seller_name };
+    const buyer = { id: conversation.buyer_id, name: conversation.buyer_name };
 
     if (!user) {
       return { id: null, name: 'کاربر' };
@@ -845,7 +844,6 @@ export default function Chat() {
               conversations.map((conv) => {
                 const otherUser = getOtherUser(conv);
                 const lastMessage = conv.last_message;
-                const carAd = conv.car_ad;
                 return (
                   <motion.button
                     key={conv.id}
@@ -876,13 +874,11 @@ export default function Chat() {
                       </div>
 
                       <div className="flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400 truncate">
-                        <span className="font-medium truncate">{carAd?.brand}</span>
-                        <span className="text-text-tertiary">·</span>
-                        <span className="truncate">{carAd?.model_name}</span>
+                        <span className="font-medium truncate">{conv.car_ad_brand}</span>
                       </div>
 
                       <p className="text-xs text-text-secondary truncate font-medium">
-                        {carAd?.title}
+                        {conv.car_ad_title}
                       </p>
 
                       {lastMessage && (
@@ -927,13 +923,13 @@ export default function Chat() {
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-text-primary text-sm">
-                  {activeConversation.car_ad?.title}
+                  {activeConversation.car_ad_title}
                 </h3>
                 <p className="text-xs text-text-tertiary flex items-center gap-1">
                   {activeConversation && (() => {
-                    const otherUserId = user?.id === activeConversation.seller?.id
-                      ? activeConversation.buyer?.id
-                      : activeConversation.seller?.id;
+                    const otherUserId = user?.id === activeConversation.seller_id
+                      ? activeConversation.buyer_id
+                      : activeConversation.seller_id;
                     const isTyping = typingUsers[otherUserId];
                     if (isTyping) {
                       return (

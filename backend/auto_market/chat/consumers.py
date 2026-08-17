@@ -241,6 +241,7 @@ class ConversationConsumer(AsyncWebsocketConsumer):
                         'id': message.id,
                         'message_text': message.message_text,
                         'created_at': message.created_at.isoformat() if message.created_at else None,
+                        'sender_id': message.sender_user_id,  # ADD THIS
                     }
                 }
             }
