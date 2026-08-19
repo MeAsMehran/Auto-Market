@@ -210,7 +210,6 @@ class RetrieveMessagesView(APIView):
         })
 
 
-
 class MarkMessagesAsReadView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -219,11 +218,12 @@ class MarkMessagesAsReadView(APIView):
     )
     def post(self, request, conversation_id):
         conversation = get_object_or_404(
-            Conversation.objects.only('id'),
+            Conversation.objects.only('id', 'buyer_id'),        # buyer_id is automatically created by Django because my model has it
             Q(seller=request.user) | Q(buyer=request.user),
             pk=conversation_id
         )
 
+        # unread_count: The current number of unread messages stored on the Conversation record
         unread_messages = list(
             Message.objects.filter(
                 conversation=conversation,
@@ -232,13 +232,14 @@ class MarkMessagesAsReadView(APIView):
             ).values('id', 'sender_user_id')
         )
 
+        # updated_count: The number of unread messages that the query successfully marked as read
         updated_count = Message.objects.filter(
             conversation=conversation,
             receiver_user=request.user,
             is_read=False
         ).update(is_read=True, status=MessageStatus.SEEN)
 
-        if updated_count > 0 and request.user == conversation.buyer:
+        if updated_count > 0 and request.user.id == conversation.buyer_id:
             Conversation.objects.filter(pk=conversation.id).update(
                 unread_count=Greatest(F('unread_count') - updated_count, 0)
             )
@@ -260,7 +261,6 @@ class MarkMessagesAsReadView(APIView):
                 )
 
         return Response({'marked_read': updated_count}, status=status.HTTP_200_OK)
-
 
 
 
