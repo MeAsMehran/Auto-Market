@@ -1,9 +1,12 @@
 
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from drf_spectacular.utils import extend_schema
+from django.db import transaction
 from django.shortcuts import get_object_or_404
 from django.db.models import Q, F
 from django.db.models.functions import Greatest
@@ -217,51 +220,69 @@ class MarkMessagesAsReadView(APIView):
         responses={status.HTTP_200_OK}
     )
     def post(self, request, conversation_id):
-        conversation = get_object_or_404(
-            Conversation.objects.only('id', 'buyer_id'),        # buyer_id is automatically created by Django because my model has it
+        get_object_or_404(
+            Conversation.objects.only('id'),
             Q(seller=request.user) | Q(buyer=request.user),
             pk=conversation_id
         )
 
-        # unread_count: The current number of unread messages stored on the Conversation record
-        unread_messages = list(
-            Message.objects.filter(
-                conversation=conversation,
-                receiver_user=request.user,
-                is_read=False
-            ).values('id', 'sender_user_id')
-        )
+        with transaction.atomic():
+            conversation = Conversation.objects.select_for_update().only(
+                'id',
+                'buyer_id',
+            ).get(pk=conversation_id)
 
-        # updated_count: The number of unread messages that the query successfully marked as read
-        updated_count = Message.objects.filter(
-            conversation=conversation,
-            receiver_user=request.user,
-            is_read=False
-        ).update(is_read=True, status=MessageStatus.SEEN)
-
-        if updated_count > 0 and request.user.id == conversation.buyer_id:
-            Conversation.objects.filter(pk=conversation.id).update(
-                unread_count=Greatest(F('unread_count') - updated_count, 0)
+            unread_ids = list(
+                Message.objects
+                .select_for_update()
+                .filter(
+                    conversation_id=conversation.id,
+                    receiver_user_id=request.user.id,
+                    is_read=False,
+                )
+                .order_by('id')
+                .values_list('id', flat=True)
             )
 
-        if unread_messages:
-            from channels.layers import get_channel_layer
-            from asgiref.sync import async_to_sync
-            channel_layer = get_channel_layer()
-            group_name = f"chat_{conversation_id}"
-            for msg in unread_messages:
-                async_to_sync(channel_layer.group_send)(
-                    group_name,
-                    {
-                        'type': 'status_update',
-                        'message_id': msg['id'],
-                        'status': MessageStatus.SEEN,
-                        'sender_id': msg['sender_user_id'],
-                    }
+            if not unread_ids:
+                return Response({
+                    'marked_read': 0,
+                    'last_seen_id': None,
+                }, status=status.HTTP_200_OK)
+
+            updated_count = Message.objects.filter(
+                id__in=unread_ids,
+                conversation_id=conversation.id,
+                receiver_user_id=request.user.id,
+                is_read=False,
+            ).update(
+                is_read=True,
+                status=MessageStatus.SEEN,
+            )
+
+            if updated_count > 0 and request.user.id == conversation.buyer_id:
+                Conversation.objects.filter(pk=conversation.id).update(
+                    unread_count=Greatest(F('unread_count') - updated_count, 0)
                 )
 
-        return Response({'marked_read': updated_count}, status=status.HTTP_200_OK)
+            last_seen_id = unread_ids[-1]
 
+            def broadcast_seen_messages():
+                async_to_sync(get_channel_layer().group_send)(
+                    f'chat_{conversation.id}',
+                    {
+                        'type': 'messages_seen_update',
+                        'last_seen_id': last_seen_id,
+                        'updated_count': updated_count,
+                        'reader_id': request.user.id,
+                    },
+                )
 
+            transaction.on_commit(broadcast_seen_messages)
+
+        return Response({
+            'marked_read': updated_count,
+            'last_seen_id': last_seen_id,
+        }, status=status.HTTP_200_OK)
 
 

@@ -12,6 +12,7 @@ import time
 import logging
 import redis
 
+from django.db import transaction
 from django.db.models import Q, F
 from django.db.models.functions import Greatest
 from django.shortcuts import get_object_or_404
@@ -316,6 +317,13 @@ class ConversationConsumer(AsyncWebsocketConsumer):
             'sender_id': event['sender_id'],
         }))
 
+    async def messages_status_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'messages_status_update',
+            'messages': event['messages'],
+            'status': event['status'],
+        }))
+
     async def conversation_updated(self, event):
         await self.send(text_data=json.dumps({
             'type': 'conversation_updated',
@@ -367,17 +375,44 @@ class ConversationConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def mark_messages_seen(self, conversation, user, last_seen_id):
-        updated_count = Message.objects.filter(
-            conversation=conversation,
-            receiver_user=user,
-            status__in=[MessageStatus.SENT, MessageStatus.DELIVERED]
-        ).exclude(
-            id__gt=last_seen_id
-        ).update(status=MessageStatus.SEEN, is_read=True)
+        with transaction.atomic():
+            locked_conversation = Conversation.objects.select_for_update().only(
+                'id',
+                'buyer_id',
+            ).get(pk=conversation.id)
 
-        if updated_count > 0 and user == conversation.buyer:
-            Conversation.objects.filter(pk=conversation.id).update(
-                unread_count=Greatest(F('unread_count') - updated_count, 0)
+            message_ids = list(
+                Message.objects
+                .select_for_update()
+                .filter(
+                    conversation_id=locked_conversation.id,
+                    receiver_user_id=user.id,
+                    id__lte=last_seen_id,
+                    is_read=False,
+                    status__in=[
+                        MessageStatus.SENT,
+                        MessageStatus.DELIVERED,
+                    ],
+                )
+                .values_list('id', flat=True)
             )
 
-        return updated_count
+            if not message_ids:
+                return 0
+
+            updated_count = Message.objects.filter(
+                id__in=message_ids,
+                conversation_id=locked_conversation.id,
+                receiver_user_id=user.id,
+                is_read=False,
+            ).update(
+                status=MessageStatus.SEEN,
+                is_read=True,
+            )
+
+            if user.id == locked_conversation.buyer_id:
+                Conversation.objects.filter(pk=locked_conversation.id).update(
+                    unread_count=Greatest(F('unread_count') - updated_count, 0)
+                )
+
+            return updated_count

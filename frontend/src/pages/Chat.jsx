@@ -390,22 +390,40 @@ export default function Chat() {
           );
         }
 
+        if (data.type === 'messages_status_update') {
+          const seenMessageIds = new Set(
+            data.messages.map((message) => message.id)
+          );
+
+          setMessages((prev) =>
+            prev.map((message) =>
+              seenMessageIds.has(message.id)
+                ? { ...message, status: data.status }
+                : message
+            )
+          );
+        }
+
         if (data.type === 'messages_seen_update') {
+          const lastSeenId = Number(data.last_seen_id);
+          const readerId = Number(data.reader_id);
+
           setMessages((prev) =>
             prev.map((m) =>
-              m.id <= data.last_seen_id && m.sender?.id !== user?.id
-                ? { ...m, status: 'seen' } : m
+              Number(m.id) <= lastSeenId && Number(m.sender?.id) !== readerId
+                ? { ...m, status: 'seen', is_read: true } : m
             )
           );
 
-          setConversations((prev) =>
-            prev.map((conv) => {
-              if (conv.id === conversationId) {
-                return { ...conv, unread_count: 0 };
-              }
-              return conv;
-            })
-          );
+          if (readerId === Number(user?.id)) {
+            setConversations((prev) =>
+              prev.map((conv) =>
+                conv.id === conversationId
+                  ? { ...conv, unread_count: 0 }
+                  : conv
+              )
+            );
+          }
         }
 
         if (data.type === 'typing_update') {
