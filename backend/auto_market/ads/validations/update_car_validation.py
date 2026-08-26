@@ -2,6 +2,8 @@
 from rest_framework.exceptions import ValidationError
 import datetime
 
+from ..models import Car
+
 ###########################
 
 def validate(data):
@@ -12,6 +14,7 @@ def validate(data):
     mileage = data.get('mileage')
     description = data.get('description')
     features = data.get('features', [])
+    detail_conditions = data.get('detail_conditions', {}) 
 
     if not title:
         raise ValidationError("عنوان آگهی الزامی است.")
@@ -36,6 +39,12 @@ def validate(data):
     for feat in features:
         if not isinstance(feat, str) or not feat.strip():
             raise ValidationError("هر امکان باید متن غیر خالی باشد.")   
+
+    # detail_conditions_validation:
+    for key , value in detail_conditions.items():
+        if value not in dict(Car.CONDITION_CHOICES):
+            raise ValidationError("Not a Valid Value!")
+
 
     return data
 

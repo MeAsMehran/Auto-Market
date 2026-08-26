@@ -41,12 +41,16 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',   # Daphne must be listed before django.contrib.staticfiles in INSTALLED_APPS.
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    'django.contrib.postgres',
 
     # Third-party apps:
     'corsheaders',
@@ -55,8 +59,11 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'drf_spectacular',
+    'debug_toolbar',
+    "silk",
     'django_celery_results',
-
+    'channels',     # must be before 'daphne'
+    
     # my apps:
     'accounts.apps.AccountsConfig',
     'ads.apps.AdsConfig',
@@ -65,6 +72,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    "silk.middleware.SilkyMiddleware",
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -79,8 +89,6 @@ CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:5173'
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False  # MUST be False when using credentials!. If True, ANY website could steal your user's cookies (security vulnerability)
 CORS_EXPOSE_HEADERS = ['Content-Type', 'X-CSRFToken']
-
-
 
 
 ROOT_URLCONF = 'auto_market.urls'
@@ -100,7 +108,9 @@ TEMPLATES = [
     },
 ]
 
+# WSGI & ASGI APPLICATIONS:
 WSGI_APPLICATION = 'auto_market.wsgi.application'
+ASGI_APPLICATION = "auto_market.asgi.application"
 
 
 # rest_framework_simplejwt configuration:
@@ -204,7 +214,7 @@ AUTH_USER_MODEL = 'accounts.User'
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES', 15))),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES', 15))),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME_DAYS', 7))),
 
     """
@@ -297,9 +307,22 @@ CELERY_TIMEZONE = "UTC"
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'loopdeloop2003@gmail.com')
 
 
-
-
-
+# Django Channels
+if DEBUG:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [os.getenv("REDIS_URL", "redis://localhost:6379/1")],
+            },
+        },
+    }
 
 
 

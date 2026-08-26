@@ -34,6 +34,8 @@ urlpatterns = [
     # ads app:
     path('api/', include('ads.urls')),
 
+    # chat app:
+    path('api/', include('chat.urls')),
 
     # rest_framework_simplejwt: -> we comment these lines because we already do these in accounts LoginView and add refresh token
     # path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -42,6 +44,12 @@ urlpatterns = [
     # swagger:
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+
+    # debug_toolbar -> testing my queries:
+    path('__debug__/', include("debug_toolbar.urls")),
+
+    # silk -> testing my queries:
+    path("silk/", include("silk.urls", namespace="silk")),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 

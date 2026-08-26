@@ -1,10 +1,23 @@
 
 from rest_framework import serializers
+
+from accounts.serializers import UserSerializer
 from ..models import Car, CarImage
 from .image_serializer import CreateCarImageSerializer, DetailCarImageSerializer
-from accounts.serializers import UserSerializer
+from core.iran_provinces import utils   # My own package
 
 ####################################################################################
+
+class DetailConditionsField(serializers.Serializer):
+
+    body_condition = serializers.JSONField(write_only=True, allow_null=True)
+    motor_condition = serializers.JSONField(write_only=True, allow_null=True)
+    gearbox_condition = serializers.JSONField(write_only=True, allow_null=True)
+    front_suspension_condition = serializers.JSONField(write_only=True, allow_null=True)
+    electrical_condition = serializers.JSONField(write_only=True, allow_null=True)
+    cabin_condition = serializers.JSONField(write_only=True, allow_null=True)
+
+
 
 from ..validations.create_car_validation import validate as create_car_validate
 class CreateCarAdSerializer(serializers.Serializer):
@@ -20,9 +33,11 @@ class CreateCarAdSerializer(serializers.Serializer):
     body_type    = serializers.ChoiceField(choices=Car.BODY_CHOICES, required=True, allow_null=False)
     condition    = serializers.ChoiceField(choices=Car.CONDITION_CHOICES, required=True, allow_null=False)
     color        = serializers.ChoiceField(choices=Car.COLOR_CHOICES, required=True, allow_null=False)
-    city         = serializers.ChoiceField(choices=Car.CITY_CHOICES, required=True, allow_null=False)
+    province     = serializers.ChoiceField(choices=list(utils.PROVINCE_CITY_MAP), required=True, allow_null=False)
+    city         = serializers.ChoiceField(choices=utils.ALL_CITIES, required=True, allow_null=False)
     description  = serializers.CharField(required=True, allow_null=False)
     features     = serializers.ListField(child=serializers.CharField(), required=False, default=list)
+    detail_conditions = DetailConditionsField(default=dict, allow_null=True) # we format it in drf-spectacular (swagger)
     # images       = CreateCarImageSerializer(many=True, required=False)
 
     def validate(self, attrs):
@@ -78,11 +93,13 @@ class DetailCarAdSerializer(serializers.Serializer):
     images       = DetailCarImageSerializer(many=True, read_only=True)
     is_featured  = serializers.BooleanField(read_only=True)
     is_active    = serializers.BooleanField(read_only=True)
+    detail_conditions = serializers.JSONField(default=dict, allow_null=True, read_only=True) # we format it in drf-spectacular (swagger)
 
 
 class ListCarAdSerializer(serializers.Serializer):
 
     id           = serializers.IntegerField(read_only=True)
+    seller_id    = serializers.IntegerField(source='seller.id', read_only=True)
     title        = serializers.CharField(read_only=True)
     brand        = serializers.CharField(read_only=True)
     model_name   = serializers.CharField(read_only=True)
@@ -99,6 +116,7 @@ class ListCarAdSerializer(serializers.Serializer):
     created_at   = serializers.DateTimeField(read_only=True)
     images       = DetailCarImageSerializer(many=True, read_only=True)
     is_active    = serializers.BooleanField(read_only=True)
+    detail_conditions = serializers.JSONField(default=dict, allow_null=True, read_only=True) # we format it in drf-spectacular (swagger)
 
 
 from ..validations.update_car_validation import validate as update_car_validate
@@ -115,11 +133,12 @@ class UpdateCarAdSerializer(serializers.Serializer):
     body_type    = serializers.ChoiceField(choices=Car.BODY_CHOICES, required=True, allow_null=False)
     condition    = serializers.ChoiceField(choices=Car.CONDITION_CHOICES, required=True, allow_null=False)
     color        = serializers.ChoiceField(choices=Car.COLOR_CHOICES, required=True, allow_null=False)
-    city         = serializers.ChoiceField(choices=Car.CITY_CHOICES, required=True, allow_null=False)
+    city         = serializers.ChoiceField(choices=utils.PROVINCE_CITY_MAP, required=True, allow_null=False)
     description  = serializers.CharField(required=True, allow_null=False)
     features     = serializers.ListField(child=serializers.CharField(), required=False, default=list)
     updated_at   = serializers.DateTimeField()
     is_active    = serializers.BooleanField()
+    detail_conditions = serializers.JSONField(default=dict, allow_null=True, read_only=True) # we format it in drf-spectacular (swagger)
     # images       = CreateCarImageSerializer(many=True, required=False)
 
     def validate(self, attrs):

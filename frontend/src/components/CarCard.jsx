@@ -3,24 +3,9 @@ import { Link } from 'react-router-dom';
 import { MapPin, Clock, Heart, Car } from 'lucide-react';
 import { useState } from 'react';
 import { FUEL_LABELS, CITY_LABELS, COLOR_LABELS } from '../lib/constants';
-import useFavorite from '../hooks/useFavorite';
-
-function formatPrice(price) {
-  if (!price) return 'قیمت توافقی';
-  return `${(price / 1000000).toLocaleString('fa-IR')} م.تومان`;
-}
-
-function timeAgo(dateStr) {
-  if (!dateStr) return '';
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `${mins} دقیقه پیش`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours} ساعت پیش`;
-  const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} روز پیش`;
-  return `${Math.floor(days / 30)} ماه پیش`;
-}
+import { useFavorites } from '../context/FavoritesContext';
+import { fadeUpItem, fadeInLeftItem } from './AnimatedPage';
+import { formatPrice, toPersianNumber, formatTimeAgo } from '../utils/format';
 
 const BACKEND_URL = 'http://localhost:8000';
 
@@ -46,6 +31,8 @@ function ImageWithLoader({ src, alt, className }) {
       <img
         src={src}
         alt={alt}
+        loading="lazy"
+        decoding="async"
         className={`w-full h-full object-cover transition-opacity duration-500 ${loaded ? 'opacity-100' : 'opacity-0'}`}
         onLoad={() => setLoaded(true)}
       />
@@ -70,7 +57,8 @@ function NoImagePlaceholder({ car, className }) {
 }
 
 function FavoriteButton({ car, size = 'md' }) {
-  const { liked, toggleLike } = useFavorite(car);
+  const { isLiked, toggleLike } = useFavorites();
+  const liked = isLiked(car.id);
   const sizeClasses = size === 'sm'
     ? 'w-7 h-7'
     : 'w-8 h-8';
@@ -84,7 +72,7 @@ function FavoriteButton({ car, size = 'md' }) {
   return (
     <button
       type="button"
-      onClick={toggleLike}
+      onClick={(e) => toggleLike(car, e)}
       className={`absolute ${posClasses} ${sizeClasses} bg-surface/80 backdrop-blur-sm rounded-full flex items-center justify-center hover:bg-surface transition-colors`}
     >
       <motion.div
@@ -97,14 +85,9 @@ function FavoriteButton({ car, size = 'md' }) {
   );
 }
 
-export function CarGridCard({ car, index }) {
+export function CarGridCard({ car, isOwner = false }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.4, delay: index * 0.05, ease: 'easeOut' }}
-    >
+    <motion.div variants={fadeUpItem} className="will-change-transform">
       <Link
         to={`/car/${car.id}`}
         className="group block bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300"
@@ -127,26 +110,47 @@ export function CarGridCard({ car, index }) {
               <motion.span
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="absolute top-3 right-3 bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md"
+                className="absolute top-3 right-3 bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md z-10"
               >
                 ویژه
               </motion.span>
             )}
-            <FavoriteButton car={car} />
+            {isOwner && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className={`absolute top-3 left-3 bg-brand-600 dark:bg-brand-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md z-10 ${car.is_featured ? 'right-3 left-auto' : ''}`}
+              >
+                مال من
+              </motion.span>
+            )}
+            {!isOwner && <FavoriteButton car={car} />}
           </div>
           <div className="p-4">
+            <div className="flex items-center gap-2 mb-2">
+              {car.brand && (
+                <span className="px-2 py-0.5 bg-[#1d4ed8] dark:bg-brand-900 text-white dark:text-brand-300 text-xs font-medium rounded-lg">
+                  {car.brand}
+                </span>
+              )}
+              {car.model_name && (
+                <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                  {car.model_name}
+                </span>
+              )}
+            </div>
             <h3 className="font-semibold text-text-primary text-sm leading-snug mb-1 line-clamp-2 group-hover:text-brand-500 transition-colors">
               {car.title}
             </h3>
             <p className="text-lg font-bold text-brand-500 mb-2">{formatPrice(car.price)}</p>
             <div className="flex flex-wrap gap-1.5 mb-3">
-              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.year}</span>
-              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.mileage?.toLocaleString('fa-IR')} ک.م</span>
+              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.year)}</span>
+              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.mileage?.toLocaleString('fa-IR'))} ک.م</span>
               <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{FUEL_LABELS[car.fuel_type] || car.fuel_type}</span>
             </div>
             <div className="flex items-center justify-between text-xs text-text-tertiary">
               <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {CITY_LABELS[car.city] || car.city}</span>
-              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {timeAgo(car.created_at)}</span>
+              <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTimeAgo(car.created_at)}</span>
             </div>
           </div>
         </motion.div>
@@ -155,14 +159,9 @@ export function CarGridCard({ car, index }) {
   );
 }
 
-export function CarListCard({ car, index }) {
+export function CarListCard({ car, isOwner = false }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.4, delay: index * 0.05, ease: 'easeOut' }}
-    >
+    <motion.div variants={fadeInLeftItem} className="will-change-transform">
       <Link
         to={`/car/${car.id}`}
         className="group flex bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300"
@@ -180,13 +179,28 @@ export function CarListCard({ car, index }) {
           {car.is_featured && (
             <span className="absolute top-2 right-2 bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg">ویژه</span>
           )}
-          <FavoriteButton car={car} size="sm" />
+          {isOwner && (
+            <span className="absolute top-2 left-2 bg-brand-600 dark:bg-brand-500 text-white text-xs font-bold px-2 py-0.5 rounded-lg">مال من</span>
+          )}
+          {!isOwner && <FavoriteButton car={car} size="sm" />}
         </div>
         <div className="flex-1 p-5 flex flex-col justify-between">
           <div>
+            <div className="flex items-center gap-2 mb-1">
+              {car.brand && (
+                <span className="px-2 py-0.5 bg-[#1d4ed8] dark:bg-brand-900 text-white dark:text-brand-300 text-xs font-medium rounded-lg">
+                  {car.brand}
+                </span>
+              )}
+              {car.model_name && (
+                <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                  {car.model_name}
+                </span>
+              )}
+            </div>
             <h3 className="font-semibold text-text-primary group-hover:text-brand-500 transition-colors">{car.title}</h3>
             <div className="flex flex-wrap gap-2 mt-2">
-              <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.year}</span>
+              <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.year)}</span>
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.mileage?.toLocaleString('fa-IR')} ک.م</span>
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{FUEL_LABELS[car.fuel_type] || car.fuel_type}</span>
               <span className="px-2.5 py-1 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{COLOR_LABELS[car.color] || car.color}</span>
@@ -197,7 +211,7 @@ export function CarListCard({ car, index }) {
               <p className="text-lg font-bold text-brand-500">{formatPrice(car.price)}</p>
               <div className="flex items-center gap-3 text-xs text-text-tertiary mt-0.5">
                 <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {CITY_LABELS[car.city] || car.city}</span>
-                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {timeAgo(car.created_at)}</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {formatTimeAgo(car.created_at)}</span>
               </div>
             </div>
           </div>

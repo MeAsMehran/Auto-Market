@@ -1,19 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Upload, X, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus, Trash2 } from 'lucide-react';
-import { getCar, getCarImages, updateCar, uploadCarImages, deleteCarImage } from '../lib/carApi';
+import { Upload, X, ChevronLeft, Loader2, Car, CheckCircle, AlertCircle, Plus, Trash2, Gauge, Calendar, Droplet, Settings2, CircleDot } from 'lucide-react';
+import { getCar, updateCar, uploadCarImages, deleteCarImage } from '../lib/carApi';
 import {
-  BRANDS, FUEL_MAP, TRANSMISSION_MAP, CONDITION_MAP, BODY_MAP, COLOR_MAP, CITY_MAP,
-  FUEL_LABELS, TRANSMISSION_LABELS, CONDITION_LABELS, BODY_LABELS, COLOR_LABELS, CITY_LABELS,
+  BRANDS, FUEL_MAP, TRANSMISSION_MAP, BODY_MAP, COLOR_MAP,
+  PROVINCES, getCitiesForProvince, getProvinceForCity,
+  FUEL_LABELS, TRANSMISSION_LABELS, BODY_LABELS, COLOR_LABELS,
+  CONDITION_OPTIONS, DETAILED_CONDITION_CATEGORIES,
 } from '../lib/constants';
 import { fixImageUrl } from '../components/CarCard';
 
 const FUEL_OPTIONS = Object.keys(FUEL_MAP);
 const TRANSMISSION_OPTIONS = Object.keys(TRANSMISSION_MAP);
-const CONDITION_OPTIONS = Object.keys(CONDITION_MAP);
 const BODY_OPTIONS = Object.keys(BODY_MAP);
 const COLOR_OPTIONS = Object.keys(COLOR_MAP);
-const CITY_OPTIONS = Object.keys(CITY_MAP);
 
 const SLOT_CONFIG = [
   { key: 'front',  label: 'جلو',      desc: 'نمای جلوی خودرو',  order: 0 },
@@ -32,12 +32,17 @@ export default function EditAd() {
   const [error, setError] = useState(null);
   const [form, setForm] = useState({
     brand: '', model_name: '', year: '', price: '', mileage: '',
-    fuel_type: '', transmission: '', condition: '', body_type: '',
-    color: '', city: '', title: '', description: '',
+    fuel_type: '', transmission: '', body_type: '',
+    color: '', province: '', city: '', title: '', description: '',
+    detail_conditions: {
+      body_condition: '', motor_condition: '', gearbox_condition: '',
+      front_suspension_condition: '', electrical_condition: '', cabin_condition: '',
+    },
   });
   const [features, setFeatures] = useState([]);
   const [featureInput, setFeatureInput] = useState('');
   const [stepErrors, setStepErrors] = useState({});
+  const [cityOptions, setCityOptions] = useState([]);
 
   const [existingImages, setExistingImages] = useState([]);
   const [removedImageIds, setRemovedImageIds] = useState([]);
@@ -45,14 +50,26 @@ export default function EditAd() {
     front: null, rear: null, left: null, right: null, other: null,
   });
 
+  // Guard against dev-mode StrictMode double-effects (dedupe in-flight
+  // requests for the same id) and stale responses when the id changes.
+  const inFlightRef = useRef(new Set());
+  const latestIdRef = useRef(null);
+
   useEffect(() => {
     fetchCar();
   }, [id]);
 
   const fetchCar = async () => {
     setLoading(true);
+    const key = `car-${id}`;
+    if (inFlightRef.current.has(key)) return;
+    inFlightRef.current.add(key);
+    latestIdRef.current = id;
     try {
-      const [car, images] = await Promise.all([getCar(id), getCarImages(id)]);
+      const car = await getCar(id);
+      if (latestIdRef.current !== id) return;
+      const loadedCity = CITY_LABELS[car.city] || car.city || '';
+      const foundProvince = getProvinceForCity(loadedCity);
       setForm({
         brand: car.brand || '',
         model_name: car.model_name || '',
@@ -61,23 +78,38 @@ export default function EditAd() {
         mileage: car.mileage || '',
         fuel_type: FUEL_LABELS[car.fuel_type] || '',
         transmission: TRANSMISSION_LABELS[car.transmission] || '',
-        condition: CONDITION_LABELS[car.condition] || '',
         body_type: BODY_LABELS[car.body_type] || '',
         color: COLOR_LABELS[car.color] || '',
-        city: CITY_LABELS[car.city] || '',
+        province: foundProvince || car.province || '',
+        city: loadedCity,
         title: car.title || '',
         description: car.description || '',
+        detail_conditions: car.detail_conditions || {
+          body_condition: '', motor_condition: '', gearbox_condition: '',
+          front_suspension_condition: '', electrical_condition: '', cabin_condition: '',
+        },
       });
+      if (foundProvince) {
+        setCityOptions(getCitiesForProvince(foundProvince));
+      }
       setFeatures(car.features || []);
-      setExistingImages(Array.isArray(images) ? images : images.results || []);
+      setExistingImages(Array.isArray(car.images) ? car.images : car.images?.results || []);
     } catch {
+      if (latestIdRef.current !== id) return;
       setError('خطا در بارگذاری اطلاعات آگهی.');
     } finally {
-      setLoading(false);
+      inFlightRef.current.delete(key);
+      if (latestIdRef.current === id) setLoading(false);
     }
   };
 
   const updateForm = (field, value) => setForm((prev) => ({ ...prev, [field]: value }));
+
+  const handleProvinceChange = (e) => {
+    const province = e.target.value;
+    setCityOptions(province ? getCitiesForProvince(province) : []);
+    setForm((prev) => ({ ...prev, province, city: '' }));
+  };
 
   const addFeature = () => {
     const trimmed = featureInput.trim();
@@ -100,8 +132,8 @@ export default function EditAd() {
     if (!form.mileage || parseInt(form.mileage, 10) < 0) missing.push('کارکرد');
     if (!form.body_type) missing.push('نوع بدنه');
     if (!form.fuel_type) missing.push('نوع سوخت');
-    if (!form.transmission) missing.push('گیربکس');
-    if (!form.condition) missing.push('وضعیت');
+    if (!form.transmission) missing.push('نوع گیربکس');
+    if (!form.detail_conditions) missing.push('وضعیت فنی');
     return missing.length ? `لطفاً این فیلدها را پر کنید: ${missing.join('، ')}` : null;
   };
   const validateStep2 = () => {
@@ -113,6 +145,7 @@ export default function EditAd() {
   };
   const validateStep3 = () => {
     const missing = [];
+    if (!form.province) missing.push('استان');
     if (!form.city) missing.push('شهر');
     if (!form.color) missing.push('رنگ');
     return missing.length ? `لطفاً این فیلدها را پر کنید: ${missing.join('، ')}` : null;
@@ -170,38 +203,37 @@ export default function EditAd() {
         fuel_type: FUEL_MAP[form.fuel_type],
         transmission: TRANSMISSION_MAP[form.transmission],
         body_type: BODY_MAP[form.body_type],
-        condition: CONDITION_MAP[form.condition],
+        condition: 'good',
         color: COLOR_MAP[form.color],
-        city: CITY_MAP[form.city],
+        province: form.province,
+        city: form.city,
         description: form.description,
         features,
+        detail_conditions: form.detail_conditions,
       };
 
       await updateCar(id, carData);
 
-      for (const imageId of removedImageIds) {
-        await deleteCarImage(id, imageId);
-      }
+      await Promise.all(removedImageIds.map((imageId) => deleteCarImage(id, imageId)));
 
-      for (const slot of SLOT_CONFIG) {
-        const imageData = newSlots[slot.key];
-        if (imageData) {
+      const uploads = SLOT_CONFIG
+        .filter((slot) => newSlots[slot.key])
+        .map((slot) => {
           const formData = new FormData();
-          formData.append('image', imageData.file);
+          formData.append('image', newSlots[slot.key].file);
           formData.append('order', slot.order);
-          await uploadCarImages(id, formData);
-        }
-      }
+          return uploadCarImages(id, formData);
+        });
+      await Promise.all(uploads);
 
-      sessionStorage.removeItem('myListings');
       navigate('/my-listings');
     } catch (err) {
       const data = err.response?.data;
       if (data) {
         const fieldLabels = {
           title: 'عنوان', brand: 'برند', model_name: 'مدل', year: 'سال ساخت',
-          price: 'قیمت', mileage: 'کارکرد', fuel_type: 'نوع سوخت', transmission: 'گیربکس',
-          body_type: 'نوع بدنه', condition: 'وضعیت', color: 'رنگ', city: 'شهر',
+          price: 'قیمت', mileage: 'کارکرد', fuel_type: 'نوع سوخت', transmission: 'نوع گیربکس',
+          body_type: 'نوع بدنه', detail_conditions: 'وضعیت فنی', color: 'رنگ', province: 'استان', city: 'شهر',
           description: 'توضیحات', features: 'امکانات', detail: 'جزئیات',
           non_field_errors: 'خطا',
         };
@@ -255,71 +287,194 @@ export default function EditAd() {
 
       <form onSubmit={handleSubmit}>
         {step === 1 && (
-          <div className="bg-surface rounded-2xl border border-border p-6 space-y-5">
-            <h2 className="text-lg font-bold text-text-primary">اطلاعات اولیه</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">برند *</label>
-                <select value={form.brand} onChange={(e) => updateForm('brand', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب برند</option>
-                  {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">مدل *</label>
-                <input type="text" value={form.model_name} onChange={(e) => updateForm('model_name', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">سال ساخت *</label>
-                <select value={form.year} onChange={(e) => updateForm('year', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب سال</option>
-                  {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">قیمت (تومان) *</label>
-                <input type="number" value={form.price} onChange={(e) => updateForm('price', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">کارکرد (کیلومتر) *</label>
-                <input type="number" value={form.mileage} onChange={(e) => updateForm('mileage', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">نوع بدنه *</label>
-                <select value={form.body_type} onChange={(e) => updateForm('body_type', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب نوع بدنه</option>
-                  {BODY_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
-                </select>
+          <div className="space-y-6">
+            {/* Main Info Card */}
+            <div className="bg-surface rounded-2xl border border-border p-6">
+              <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
+                <Car className="w-5 h-5 text-brand-500" />
+                اطلاعات خودرو
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Brand */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    برند خودرو
+                  </label>
+                  <select
+                    value={form.brand}
+                    onChange={(e) => updateForm('brand', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">برند را انتخاب کنید</option>
+                    {BRANDS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
+
+                {/* Model */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    مدل خودرو
+                  </label>
+                  <input
+                    type="text"
+                    value={form.model_name}
+                    onChange={(e) => updateForm('model_name', e.target.value)}
+                    placeholder="مثال: پژو ۲۰۶"
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary/50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Year */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Calendar className="w-3.5 h-3.5" />
+                    سال تولید
+                  </label>
+                  <select
+                    value={form.year}
+                    onChange={(e) => updateForm('year', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">سال را انتخاب کنید</option>
+                    {Array.from({ length: 30 }, (_, i) => new Date().getFullYear() - i).map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Price */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    قیمت (تومان)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.price}
+                    onChange={(e) => updateForm('price', e.target.value)}
+                    placeholder="۱,۵۰۰,۰۰۰,۰۰۰"
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary/50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Mileage */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Gauge className="w-3.5 h-3.5" />
+                    کارکرد (کیلومتر)
+                  </label>
+                  <input
+                    type="number"
+                    value={form.mileage}
+                    onChange={(e) => updateForm('mileage', e.target.value)}
+                    placeholder="۵۰,۰۰۰"
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary placeholder:text-text-tertiary/50 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all"
+                    required
+                  />
+                </div>
+
+                {/* Body Type */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Car className="w-3.5 h-3.5" />
+                    نوع بدنه
+                  </label>
+                  <select
+                    value={form.body_type}
+                    onChange={(e) => updateForm('body_type', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">نوع بدنه را انتخاب کنید</option>
+                    {BODY_OPTIONS.map((b) => <option key={b} value={b}>{b}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">نوع سوخت *</label>
-                <select value={form.fuel_type} onChange={(e) => updateForm('fuel_type', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب سوخت</option>
-                  {FUEL_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">گیربکس *</label>
-                <select value={form.transmission} onChange={(e) => updateForm('transmission', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب گیربکس</option>
-                  {TRANSMISSION_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">وضعیت *</label>
-                <select value={form.condition} onChange={(e) => updateForm('condition', e.target.value)} className="w-full px-4 py-3 bg-surface-tertiary border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20" required>
-                  <option value="">انتخاب وضعیت</option>
-                  {CONDITION_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+
+            {/* Fuel & Gearbox Card */}
+            <div className="bg-surface rounded-2xl border border-border p-6">
+              <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
+                <Settings2 className="w-5 h-5 text-brand-500" />
+                مشخصات فنی
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Fuel */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Droplet className="w-3.5 h-3.5" />
+                    نوع سوخت
+                  </label>
+                  <select
+                    value={form.fuel_type}
+                    onChange={(e) => updateForm('fuel_type', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">نوع سوخت را انتخاب کنید</option>
+                    {FUEL_OPTIONS.map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                </div>
+
+                {/* Gearbox */}
+                <div className="space-y-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-text-secondary">
+                    <Settings2 className="w-3.5 h-3.5" />
+                    نوع گیربکس
+                  </label>
+                  <select
+                    value={form.transmission}
+                    onChange={(e) => updateForm('transmission', e.target.value)}
+                    className="w-full px-3 py-2.5 bg-surface-tertiary border border-border rounded-lg text-sm text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                    required
+                  >
+                    <option value="">نوع گیربکس را انتخاب کنید</option>
+                    {TRANSMISSION_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
-            <div className="flex justify-start">
-              <button type="button" onClick={goToStep2} className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors">
-                بعدی <ChevronLeft className="w-4 h-4" />
+
+            {/* Condition Card */}
+            <div className="bg-surface rounded-2xl border border-border p-6">
+              <h2 className="text-lg font-bold text-text-primary mb-6 flex items-center gap-2">
+                <CircleDot className="w-5 h-5 text-brand-500" />
+                وضعیت فنی خودرو
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {DETAILED_CONDITION_CATEGORIES.map((cat) => (
+                  <div key={cat.key} className="space-y-1.5">
+                    <label className="flex items-center gap-1 text-xs font-medium text-text-secondary">
+                      {cat.label}
+                    </label>
+                    <select
+                      value={form.detail_conditions?.[cat.key] || ''}
+                      onChange={(e) => updateForm('detail_conditions', { ...form.detail_conditions, [cat.key]: e.target.value })}
+                      className="w-full px-2 py-2 bg-surface-tertiary border border-border rounded-lg text-xs text-text-primary focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition-all cursor-pointer hover:border-brand-400/50"
+                      required
+                    >
+                      <option value="">—</option>
+                      {CONDITION_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={goToStep2}
+                className="flex items-center gap-2 px-6 py-3 bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white font-semibold rounded-xl transition-all shadow-lg shadow-brand-500/20"
+              >
+                مرحله بعد
+                <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -429,23 +584,31 @@ export default function EditAd() {
             <h2 className="text-lg font-bold text-text-primary">مکان و رنگ</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
+                <label className="block text-sm font-medium text-text-primary mb-1.5">استان *</label>
+                <select value={form.province} onChange={handleProvinceChange} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.province ? 'border-red-500' : 'border-border'}`} required>
+                  <option value="">انتخاب استان</option>
+                  {PROVINCES.map((p) => <option key={p} value={p}>{p}</option>)}
+                </select>
+                {stepErrors.province && <p className="text-xs text-red-500 mt-1">{stepErrors.province}</p>}
+              </div>
+              <div>
                 <label className="block text-sm font-medium text-text-primary mb-1.5">شهر *</label>
-                <select value={form.city} onChange={(e) => { updateForm('city', e.target.value); setStepErrors((p) => ({ ...p, city: undefined })); }} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.city ? 'border-red-500' : 'border-border'}`} required>
+                <select value={form.city} onChange={(e) => { updateForm('city', e.target.value); setStepErrors((p) => ({ ...p, city: undefined })); }} disabled={!form.province} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${stepErrors.city ? 'border-red-500' : 'border-border'}`} required>
                   <option value="">انتخاب شهر</option>
-                  {CITY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+                  {cityOptions.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
                 {stepErrors.city && <p className="text-xs text-red-500 mt-1">{stepErrors.city}</p>}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-1.5">رنگ *</label>
-                <select value={form.color} onChange={(e) => { updateForm('color', e.target.value); setStepErrors((p) => ({ ...p, color: undefined })); }} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.color ? 'border-red-500' : 'border-border'}`} required>
-                  <option value="">انتخاب رنگ</option>
-                  {COLOR_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
-                {stepErrors.color && <p className="text-xs text-red-500 mt-1">{stepErrors.color}</p>}
-              </div>
             </div>
-            <div className="bg-accent-50 dark:bg-accent-950 border border-accent-200 dark:border-accent-800 rounded-xl p-4 flex items-start gap-3">
+            <div>
+              <label className="block text-sm font-medium text-text-primary mb-1.5">رنگ *</label>
+              <select value={form.color} onChange={(e) => { updateForm('color', e.target.value); setStepErrors((p) => ({ ...p, color: undefined })); }} className={`w-full px-4 py-3 bg-surface-tertiary border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 ${stepErrors.color ? 'border-red-500' : 'border-border'}`} required>
+                <option value="">انتخاب رنگ</option>
+                {COLOR_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {stepErrors.color && <p className="text-xs text-red-500 mt-1">{stepErrors.color}</p>}
+            </div>
+            <div className="bg-green-100 dark:bg-green-950 border border-green-300 dark:border-green-800 rounded-xl p-4 flex items-start gap-3">
               <CheckCircle className="w-5 h-5 text-accent-500 shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-green-800 dark:text-green-300">آماده ذخیره!</p>

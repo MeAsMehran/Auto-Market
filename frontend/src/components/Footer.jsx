@@ -1,8 +1,10 @@
 import { Link } from 'react-router-dom';
 import { Car, Mail, Phone, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 function CarDivider() {
+  const reducedMotion = useReducedMotion();
   return (
     <div className="relative h-8 overflow-hidden opacity-30">
       <svg className="absolute top-1/2 -translate-y-1/2" width="100%" height="8" preserveAspectRatio="none">
@@ -10,7 +12,7 @@ function CarDivider() {
       </svg>
       <motion.div
         className="absolute top-1/2 -translate-y-1/2"
-        animate={{ x: ['-5%', '105%'] }}
+        animate={reducedMotion ? {} : { x: ['-5%', '105%'] }}
         transition={{ duration: 18, repeat: Infinity, ease: 'linear' }}
       >
         <svg width="48" height="18" viewBox="0 0 48 18" fill="currentColor" className="text-brand-300">

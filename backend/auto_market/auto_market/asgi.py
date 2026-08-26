@@ -8,9 +8,31 @@ https://docs.djangoproject.com/en/6.0/howto/deployment/asgi/
 """
 
 import os
+import django
 
 from django.core.asgi import get_asgi_application
+from channels.routing import ProtocolTypeRouter, URLRouter
+from channels.security.websocket import AllowedHostsOriginValidator
+
+from auto_market.jwt_auth import JWTAuthMiddlewareInstance
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'auto_market.settings')
+django.setup()
 
-application = get_asgi_application()
+django_asgi_app = get_asgi_application()
+
+from chat import routing    # IMPORTANT: ALWAYS TRY TO IMPORT THE ROUTING AFTER get_asgi_application()
+
+application = ProtocolTypeRouter(
+    {
+        'http': django_asgi_app,
+        'websocket': AllowedHostsOriginValidator(
+            JWTAuthMiddlewareInstance(URLRouter(routing.websocket_urlpatterns))
+        ),
+    }
+)
+
+
+
+
+

@@ -1,10 +1,15 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Heart, ArrowRight, MapPin } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
+import { Heart, ArrowRight, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { CITY_LABELS, FUEL_LABELS } from '../lib/constants';
-import { getFavorites, removeFavorite } from '../lib/carApi';
 import { getFirstImage } from '../components/CarCard';
+import { useFavorites } from '../context/FavoritesContext';
+import { useLikedAds } from '../hooks/useLikedAds';
+import { staggerContainer, fadeUpItem } from '../components/AnimatedPage';
+import ProfileSidebar from '../components/ProfileSidebar';
+import { useStats } from '../context/StatsContext';
+import { toPersianNumber } from '../utils/format';
 
 function formatPrice(price) {
   if (!price) return 'قیمت توافقی';
@@ -24,89 +29,76 @@ function timeAgo(dateStr) {
 }
 
 export default function LikedAds() {
-  const [likedCars, setLikedCars] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { stats, fetchStats } = useStats();
+  const page = Math.max(1, parseInt(searchParams.get('page')) || 1);
+
+  const { cars, count, totalPages, loading, error, refetch } = useLikedAds(page);
+  const { toggleLike } = useFavorites();
 
   useEffect(() => {
-    const fetchFavorites = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) {
-        const stored = localStorage.getItem('likedCars');
-        if (stored) {
-          try {
-            setLikedCars(JSON.parse(stored));
-          } catch {
-            setLikedCars([]);
-          }
-        }
-        setLoading(false);
-        return;
-      }
+    fetchStats();
+  }, [fetchStats]);
 
-      try {
-        const favorites = await getFavorites();
-        const cars = favorites.map((fav) => fav.car);
-        setLikedCars(cars);
-        localStorage.setItem('likedCars', JSON.stringify(cars));
-      } catch {
-        const stored = localStorage.getItem('likedCars');
-        if (stored) {
-          try {
-            setLikedCars(JSON.parse(stored));
-          } catch {
-            setLikedCars([]);
-          }
-        }
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchFavorites();
-  }, []);
-
-  const removeLike = async (carId) => {
-    const token = localStorage.getItem('access_token');
-    if (token) {
-      try {
-        await removeFavorite(carId);
-      } catch {
-        // continue
-      }
-    }
-    const updated = likedCars.filter((c) => c.id !== carId);
-    setLikedCars(updated);
-    localStorage.setItem('likedCars', JSON.stringify(updated));
+  const setPage = (p) => {
+    setSearchParams((prev) => { prev.set('page', String(p)); return prev; });
   };
 
+  const removeLike = async (car) => {
+    await toggleLike(car);
+    refetch();
+  };
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
+
+  const listingsRef = useRef(null);
+  const prevPageRef = useRef(page);
+
+  useEffect(() => {
+    if (prevPageRef.current === page) return;
+    prevPageRef.current = page;
+    if (listingsRef.current) {
+      const offset = 80;
+      const top = listingsRef.current.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, [page]);
+
   return (
-    <div className="min-h-screen bg-surface-secondary">
-      <section className="bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="flex items-center gap-3 mb-4">
+    <div ref={listingsRef} className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div className="flex flex-col lg:flex-row gap-8">
+        <ProfileSidebar activeHref="/liked-ads" stats={stats} />
+
+        <div className="flex-1 min-w-0">
+          <section className="bg-gradient-to-br from-brand-700 via-brand-600 to-brand-500 text-white py-8 px-6 rounded-2xl mb-8">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="flex items-center gap-3 mb-3"
+            >
               <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
                 <Heart className="w-6 h-6 fill-white" />
               </div>
               <h1 className="text-2xl font-bold">خودروهای مورد علاقه</h1>
-            </div>
-            <p className="text-brand-100 max-w-2xl">
+            </motion.div>
+            <p className="text-brand-100 max-w-2xl text-sm">
               خودروهای ذخیره‌شده شما در اینجا نمایش داده می‌شوند. می‌توانید به راحتی آن‌ها را مقایسه کرده و با فروشندگان تماس بگیرید.
             </p>
-          </motion.div>
-        </div>
-      </section>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+          </section>
         {loading ? (
           <div className="text-center py-20">
             <div className="w-16 h-16 border-4 border-brand-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
             <p className="text-text-secondary">در حال بارگذاری...</p>
           </div>
-        ) : likedCars.length === 0 ? (
+        ) : error ? (
+          <div className="text-center py-20">
+            <p className="text-red-500 mb-4">{error}</p>
+            <button onClick={refetch} className="px-4 py-2 bg-brand-500 text-white rounded-lg">تلاش دوباره</button>
+          </div>
+        ) : cars.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -130,36 +122,66 @@ export default function LikedAds() {
           <>
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-text-primary">
-                {likedCars.length} خودرو ذخیره‌شده
+                {count} خودرو ذخیره‌شده
               </h2>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {likedCars.map((car, index) => (
+            <motion.div
+              key={`liked-${page}`}
+              variants={staggerContainer}
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true, amount: 0.05 }}
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+            >
+              {cars.map((car) => (
                 <LikedCarCard
                   key={car.id}
                   car={car}
-                  index={index}
-                  onRemove={() => removeLike(car.id)}
+                  onRemove={() => removeLike(car)}
                 />
               ))}
-            </div>
+            </motion.div>
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-8">
+                <button
+                  onClick={() => setPage(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  className="p-2 rounded-xl border border-border hover:bg-surface-tertiary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p)}
+                    className={`w-9 h-9 rounded-xl text-sm font-medium transition-colors ${page === p ? 'bg-brand-500 text-white' : 'border border-border hover:bg-surface-tertiary text-text-secondary'}`}
+                  >
+                    {p}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPage(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  className="p-2 rounded-xl border border-border hover:bg-surface-tertiary disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </>
         )}
+        </div>
       </div>
     </div>
   );
 }
 
-function LikedCarCard({ car, index, onRemove }) {
+function LikedCarCard({ car, onRemove }) {
   const imgSrc = getFirstImage(car);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.4, delay: index * 0.05, ease: 'easeOut' }}
-    >
+    <motion.div variants={fadeUpItem} className="will-change-transform">
       <Link
         to={`/car/${car.id}`}
         className="group block bg-surface rounded-2xl border border-border overflow-hidden hover:shadow-lg hover:border-brand-500/30 transition-all duration-300 relative"
@@ -170,7 +192,7 @@ function LikedCarCard({ car, index, onRemove }) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onRemove();
+              onRemove(car);
             }}
             className="w-8 h-8 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center transition-colors shadow-lg"
           >
@@ -179,7 +201,13 @@ function LikedCarCard({ car, index, onRemove }) {
         </div>
         <div className="relative aspect-[4/3] overflow-hidden bg-surface-tertiary">
           {imgSrc ? (
-            <img src={imgSrc} alt={car.title} className="w-full h-full object-cover" />
+            <img
+              src={imgSrc}
+              alt={car.title}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover"
+            />
           ) : null}
           {car.is_featured && (
             <motion.span
@@ -192,13 +220,25 @@ function LikedCarCard({ car, index, onRemove }) {
           )}
         </div>
         <div className="p-4">
+          <div className="flex items-center gap-2 mb-2">
+            {car.brand && (
+              <span className="px-2 py-0.5 bg-brand-100 dark:bg-brand-900 text-brand-600 dark:text-brand-300 text-xs font-medium rounded-lg">
+                {car.brand}
+              </span>
+            )}
+            {car.model_name && (
+              <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">
+                {car.model_name}
+              </span>
+            )}
+          </div>
           <h3 className="font-semibold text-text-primary text-sm leading-snug mb-1 line-clamp-2 group-hover:text-brand-500 transition-colors">
             {car.title}
           </h3>
           <p className="text-lg font-bold text-brand-500 mb-2">{formatPrice(car.price)}</p>
           <div className="flex flex-wrap gap-1.5 mb-3">
-            <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.year}</span>
-            <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{car.mileage?.toLocaleString('fa-IR')} ک.م</span>
+            <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.year)}</span>
+            <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{toPersianNumber(car.mileage?.toLocaleString('fa-IR'))} ک.م</span>
             <span className="px-2 py-0.5 bg-surface-tertiary text-text-secondary text-xs rounded-lg">{FUEL_LABELS[car.fuel_type] || car.fuel_type}</span>
           </div>
           <div className="flex items-center justify-between text-xs text-text-tertiary">
