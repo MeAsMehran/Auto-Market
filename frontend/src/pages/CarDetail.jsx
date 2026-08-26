@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { Phone, MessageCircle, Share2, Heart, MapPin, Clock, Fuel, Gauge, Calendar, Settings, CheckCircle, ChevronLeft, ChevronRight, Shield, Flag, User, Edit3, Eye, Trash2, RotateCcw, Sparkles, Star, Palette, Droplet, Settings2, Car, CircleDot, Wrench, Zap, FileText, ListChecks } from 'lucide-react';
 import { getCar, deleteCar, restoreCar } from '../lib/carApi';
+import { createConversation } from '../lib/chatApi';
 import {
   FUEL_LABELS, TRANSMISSION_LABELS, COLOR_LABELS, CITY_LABELS, BODY_LABELS,
   DETAILED_CONDITION_LABELS, CONDITION_LABELS, getConditionColor,
@@ -125,6 +126,22 @@ export default function CarDetail() {
       setCar({ ...car, is_active: true });
     } catch (err) {
       alert('خطا در بازیابی آگهی. لطفاً دوباره تلاش کنید.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleContactSeller = async () => {
+    setActionLoading(true);
+    try {
+      const conversation = await createConversation(car.id);
+      navigate(`/chat?conversation=${conversation.id}`);
+    } catch (err) {
+      if (err.response?.data?.detail) {
+        navigate(`/chat?car_ad=${car.id}`);
+      } else {
+        alert('خطا در ایجاد گفتگو. لطفاً دوباره تلاش کنید.');
+      }
     } finally {
       setActionLoading(false);
     }
@@ -410,13 +427,18 @@ export default function CarDetail() {
             ) : (
               <>
                 <div className="space-y-3">
-                  <Link
-                    to={`/chat?seller=${car.seller?.name || ''}&car=${car.title}`}
-                    className="flex items-center justify-center gap-2 w-full py-3 bg-brand-500 hover:bg-brand-600 text-white font-semibold rounded-xl transition-colors"
+                  <button
+                    onClick={handleContactSeller}
+                    disabled={actionLoading}
+                    className="flex items-center justify-center gap-2 w-full py-3 bg-brand-500 hover:bg-brand-600 disabled:bg-brand-300 text-white font-semibold rounded-xl transition-colors"
                   >
-                    <MessageCircle className="w-4 h-4" />
+                    {actionLoading ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <MessageCircle className="w-4 h-4" />
+                    )}
                     گفتگو با فروشنده
-                  </Link>
+                  </button>
 
                   {showPhone ? (
                     <a
